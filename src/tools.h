@@ -8,13 +8,16 @@
 #include "enums.h"
 #include "position.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <string_view>
 #include <utility>
 
 void printXMLError(std::string_view where, std::string_view fileName, const pugi::xml_parse_result& result);
 
 std::string transformToSHA1(std::string_view input);
 std::string transformToSHA1Hex(std::string_view input);
-std::string generateToken(const std::string& key, uint32_t ticks);
+std::string generateToken(std::string_view key, uint64_t counter, size_t length = 6);
 std::string generateRecoveryKey(int32_t fieldCount, int32_t fieldLength, bool mixCase = false);
 std::string generateSecurePassword(int32_t length = 12);
 bool validateAndFormatPlayerName(std::string& name);

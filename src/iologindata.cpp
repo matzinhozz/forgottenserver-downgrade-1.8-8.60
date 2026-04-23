@@ -14,6 +14,8 @@
 #include "vocation.h"
 #include "logger.h"
 #include "tools.h"
+#include <cctype>
+#include <ctime>
 #include <fmt/format.h>
 
 extern Game g_game;
@@ -45,11 +47,16 @@ std::string decodeSecret(std::string_view secret)
 
 	uint32_t buffer = 0, left = 0;
 	for (const auto& ch : secret) {
+		if (ch == ' ' || ch == '-') {
+			continue;
+		}
+
+		const char normalized = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
 		buffer <<= 5;
-		if (ch >= 'A' && ch <= 'Z') {
-			buffer |= (ch & 0x1F) - 1;
-		} else if (ch >= '2' && ch <= '7') {
-			buffer |= ch - 24;
+		if (normalized >= 'A' && normalized <= 'Z') {
+			buffer |= (normalized & 0x1F) - 1;
+		} else if (normalized >= '2' && normalized <= '7') {
+			buffer |= normalized - 24;
 		} else {
 			// if a key is broken, return empty and the comparison
 			// will always be false since the token must not be empty
@@ -66,8 +73,82 @@ std::string decodeSecret(std::string_view secret)
 	return key;
 }
 
+namespace {
+constexpr size_t AUTHENTICATOR_TOKEN_LENGTH = 6;
+constexpr uint64_t AUTHENTICATOR_INTERVAL = 30;
+constexpr int32_t AUTHENTICATOR_WINDOW = 1;
+
+struct PasswordToken
+{
+	std::string password;
+	std::string token;
+};
+
+std::string normalizeAuthenticatorToken(std::string_view token)
+{
+	std::string normalized;
+	normalized.reserve(token.size());
+	for (const char ch : token) {
+		if (std::isdigit(static_cast<unsigned char>(ch))) {
+			normalized.push_back(ch);
+		}
+	}
+	return normalized;
+}
+
+PasswordToken extractPasswordToken(std::string_view password)
+{
+	PasswordToken credentials{std::string{password}, {}};
+	const auto separator = credentials.password.rfind('\n');
+	if (separator == std::string::npos) {
+		return credentials;
+	}
+
+	auto token = normalizeAuthenticatorToken(std::string_view{credentials.password}.substr(separator + 1));
+	if (token.size() != AUTHENTICATOR_TOKEN_LENGTH) {
+		return credentials;
+	}
+
+	credentials.password.erase(separator);
+	credentials.token = std::move(token);
+	return credentials;
+}
+
+bool validateAuthenticatorToken(std::string_view secret, std::string_view token)
+{
+	if (secret.empty()) {
+		return true;
+	}
+
+	const auto normalizedToken = normalizeAuthenticatorToken(token);
+	if (normalizedToken.size() != AUTHENTICATOR_TOKEN_LENGTH) {
+		return false;
+	}
+
+	const auto key = decodeSecret(secret);
+	if (key.empty()) {
+		return false;
+	}
+
+	const uint64_t currentCounter = static_cast<uint64_t>(std::time(nullptr)) / AUTHENTICATOR_INTERVAL;
+	for (int32_t offset = -AUTHENTICATOR_WINDOW; offset <= AUTHENTICATOR_WINDOW; ++offset) {
+		if (offset < 0 && currentCounter < static_cast<uint64_t>(-offset)) {
+			continue;
+		}
+
+		const uint64_t counter = static_cast<uint64_t>(static_cast<int64_t>(currentCounter) + offset);
+		if (generateToken(key, counter, AUTHENTICATOR_TOKEN_LENGTH) == normalizedToken) {
+			return true;
+		}
+	}
+
+	return false;
+}
+} // namespace
+
 bool IOLoginData::loginserverAuthentication(std::string_view name, std::string_view password, Account& account)
 {
+	const auto credentials = extractPasswordToken(password);
     Database& db = Database::getInstance();
 
     DBResult_ptr result = db.storeQuery(fmt::format(
@@ -77,13 +158,18 @@ bool IOLoginData::loginserverAuthentication(std::string_view name, std::string_v
         return false;
     }
 
-    if (transformToSHA1(password) != result->getString("password")) {
+    if (transformToSHA1(credentials.password) != result->getString("password")) {
         return false;
     }
 
+	const auto secret = result->getString("secret");
+	if (!validateAuthenticatorToken(secret, credentials.token)) {
+		return false;
+	}
+
 	account.id = result->getNumber<uint32_t>("id");
 	account.name = result->getString("name");
-	account.key = decodeSecret(result->getString("secret"));
+	account.key = decodeSecret(secret);
 	account.accountType = static_cast<AccountType_t>(result->getNumber<int32_t>("type"));
 	account.premiumEndsAt = result->getNumber<time_t>("premium_ends_at");
 	account.tibiaCoins = result->getNumber<uint64_t>("tibia_coins");
@@ -109,6 +195,7 @@ std::pair<uint32_t, uint32_t> IOLoginData::gameworldAuthentication(std::string_v
 		return {0, 0};
 	}
 
+	const auto credentials = extractPasswordToken(password);
     Database& db = Database::getInstance();
     
     std::string query = fmt::format(
@@ -126,9 +213,13 @@ std::pair<uint32_t, uint32_t> IOLoginData::gameworldAuthentication(std::string_v
         }
 
         uint32_t fallbackAccountId = accountCheck->getNumber<uint32_t>("id");
-        if (transformToSHA1(password) != accountCheck->getString("password")) {
+        if (transformToSHA1(credentials.password) != accountCheck->getString("password")) {
             return {};
         }
+
+		if (!validateAuthenticatorToken(accountCheck->getString("secret"), credentials.token)) {
+			return {};
+		}
 
         // Special-case: Account Manager selection from non-1 account
         if (ConfigManager::getBoolean(ConfigManager::ACCOUNT_MANAGER) && characterName == "Account Manager" && fallbackAccountId != 1) {
@@ -153,9 +244,13 @@ std::pair<uint32_t, uint32_t> IOLoginData::gameworldAuthentication(std::string_v
         return {fallbackAccountId, fallbackCharacterId};
     }
 
-    if (transformToSHA1(password) != result->getString("password")) {
+    if (transformToSHA1(credentials.password) != result->getString("password")) {
         return {};
     }
+
+	if (!validateAuthenticatorToken(result->getString("secret"), credentials.token)) {
+		return {};
+	}
 
 	uint32_t accountId = result->getNumber<uint32_t>("account_id");
 	uint32_t characterId = result->getNumber<uint32_t>("character_id");

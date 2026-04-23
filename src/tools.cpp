@@ -134,6 +134,9 @@ std::string generateToken(std::string_view key, uint64_t counter, size_t length 
 	    (static_cast<unsigned char>(mac[offset + 2]) << 8u) | (static_cast<unsigned char>(mac[offset + 3]) << 0u);
 
 	auto token = std::to_string(p & 0x7fffffff);
+	if (token.size() < length) {
+		token.insert(token.begin(), length - token.size(), '0');
+	}
 	return token.substr(token.size() - length);
 }
 
