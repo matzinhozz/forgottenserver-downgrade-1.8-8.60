@@ -3056,7 +3056,8 @@ int LuaScriptInterface::luaDoAreaCombat(lua_State* L)
 		CombatDamage damage;
 		damage.origin = Lua::getInteger<CombatOrigin>(L, 8, ORIGIN_SPELL);
 		damage.primary.type = combatType;
-		damage.primary.value = normal_random(Lua::getNumber<int32_t>(L, 6), Lua::getNumber<int32_t>(L, 5));
+		damage.primary.value = normal_combat_random(Lua::getNumber<CombatValue>(L, 6),
+		                                            Lua::getNumber<CombatValue>(L, 5));
 
 		Combat::doAreaCombat(creature, Lua::getPosition(L, 3), area, damage, params);
 		Lua::pushBoolean(L, true);
@@ -3097,7 +3098,8 @@ int LuaScriptInterface::luaDoTargetCombat(lua_State* L)
 	CombatDamage damage;
 	damage.origin = Lua::getInteger<CombatOrigin>(L, 7, ORIGIN_SPELL);
 	damage.primary.type = combatType;
-	damage.primary.value = normal_random(Lua::getNumber<int32_t>(L, 4), Lua::getNumber<int32_t>(L, 5));
+	damage.primary.value = normal_combat_random(Lua::getNumber<CombatValue>(L, 4),
+	                                            Lua::getNumber<CombatValue>(L, 5));
 
 	Combat::doTargetCombat(creature, target, damage, params);
 	Lua::pushBoolean(L, true);

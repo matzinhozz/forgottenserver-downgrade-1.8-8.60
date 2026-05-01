@@ -50,6 +50,10 @@ constexpr bool hasBitSet(uint32_t flag, uint32_t flags) { return (flags & flag) 
 std::mt19937& getRandomGenerator();
 int32_t uniform_random(int32_t minNumber, int32_t maxNumber);
 int32_t normal_random(int32_t minNumber, int32_t maxNumber);
+int64_t uniform_random64(int64_t minNumber, int64_t maxNumber);
+int64_t normal_random64(int64_t minNumber, int64_t maxNumber);
+CombatValue normal_combat_random(CombatValue minNumber, CombatValue maxNumber);
+CombatValue normal_combat_random(double minNumber, double maxNumber);
 bool boolean_random(double probability = 0.5);
 
 Position getNextPosition(Direction direction, Position pos);

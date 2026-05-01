@@ -69,28 +69,28 @@ CombatDamage Combat::getCombatDamage(Creature* creature, Creature* target) const
 	damage.origin = params.origin;
 	damage.primary.type = params.combatType;
 	if (formulaType == COMBAT_FORMULA_DAMAGE) {
-		damage.primary.value = normal_random(static_cast<int32_t>(mina), static_cast<int32_t>(maxa));
+		damage.primary.value = normal_combat_random(mina, maxa);
 	} else if (creature) {
-		int32_t min, max;
+		CombatValue min, max;
 		if (creature->getCombatValues(min, max)) {
-			damage.primary.value = normal_random(min, max);
+			damage.primary.value = normal_combat_random(min, max);
 		} else if (Player* player = creature->getPlayer()) {
 			if (params.valueCallback) {
 				params.valueCallback->getMinMaxValues(player, damage);
 			} else if (formulaType == COMBAT_FORMULA_LEVELMAGIC) {
 				int32_t levelFormula = player->getLevel() * 2 + player->getMagicLevel() * 3;
 				damage.primary.value =
-				    normal_random(std::fma(levelFormula, mina, minb), std::fma(levelFormula, maxa, maxb));
+				    normal_combat_random(std::fma(levelFormula, mina, minb), std::fma(levelFormula, maxa, maxb));
 			} else if (formulaType == COMBAT_FORMULA_SKILL) {
 				Item* tool = player->getWeapon();
 				const Weapon* weapon = g_weapons->getWeapon(tool);
 				if (weapon) {
 					damage.primary.value =
-					    normal_random(minb, std::fma(weapon->getWeaponDamage(player, target, tool, true), maxa, maxb));
+					    normal_combat_random(minb, std::fma(weapon->getWeaponDamage(player, target, tool, true), maxa, maxb));
 					damage.secondary.type = weapon->getElementType();
 					damage.secondary.value = weapon->getElementDamage(player, target, tool);
 				} else {
-					damage.primary.value = normal_random(minb, maxb);
+					damage.primary.value = normal_combat_random(minb, maxb);
 				}
 			}
 		}
@@ -924,8 +924,8 @@ void Combat::doTargetCombat(Creature* caster, Creature* target, CombatDamage& da
 					skill = 5000;
 				}
 				if (chance > 0 && skill > 0 && uniform_random(1, 10000) <= chance) {
-					damage.primary.value += std::round(damage.primary.value * (skill / 10000.));
-					damage.secondary.value += std::round(damage.secondary.value * (skill / 10000.));
+					damage.primary.value += std::llround(damage.primary.value * (skill / 10000.));
+					damage.secondary.value += std::llround(damage.secondary.value * (skill / 10000.));
 					damage.critical = true;
 				}
 			}
@@ -940,8 +940,8 @@ void Combat::doTargetCombat(Creature* caster, Creature* target, CombatDamage& da
 						fatalChance *= (1.0 + ampChance);
 					}
 					if (fatalChance > 0 && (normal_random(1, 10000) / 100.0) < fatalChance) {
-						int32_t fatalPrimary = std::round(damage.primary.value * 0.5);
-						int32_t fatalSecondary = std::round(damage.secondary.value * 0.5);
+						CombatValue fatalPrimary = std::llround(damage.primary.value * 0.5);
+						CombatValue fatalSecondary = std::llround(damage.secondary.value * 0.5);
 						damage.primary.value += fatalPrimary;
 						damage.secondary.value += fatalSecondary;
 						damage.fatal = true;
@@ -1055,7 +1055,7 @@ void Combat::doTargetCombat(Creature* caster, Creature* target, CombatDamage& da
 			leechCombat.origin = ORIGIN_NONE;
 			leechCombat.leeched = true;
 
-			int32_t totalDamage = std::abs(damage.primary.value + damage.secondary.value);
+			CombatValue totalDamage = std::abs(damage.primary.value + damage.secondary.value);
 
 			if (casterPlayer->getHealth() < casterPlayer->getMaxHealth()) {
 				uint16_t chance = casterPlayer->getSpecialSkill(SPECIALSKILL_LIFELEECHCHANCE);
@@ -1102,8 +1102,8 @@ void Combat::doAreaCombat(Creature* caster, const Position& position, const Area
 	    caster ? getCombatArea(caster->getPosition(), position, area) : getCombatArea(position, position, area);
 
 	Player* casterPlayer = caster ? caster->getPlayer() : nullptr;
-	int32_t criticalPrimary = 0;
-	int32_t criticalSecondary = 0;
+	CombatValue criticalPrimary = 0;
+	CombatValue criticalSecondary = 0;
 	if (!damage.critical && damage.primary.type != COMBAT_HEALING && casterPlayer &&
 	    damage.origin != ORIGIN_CONDITION) {
 		uint16_t chance = casterPlayer->getSpecialSkill(SPECIALSKILL_CRITICALHITCHANCE);
@@ -1111,8 +1111,8 @@ void Combat::doAreaCombat(Creature* caster, const Position& position, const Area
 
 		if (skill == 0 && chance > 0) { skill = 5000; }
 		if (chance > 0 && skill > 0 && uniform_random(1, 10000) <= chance) {
-			criticalPrimary = std::round(damage.primary.value * (skill / 10000.));
-			criticalSecondary = std::round(damage.secondary.value * (skill / 10000.));
+			criticalPrimary = std::llround(damage.primary.value * (skill / 10000.));
+			criticalSecondary = std::llround(damage.secondary.value * (skill / 10000.));
 			damage.critical = true;
 		}
 	}
@@ -1225,7 +1225,7 @@ void Combat::doAreaCombat(Creature* caster, const Position& position, const Area
 				}
 			}
 
-			int32_t totalDamage = std::abs(damageCopy.primary.value + damageCopy.secondary.value);
+			CombatValue totalDamage = std::abs(damageCopy.primary.value + damageCopy.secondary.value);
 
 			if (casterPlayer && !damage.leeched && damage.primary.type != COMBAT_HEALING &&
 			    damage.origin != ORIGIN_CONDITION) {
@@ -1344,8 +1344,7 @@ void ValueCallback::getMinMaxValues(Player* player, CombatDamage& damage) const
 	if (lua_pcall(L, parameters, 2, 0) != 0) {
 		LuaScriptInterface::reportError(nullptr, Lua::popString(L));
 	} else {
-		damage.primary.value = normal_random(static_cast<int32_t>(Lua::getNumber<double>(L, -2)),
-		                                     static_cast<int32_t>(Lua::getNumber<double>(L, -1)));
+		damage.primary.value = normal_combat_random(Lua::getNumber<double>(L, -2), Lua::getNumber<double>(L, -1));
 		lua_pop(L, 2);
 	}
 

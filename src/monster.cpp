@@ -852,7 +852,7 @@ void Monster::onFollowCreatureComplete(const Creature* creature)
 	}
 }
 
-BlockType_t Monster::blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage,
+BlockType_t Monster::blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, CombatValue& damage,
                               bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool /* field = false */,
                               bool /* ignoreResistances = false */)
 {
@@ -866,7 +866,7 @@ BlockType_t Monster::blockHit(const std::shared_ptr<Creature>& attacker, CombatT
 		}
 
 		if (elementMod != 0) {
-			damage = static_cast<int32_t>(std::round(damage * ((100 - elementMod) / 100.)));
+			damage = static_cast<CombatValue>(std::llround(damage * ((100 - elementMod) / 100.)));
 			if (damage <= 0) {
 				damage = 0;
 				blockType = BLOCK_ARMOR;
@@ -1147,8 +1147,8 @@ void Monster::doAttacking(uint32_t interval)
 					updateLook = false;
 				}
 
-				int32_t minVal = spellBlock.minCombatValue;
-				int32_t maxVal = spellBlock.maxCombatValue;
+				CombatValue minVal = spellBlock.minCombatValue;
+				CombatValue maxVal = spellBlock.maxCombatValue;
 				if (minVal > maxVal) {
 					std::swap(minVal, maxVal);
 				}
@@ -2212,7 +2212,7 @@ bool Monster::isInSpawnRange(const Position& pos) const
 	return true;
 }
 
-bool Monster::getCombatValues(int32_t& min, int32_t& max)
+bool Monster::getCombatValues(CombatValue& min, CombatValue& max)
 {
 	if (minCombatValue == 0 && maxCombatValue == 0) {
 		return false;

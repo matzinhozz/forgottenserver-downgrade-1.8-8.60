@@ -588,7 +588,7 @@ int luaCreatureAddHealth(lua_State* L)
 	}
 
 	CombatDamage damage;
-	damage.primary.value = getInteger<int32_t>(L, 2);
+	damage.primary.value = getInteger<CombatValue>(L, 2);
 	if (damage.primary.value >= 0) {
 		damage.primary.type = COMBAT_HEALING;
 	} else {

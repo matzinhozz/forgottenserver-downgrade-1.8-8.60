@@ -690,12 +690,14 @@ enum CombatOrigin
 	ORIGIN_REFLECT,
 };
 
+using CombatValue = int64_t;
+
 struct CombatDamage
 {
 	struct
 	{
 		CombatType_t type = COMBAT_NONE;
-		int32_t value = 0;
+		CombatValue value = 0;
 	} primary = {}, secondary = {};
 
 	CombatOrigin origin = ORIGIN_NONE;

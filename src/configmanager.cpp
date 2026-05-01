@@ -346,6 +346,7 @@ bool ConfigManager::load()
 	booleans[Boolean::MONK_VOCATION_ENABLED] = getGlobalBoolean(L, "monkVocationEnabled", false);
 	booleans[Boolean::FAMILIAR_SYSTEM_ENABLED] = getGlobalBoolean(L, "familiarSystemEnabled", false);
 	booleans[Boolean::ALLOW_MOUNT_IN_PZ] = getGlobalBoolean(L, "allowMountInPz", false);
+	booleans[Boolean::USE_64BIT_DAMAGE] = getGlobalBoolean(L, "use64BitDamage", false);
 
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);

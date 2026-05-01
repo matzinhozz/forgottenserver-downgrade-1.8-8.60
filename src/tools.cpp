@@ -289,6 +289,32 @@ std::mt19937& getRandomGenerator()
 	return generator;
 }
 
+namespace {
+
+int32_t clampToInt32(double value)
+{
+	if (value > std::numeric_limits<int32_t>::max()) {
+		return std::numeric_limits<int32_t>::max();
+	}
+	if (value < std::numeric_limits<int32_t>::min()) {
+		return std::numeric_limits<int32_t>::min();
+	}
+	return static_cast<int32_t>(value);
+}
+
+int32_t clampToInt32(CombatValue value)
+{
+	if (value > std::numeric_limits<int32_t>::max()) {
+		return std::numeric_limits<int32_t>::max();
+	}
+	if (value < std::numeric_limits<int32_t>::min()) {
+		return std::numeric_limits<int32_t>::min();
+	}
+	return static_cast<int32_t>(value);
+}
+
+} // namespace
+
 void toLowerCaseString(std::string& source)
 {
 	std::transform(source.begin(), source.end(), source.begin(), tolower);
@@ -311,6 +337,18 @@ int32_t uniform_random(int32_t minNumber, int32_t maxNumber)
 	return uniformRand(getRandomGenerator(), std::uniform_int_distribution<int32_t>::param_type(minNumber, maxNumber));
 }
 
+int64_t uniform_random64(int64_t minNumber, int64_t maxNumber)
+{
+	static std::uniform_int_distribution<int64_t> uniformRand;
+	if (minNumber == maxNumber) {
+		return minNumber;
+	} else if (minNumber > maxNumber) {
+		std::swap(minNumber, maxNumber);
+	}
+	return uniformRand(getRandomGenerator(),
+	                   std::uniform_int_distribution<int64_t>::param_type(minNumber, maxNumber));
+}
+
 int32_t normal_random(int32_t minNumber, int32_t maxNumber)
 {
 	static std::normal_distribution<float> normalRand(0.5f, 0.25f);
@@ -322,6 +360,35 @@ int32_t normal_random(int32_t minNumber, int32_t maxNumber)
 
 	auto&& [a, b] = std::minmax(minNumber, maxNumber);
 	return a + std::lround(v * (b - a));
+}
+
+int64_t normal_random64(int64_t minNumber, int64_t maxNumber)
+{
+	static std::normal_distribution<double> normalRand(0.5, 0.25);
+
+	double v;
+	do {
+		v = normalRand(getRandomGenerator());
+	} while (v < 0.0 || v > 1.0);
+
+	auto&& [a, b] = std::minmax(minNumber, maxNumber);
+	return a + std::llround(v * static_cast<double>(b - a));
+}
+
+CombatValue normal_combat_random(CombatValue minNumber, CombatValue maxNumber)
+{
+	if (ConfigManager::getBoolean(ConfigManager::USE_64BIT_DAMAGE)) {
+		return normal_random64(minNumber, maxNumber);
+	}
+	return normal_random(clampToInt32(minNumber), clampToInt32(maxNumber));
+}
+
+CombatValue normal_combat_random(double minNumber, double maxNumber)
+{
+	if (ConfigManager::getBoolean(ConfigManager::USE_64BIT_DAMAGE)) {
+		return normal_random64(static_cast<int64_t>(minNumber), static_cast<int64_t>(maxNumber));
+	}
+	return normal_random(clampToInt32(minNumber), clampToInt32(maxNumber));
 }
 
 bool boolean_random(double probability /* = 0.5*/)

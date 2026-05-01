@@ -30,7 +30,7 @@ struct TextMessage
 	uint16_t channelId;
 	struct
 	{
-		int32_t value = 0;
+		CombatValue value = 0;
 		TextColor_t color;
 	} primary, secondary;
 

@@ -47,6 +47,8 @@ protectionLevel = 1
 killsToRedSkull = 3
 killsToBlackSkull = 6
 pzLocked = 60000
+-- false keeps default 32-bit damage behavior; true allows 64-bit damage formulas
+use64BitDamage = false
 removeChargesFromRunes = true
 removeChargesFromPotions = true
 removeWeaponAmmunition = true

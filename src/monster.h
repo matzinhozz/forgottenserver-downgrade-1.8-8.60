@@ -116,7 +116,7 @@ public:
 	bool challengeCreature(Creature* creature, bool force = false) override;
 
 	void setNormalCreatureLight() override;
-	bool getCombatValues(int32_t& min, int32_t& max) override;
+	bool getCombatValues(CombatValue& min, CombatValue& max) override;
 
 	void doAttacking(uint32_t interval) override;
 	bool hasExtraSwing() override { return lastMeleeAttack == 0; }
@@ -137,7 +137,7 @@ public:
 	bool isTargetNearby() const { return stepDuration >= 1; }
 	bool isIgnoringFieldDamage() const { return ignoreFieldDamage; }
 
-	BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage, bool checkDefense = false,
+	BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, CombatValue& damage, bool checkDefense = false,
 	                     bool checkArmor = false, bool field = false, bool ignoreResistances = false) override;
 
 	static uint32_t monsterAutoID;
@@ -178,8 +178,8 @@ private:
 	uint32_t targetChangeTicks = 0;
 	uint32_t defenseTicks = 0;
 	uint32_t yellTicks = 0;
-	int32_t minCombatValue = 0;
-	int32_t maxCombatValue = 0;
+	CombatValue minCombatValue = 0;
+	CombatValue maxCombatValue = 0;
 	int32_t targetChangeCooldown = 0;
 	int32_t challengeFocusDuration = 0;
 	int32_t stepDuration = 0;

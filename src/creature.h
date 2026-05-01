@@ -233,7 +233,7 @@ public:
 	// combat functions
 	std::shared_ptr<Creature> getAttackedCreatureShared() const { return attackedCreature.lock(); }
 	virtual bool setAttackedCreature(Creature* creature);
-	virtual BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage,
+	virtual BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, CombatValue& damage,
 	                             bool checkDefense = false, bool checkArmor = false, bool field = false,
 	                             bool ignoreResistances = false);
 
@@ -328,7 +328,7 @@ public:
 
 	virtual void onPlacedCreature() {}
 
-	virtual bool getCombatValues(int32_t&, int32_t&) { return false; }
+	virtual bool getCombatValues(CombatValue&, CombatValue&) { return false; }
 
 	size_t getSummonCount() const;
 	void setDropLoot(bool lootDrop) { this->lootDrop = lootDrop; }

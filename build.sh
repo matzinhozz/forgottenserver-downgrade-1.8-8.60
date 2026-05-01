@@ -857,13 +857,26 @@ ensure_lua_pkgconfig() {
   ok "$(printf "$(msg lua_pc_ok)" "${primary_pc_file}")"
 }
 
+run_optional_privileged() {
+  if [[ "${EUID}" -eq 0 ]]; then
+    "$@" >/dev/null 2>&1 || true
+    return
+  fi
+
+  if [[ "${NONINTERACTIVE}" -eq 1 || ! -t 0 ]]; then
+    sudo -n "$@" >/dev/null 2>&1 || true
+  else
+    sudo "$@" >/dev/null 2>&1 || true
+  fi
+}
+
 ensure_lua_alternatives() {
   if [[ -x "${LUA_PREFIX}/bin/lua" ]]; then
-    "${SUDO[@]}" update-alternatives --install /usr/bin/lua lua "${LUA_PREFIX}/bin/lua" 100 >/dev/null 2>&1 || true
+    run_optional_privileged update-alternatives --install /usr/bin/lua lua "${LUA_PREFIX}/bin/lua" 100
   fi
 
   if [[ -x "${LUA_PREFIX}/bin/luac" ]]; then
-    "${SUDO[@]}" update-alternatives --install /usr/bin/luac luac "${LUA_PREFIX}/bin/luac" 100 >/dev/null 2>&1 || true
+    run_optional_privileged update-alternatives --install /usr/bin/luac luac "${LUA_PREFIX}/bin/luac" 100
   fi
 }
 

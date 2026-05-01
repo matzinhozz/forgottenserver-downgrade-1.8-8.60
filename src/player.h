@@ -566,7 +566,7 @@ public:
 	void changeSoul(int32_t soulChange);
 
 	bool isPzLocked() const { return pzLocked; }
-	BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage, bool checkDefense = false,
+	BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, CombatValue& damage, bool checkDefense = false,
 	                     bool checkArmor = false, bool field = false, bool ignoreResistances = false) override;
 	void doAttacking(uint32_t interval) override;
 	bool hasExtraSwing() override { return lastAttack > 0 && ((OTSYS_TIME() - lastAttack) >= getAttackSpeed()); }

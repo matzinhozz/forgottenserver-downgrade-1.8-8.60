@@ -6,8 +6,8 @@ monster.description = "a trainer"
 monster.experience = 0
 monster.outfit = { lookType = 57 }
 
-monster.health = 1000000
-monster.maxHealth = 1000000
+monster.health = 99999999999999
+monster.maxHealth = 99999999999999
 monster.race = "blood"
 monster.corpse = 111
 monster.speed = 0

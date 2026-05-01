@@ -73,8 +73,8 @@ struct spellBlock_t
 	uint32_t chance = 100;
 	uint32_t speed = 2000;
 	uint32_t range = 0;
-	int32_t minCombatValue = 0;
-	int32_t maxCombatValue = 0;
+	CombatValue minCombatValue = 0;
+	CombatValue maxCombatValue = 0;
 	bool combatSpell = false;
 	bool isMelee = false;
 };
@@ -203,8 +203,8 @@ public:
 
 	uint16_t interval = 2000;
 
-	int32_t minCombatValue = 0;
-	int32_t maxCombatValue = 0;
+	CombatValue minCombatValue = 0;
+	CombatValue maxCombatValue = 0;
 	int32_t attack = 0;
 	int32_t skill = 0;
 	int32_t length = 0;

@@ -77,6 +77,7 @@ enum Boolean
 	MONK_VOCATION_ENABLED,
 	FAMILIAR_SYSTEM_ENABLED,
 	ALLOW_MOUNT_IN_PZ,
+	USE_64BIT_DAMAGE,
 
 	LAST_BOOLEAN /* this must be the last one */
 };

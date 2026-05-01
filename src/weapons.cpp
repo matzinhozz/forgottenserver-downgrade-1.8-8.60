@@ -244,7 +244,7 @@ bool Weapon::useFist(Player* player, Creature* target)
 	CombatDamage damage;
 	damage.origin = ORIGIN_MELEE;
 	damage.primary.type = params.combatType;
-	damage.primary.value = -normal_random(0, maxDamage);
+	damage.primary.value = -normal_combat_random(CombatValue{0}, maxDamage);
 
 	Combat::doTargetCombat(player, target, damage, params);
 	if (!player->hasFlag(PlayerFlag_NotGainSkill) && player->getAddAttackSkill()) {
@@ -276,7 +276,7 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 		damage.secondary.value = getElementDamage(player, target, item);
 		Combat::doTargetCombat(player, target, damage, params);
 		if (item->hasImbuements()) {
-			int32_t basePhysDamage = std::abs(damage.primary.value);
+			CombatValue basePhysDamage = std::abs(damage.primary.value);
 			if (basePhysDamage > 0) {
 				for (auto& imbue : item->getImbuements()) {
 					if (!imbue->isDamage()) continue;

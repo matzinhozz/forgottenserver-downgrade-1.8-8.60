@@ -53,6 +53,17 @@ bool areDifferentNonZeroInstances(const Creature* first, const Creature* second)
 	return firstInstanceId != 0 && secondInstanceId != 0 && firstInstanceId != secondInstanceId;
 }
 
+int32_t clampToInt32(CombatValue value)
+{
+	if (value > std::numeric_limits<int32_t>::max()) {
+		return std::numeric_limits<int32_t>::max();
+	}
+	if (value < std::numeric_limits<int32_t>::min()) {
+		return std::numeric_limits<int32_t>::min();
+	}
+	return static_cast<int32_t>(value);
+}
+
 bool isLocalPositionTalk(SpeakClasses type)
 {
 	return type == TALKTYPE_SAY || type == TALKTYPE_WHISPER || type == TALKTYPE_YELL ||
@@ -4843,10 +4854,10 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 
 	const Position& targetPos = target->getPosition();
 	if (damage.primary.type == COMBAT_HEALING) {
-		int32_t healAmount = damage.primary.value + damage.secondary.value;
+		CombatValue healAmount = damage.primary.value + damage.secondary.value;
 		if (healAmount > 0) {
 			int32_t realHeal = target->getHealth();
-			target->gainHealth(attackerRef, healAmount);
+			target->gainHealth(attackerRef, clampToInt32(healAmount));
 			realHeal = target->getHealth() - realHeal;
 
 			if (realHeal > 0) {
@@ -4905,7 +4916,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 		}
 
 		int32_t realHealthChange = target->getHealth();
-		target->gainHealth(attackerRef, damage.primary.value);
+		target->gainHealth(attackerRef, clampToInt32(damage.primary.value));
 		realHealthChange = target->getHealth() - realHealthChange;
 
 		// rewardboss healing contribution
@@ -5002,7 +5013,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 		if (attackerPlayer && ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
 			uint32_t resets = attackerPlayer->getReset();
 			if (resets > 0) {
-				int32_t bonusPercent = resets * ConfigManager::getInteger(ConfigManager::RESET_DMGBONUS);
+				CombatValue bonusPercent = resets * ConfigManager::getInteger(ConfigManager::RESET_DMGBONUS);
 				if (bonusPercent > 0) {
 					damage.primary.value += damage.primary.value * bonusPercent / 100;
 					damage.secondary.value += damage.secondary.value * bonusPercent / 100;
@@ -5011,11 +5022,11 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 		}
 
 		if (targetPlayer && targetPlayer->isAvatarActive()) {
-			damage.primary.value -= static_cast<int32_t>(std::ceil(damage.primary.value * AVATAR_DAMAGE_REDUCTION_PERCENT / 100.0));
-			damage.secondary.value -= static_cast<int32_t>(std::ceil(damage.secondary.value * AVATAR_DAMAGE_REDUCTION_PERCENT / 100.0));
+			damage.primary.value -= static_cast<CombatValue>(std::llround(std::ceil(damage.primary.value * AVATAR_DAMAGE_REDUCTION_PERCENT / 100.0)));
+			damage.secondary.value -= static_cast<CombatValue>(std::llround(std::ceil(damage.secondary.value * AVATAR_DAMAGE_REDUCTION_PERCENT / 100.0)));
 		}
 
-		int32_t healthChange = damage.primary.value + damage.secondary.value;
+		CombatValue healthChange = damage.primary.value + damage.secondary.value;
 		if (healthChange == 0) {
 			return true;
 		}
@@ -5025,7 +5036,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 		SpectatorVec spectators;
 		if (targetPlayer && target->hasCondition(CONDITION_MANASHIELD) &&
 		    damage.primary.type != COMBAT_UNDEFINEDDAMAGE) {
-			int32_t manaDamage = std::min<int32_t>(targetPlayer->getMana(), healthChange);
+			int32_t manaDamage = clampToInt32(std::min<CombatValue>(targetPlayer->getMana(), healthChange));
 			if (manaDamage != 0) {
 				if (damage.origin != ORIGIN_NONE) {
 					const auto& events = target->getCreatureEvents(CREATURE_EVENT_MANACHANGE);
@@ -5037,7 +5048,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 						if (healthChange == 0) {
 							return true;
 						}
-						manaDamage = std::min<int32_t>(targetPlayer->getMana(), healthChange);
+						manaDamage = clampToInt32(std::min<CombatValue>(targetPlayer->getMana(), healthChange));
 					}
 				}
 
@@ -5096,13 +5107,13 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 
 				damage.primary.value -= manaDamage;
 				if (damage.primary.value < 0) {
-					damage.secondary.value = std::max<int32_t>(0, damage.secondary.value + damage.primary.value);
+					damage.secondary.value = std::max<CombatValue>(0, damage.secondary.value + damage.primary.value);
 					damage.primary.value = 0;
 				}
 			}
 		}
 
-		int32_t realDamage = damage.primary.value + damage.secondary.value;
+		CombatValue realDamage = damage.primary.value + damage.secondary.value;
 		if (realDamage == 0) {
 			return true;
 		}
@@ -5118,12 +5129,12 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 			}
 		}
 
-		int32_t targetHealth = target->getHealth();
+		CombatValue targetHealth = target->getHealth();
 		if (damage.primary.value >= targetHealth) {
 			damage.primary.value = targetHealth;
 			damage.secondary.value = 0;
 		} else if (damage.secondary.value) {
-			damage.secondary.value = std::min<int32_t>(damage.secondary.value, targetHealth - damage.primary.value);
+			damage.secondary.value = std::min<CombatValue>(damage.secondary.value, targetHealth - damage.primary.value);
 		}
 
 		realDamage = damage.primary.value + damage.secondary.value;
@@ -5243,7 +5254,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 			}
 		}
 
-		target->drainHealth(attackerRef, realDamage);
+		target->drainHealth(attackerRef, clampToInt32(realDamage));
 		addCreatureHealth(spectators, target);
 
 		// onPlayerAttack callback
@@ -5270,7 +5281,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 
 	auto attackerRef = attacker ? attacker->shared_from_this() : std::shared_ptr<Creature>();
 
-	int32_t manaChange = damage.primary.value + damage.secondary.value;
+	CombatValue manaChange = damage.primary.value + damage.secondary.value;
 	if (manaChange > 0) {
 		if (attacker) {
 			const Player* attackerPlayer = attacker->getPlayer();
@@ -5292,7 +5303,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 		}
 
 		int32_t realManaChange = targetPlayer->getMana();
-		targetPlayer->changeMana(manaChange);
+		targetPlayer->changeMana(clampToInt32(manaChange));
 		realManaChange = targetPlayer->getMana() - realManaChange;
 
 		if (realManaChange > 0) {
@@ -5340,7 +5351,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 			return false;
 		}
 
-		int32_t manaLoss = std::min<int32_t>(targetPlayer->getMana(), -manaChange);
+		CombatValue manaLoss = std::min<CombatValue>(targetPlayer->getMana(), -manaChange);
 		BlockType_t blockType = target->blockHit(attackerRef, COMBAT_MANADRAIN, manaLoss);
 		if (blockType != BLOCK_NONE) {
 			InstanceUtils::sendMagicEffectToInstance(targetPos, target->getInstanceID(), CONST_ME_POFF);
@@ -5362,7 +5373,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 			}
 		}
 
-		targetPlayer->drainMana(attackerRef, manaLoss);
+		targetPlayer->drainMana(attackerRef, clampToInt32(manaLoss));
 
 		std::string spectatorMessage;
 

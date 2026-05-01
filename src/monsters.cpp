@@ -123,7 +123,7 @@ bool Monsters::deserializeSpell(MonsterSpell* spell, spellBlock_t& sb, const std
 	sb.minCombatValue = spell->minCombatValue;
 	sb.maxCombatValue = spell->maxCombatValue;
 	if (std::abs(sb.minCombatValue) > std::abs(sb.maxCombatValue)) {
-		int32_t value = sb.maxCombatValue;
+		CombatValue value = sb.maxCombatValue;
 		sb.maxCombatValue = sb.minCombatValue;
 		sb.minCombatValue = value;
 	}

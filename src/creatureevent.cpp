@@ -452,9 +452,9 @@ void CreatureEvent::executeHealthChange(Creature* creature, Creature* attacker, 
 	if (scriptInterface->protectedCall(L, 7, 4) != 0) {
 		LuaScriptInterface::reportError(nullptr, Lua::popString(L));
 	} else {
-		damage.primary.value = std::abs(Lua::getInteger<int32_t>(L, -4));
+		damage.primary.value = std::abs(Lua::getInteger<CombatValue>(L, -4));
 		damage.primary.type = Lua::getInteger<CombatType_t>(L, -3);
-		damage.secondary.value = std::abs(Lua::getInteger<int32_t>(L, -2));
+		damage.secondary.value = std::abs(Lua::getInteger<CombatValue>(L, -2));
 		damage.secondary.type = Lua::getInteger<CombatType_t>(L, -1);
 
 		lua_pop(L, 4);
@@ -495,9 +495,9 @@ void CreatureEvent::executeManaChange(Creature* creature, Creature* attacker, Co
 	if (scriptInterface->protectedCall(L, 7, 4) != 0) {
 		LuaScriptInterface::reportError(nullptr, Lua::popString(L));
 	} else {
-		damage.primary.value = Lua::getInteger<int32_t>(L, -4);
+		damage.primary.value = Lua::getInteger<CombatValue>(L, -4);
 		damage.primary.type = Lua::getInteger<CombatType_t>(L, -3);
-		damage.secondary.value = Lua::getInteger<int32_t>(L, -2);
+		damage.secondary.value = Lua::getInteger<CombatValue>(L, -2);
 		damage.secondary.type = Lua::getInteger<CombatType_t>(L, -1);
 		lua_pop(L, 4);
 	}

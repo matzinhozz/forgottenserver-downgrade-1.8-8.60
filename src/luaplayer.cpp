@@ -1612,12 +1612,12 @@ int luaPlayerSendTextMessage(lua_State* L)
 	} else {
 		if (parameters >= 6) {
 			message.position = getPosition(L, 4);
-			message.primary.value = getInteger<int32_t>(L, 5);
+			message.primary.value = getInteger<CombatValue>(L, 5);
 			message.primary.color = getInteger<TextColor_t>(L, 6);
 		}
 
 		if (parameters >= 8) {
-			message.secondary.value = getInteger<int32_t>(L, 7);
+			message.secondary.value = getInteger<CombatValue>(L, 7);
 			message.secondary.color = getInteger<TextColor_t>(L, 8);
 		}
 	}

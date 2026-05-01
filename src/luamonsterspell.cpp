@@ -97,8 +97,8 @@ int luaMonsterSpellSetCombatValue(lua_State* L)
 	// monsterSpell:setCombatValue(min, max)
 	MonsterSpell* spell = getUserdata<MonsterSpell>(L, 1);
 	if (spell) {
-		spell->minCombatValue = getInteger<int32_t>(L, 2);
-		spell->maxCombatValue = getInteger<int32_t>(L, 3);
+		spell->minCombatValue = getInteger<CombatValue>(L, 2);
+		spell->maxCombatValue = getInteger<CombatValue>(L, 3);
 		pushBoolean(L, true);
 	} else {
 		lua_pushnil(L);
