@@ -14,7 +14,10 @@
 #include "scriptmanager.h"
 #include "spells.h"
 
+#include <algorithm>
+#include <cmath>
 #include <fmt/format.h>
+#include <limits>
 
 extern Game g_game;
 extern Monsters g_monsters;
@@ -31,6 +34,78 @@ std::unique_ptr<Monster> Monster::createMonster(const std::string& name)
 		return nullptr;
 	}
 	return std::make_unique<Monster>(mType);
+}
+
+namespace monster_level {
+	struct Config {
+		float bonusDmg = 0.0f;
+		float bonusSpeed = 0.0f;
+		float bonusHP = 0.0f;
+		struct SkullRange { int32_t min = 0; int32_t max = 0; };
+		SkullRange whiteRange = {1, 99};
+		SkullRange redRange = {100, 499};
+		SkullRange blackRange = {500, 2000};
+	};
+
+	static Config config;
+
+	Skulls_t getSkullByLevel(int32_t lvl)
+	{
+		if (lvl >= config.whiteRange.min && lvl <= config.whiteRange.max) {
+			return SKULL_WHITE;
+		}
+		if (lvl >= config.redRange.min && lvl <= config.redRange.max) {
+			return SKULL_RED;
+		}
+		if (lvl >= config.blackRange.min && lvl <= config.blackRange.max) {
+			return SKULL_BLACK;
+		}
+		return SKULL_NONE;
+	}
+
+	bool setSkullRange(Skulls_t skull, int32_t minLevel, int32_t maxLevel)
+	{
+		if (minLevel > maxLevel) {
+			return false;
+		}
+
+		switch (skull) {
+			case SKULL_WHITE:
+				config.whiteRange = {minLevel, maxLevel};
+				return true;
+			case SKULL_RED:
+				config.redRange = {minLevel, maxLevel};
+				return true;
+			case SKULL_BLACK:
+				config.blackRange = {minLevel, maxLevel};
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	bool setBonus(const std::string& type, float value)
+	{
+		if (!std::isfinite(value)) {
+			return false;
+		}
+
+		if (type == "damage") {
+			config.bonusDmg = value;
+			return true;
+		} else if (type == "speed") {
+			config.bonusSpeed = value;
+			return true;
+		} else if (type == "health") {
+			config.bonusHP = value;
+			return true;
+		}
+		return false;
+	}
+
+	float getBonusDamage() { return config.bonusDmg; }
+	float getBonusSpeed() { return config.bonusSpeed; }
+	float getBonusHealth() { return config.bonusHP; }
 }
 
 Skulls_t Monster::getSkull() const
@@ -59,6 +134,32 @@ Monster::Monster(const std::shared_ptr<MonsterType>& mType) : Creature(), nameDe
 	internalLight = mType->info.light;
 	hiddenHealth = mType->info.hiddenHealth;
 	targetList.reserve(24);
+
+	if (ConfigManager::getBoolean(ConfigManager::MONSTER_LEVEL_ENABLED) && mType->info.minLevel > 0 &&
+	    mType->info.maxLevel >= mType->info.minLevel) {
+		level = uniform_random(mType->info.minLevel, mType->info.maxLevel);
+
+		skull = monster_level::getSkullByLevel(level);
+
+		float bonusHP = monster_level::getBonusHealth();
+		if (bonusHP != 0.0f) {
+			const int64_t newHealthMax = static_cast<int64_t>(healthMax) +
+			                             static_cast<int64_t>(
+			                                 std::round(static_cast<double>(healthMax) * bonusHP * level));
+			healthMax = static_cast<int32_t>(std::clamp(newHealthMax, static_cast<int64_t>(1),
+			                                            static_cast<int64_t>(std::numeric_limits<int32_t>::max())));
+			health = healthMax;
+		}
+
+		float bonusSpeed = monster_level::getBonusSpeed();
+		if (bonusSpeed != 0.0f) {
+			const int64_t newSpeed = static_cast<int64_t>(baseSpeed) +
+			                         static_cast<int64_t>(
+			                             std::round(static_cast<double>(baseSpeed) * bonusSpeed * level));
+			baseSpeed = static_cast<uint32_t>(std::clamp(newSpeed, static_cast<int64_t>(0),
+			                                             static_cast<int64_t>(std::numeric_limits<uint32_t>::max())));
+		}
+	}
 
 	// register creature events
 	for (std::string_view scriptName : mType->info.scripts) {

@@ -1377,6 +1377,54 @@ int luaMonsterTypeEnemyFactions(lua_State* L)
 	}
 	return 1;
 }
+
+int luaMonsterTypeMinLevel(lua_State* L)
+{
+	// get: monsterType:minLevel() set: monsterType:minLevel(level)
+	MonsterType* monsterType = getUserdata<MonsterType>(L, 1);
+	if (monsterType) {
+		if (lua_gettop(L) == 1) {
+			lua_pushinteger(L, monsterType->info.minLevel);
+		} else {
+			const int32_t minLevel = getInteger<int32_t>(L, 2);
+			if (monsterType->info.maxLevel > 0 && minLevel > monsterType->info.maxLevel) {
+				reportErrorFunc(L, "minLevel cannot be greater than maxLevel");
+				pushBoolean(L, false);
+				return 1;
+			}
+
+			monsterType->info.minLevel = minLevel;
+			pushBoolean(L, true);
+		}
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaMonsterTypeMaxLevel(lua_State* L)
+{
+	// get: monsterType:maxLevel() set: monsterType:maxLevel(level)
+	MonsterType* monsterType = getUserdata<MonsterType>(L, 1);
+	if (monsterType) {
+		if (lua_gettop(L) == 1) {
+			lua_pushinteger(L, monsterType->info.maxLevel);
+		} else {
+			const int32_t maxLevel = getInteger<int32_t>(L, 2);
+			if (monsterType->info.minLevel > 0 && maxLevel < monsterType->info.minLevel) {
+				reportErrorFunc(L, "maxLevel cannot be less than minLevel");
+				pushBoolean(L, false);
+				return 1;
+			}
+
+			monsterType->info.maxLevel = maxLevel;
+			pushBoolean(L, true);
+		}
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
 } // namespace
 
 void LuaScriptInterface::registerMonsterType()
@@ -1469,4 +1517,6 @@ void LuaScriptInterface::registerMonsterType()
 
 	registerMethod("MonsterType", "faction", luaMonsterTypeFaction);
 	registerMethod("MonsterType", "enemyFactions", luaMonsterTypeEnemyFactions);
+	registerMethod("MonsterType", "minLevel", luaMonsterTypeMinLevel);
+	registerMethod("MonsterType", "maxLevel", luaMonsterTypeMaxLevel);
 }

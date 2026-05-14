@@ -59,7 +59,13 @@ public:
 	const std::string& getNameDescription() const override;
 	void setNameDescription(std::string_view nameDescription) { this->nameDescription = nameDescription; };
 
-	std::string getDescription(int32_t) const override { return nameDescription + '.'; }
+	std::string getDescription(int32_t) const override
+	{
+		if (level > 0) {
+			return nameDescription + " [Level " + std::to_string(level) + "].";
+		}
+		return nameDescription + '.';
+	}
 
 	CreatureType_t getType() const override { return CREATURETYPE_MONSTER; }
 
@@ -88,6 +94,7 @@ public:
 	uint8_t getInfluencedLevel() const { return influencedLevel; }
 	void setInfluencedLevel(uint8_t level) { influencedLevel = level; }
 	Skulls_t getSkull() const override;
+	int32_t getLevel() const { return level; }
 
 	uint32_t getManaCost() const { return mType->info.manaCost; }
 	void setSpawn(std::shared_ptr<Spawn> newSpawn) { spawn = newSpawn; }
@@ -240,5 +247,14 @@ private:
 
 	friend class LuaScriptInterface;
 };
+
+namespace monster_level {
+	bool setSkullRange(Skulls_t skull, int32_t minLevel, int32_t maxLevel);
+	bool setBonus(const std::string& type, float value);
+	Skulls_t getSkullByLevel(int32_t level);
+	float getBonusDamage();
+	float getBonusSpeed();
+	float getBonusHealth();
+}
 
 #endif

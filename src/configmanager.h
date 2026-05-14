@@ -83,6 +83,7 @@ enum Boolean
 	MODIFY_DAMAGE_IN_K,
 	MODIFY_EXP_IN_K,
 	DEFAULT_HEALTH_DISPLAY_PERCENT,
+	MONSTER_LEVEL_ENABLED,
 
 	LAST_BOOLEAN /* this must be the last one */
 };

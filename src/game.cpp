@@ -5240,6 +5240,17 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 			return false;
 		}
 
+		if (ConfigManager::getBoolean(ConfigManager::MONSTER_LEVEL_ENABLED)) {
+			Monster* monster = attacker ? attacker->getMonster() : nullptr;
+			if (monster && monster->getLevel() > 0) {
+				float bonusDmg = monster_level::getBonusDamage() * monster->getLevel();
+				if (bonusDmg != 0.0f) {
+					damage.primary.value += static_cast<int32_t>(std::round(damage.primary.value * bonusDmg));
+					damage.secondary.value += static_cast<int32_t>(std::round(damage.secondary.value * bonusDmg));
+				}
+			}
+		}
+
 		damage.primary.value = std::abs(damage.primary.value);
 		damage.secondary.value = std::abs(damage.secondary.value);
 
@@ -5508,6 +5519,21 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 	}
 
 	auto attackerRef = attacker ? attacker->shared_from_this() : std::shared_ptr<Creature>();
+
+	if (ConfigManager::getBoolean(ConfigManager::MONSTER_LEVEL_ENABLED)) {
+		Monster* monster = attacker ? attacker->getMonster() : nullptr;
+		if (monster && monster->getLevel() > 0) {
+			float bonusDmg = monster_level::getBonusDamage() * monster->getLevel();
+			if (bonusDmg != 0.0f) {
+				if (damage.primary.value < 0) {
+					damage.primary.value += static_cast<int32_t>(std::round(damage.primary.value * bonusDmg));
+				}
+				if (damage.secondary.value < 0) {
+					damage.secondary.value += static_cast<int32_t>(std::round(damage.secondary.value * bonusDmg));
+				}
+			}
+		}
+	}
 
 	int32_t manaChange = damage.primary.value + damage.secondary.value;
 	if (manaChange > 0) {

@@ -435,6 +435,7 @@ protected:
 	Direction direction = DIRECTION_SOUTH;
 	Skulls_t skull = SKULL_NONE;
 	GuildEmblems_t emblem = GUILDEMBLEM_NONE;
+	int32_t level = 0;
 
 	bool isInternalRemoved = false;
 	int64_t removedTime = 0;

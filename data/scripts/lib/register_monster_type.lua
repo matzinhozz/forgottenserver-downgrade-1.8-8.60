@@ -9,6 +9,23 @@ local function isInteger(n)
 	return (type(n) == "number") and (math.floor(n) == n)
 end
 
+local function validateLevelRange(monsterName, level)
+	if type(level) ~= "table" then
+		print("[Warning] Monster: \"" .. tostring(monsterName) .. "\" invalid level range (expected table)")
+		return nil, nil
+	end
+
+	local minLevel = level.min
+	local maxLevel = level.max
+	if isInteger(minLevel) and isInteger(maxLevel) and minLevel > 0 and maxLevel > 0 and minLevel <= maxLevel then
+		return minLevel, maxLevel
+	end
+
+	print("[Warning] Monster: \"" .. tostring(monsterName) .. "\" invalid level range (min=" ..
+		tostring(minLevel) .. ", max=" .. tostring(maxLevel) .. ")")
+	return nil, nil
+end
+
 local function isBossScriptSource()
 	if not debug or not debug.getinfo then return false end
 
@@ -27,6 +44,17 @@ MonsterType.register = function(self, mask)
 		self:registerEvent("CustomBestiaryKill")
 	end
 	return result
+end
+
+MonsterType.setLevel = function(self, level)
+	local minLevel, maxLevel = validateLevelRange(self:name(), level)
+	if not minLevel then
+		return false
+	end
+
+	self:minLevel(minLevel)
+	self:maxLevel(maxLevel)
+	return true
 end
 
 registerMonsterType.name = function(mtype, mask)
@@ -49,6 +77,15 @@ registerMonsterType.experience = function(mtype, mask)
 end
 registerMonsterType.skull = function(mtype, mask)
 	if mask.skull then mtype:skull(mask.skull) end
+end
+registerMonsterType.level = function(mtype, mask)
+	if mask.level then
+		local minLevel, maxLevel = validateLevelRange(mtype:name(), mask.level)
+		if minLevel then
+			mtype:minLevel(minLevel)
+			mtype:maxLevel(maxLevel)
+		end
+	end
 end
 registerMonsterType.emblem = function(mtype, mask)
 	if mask.emblem then mtype:emblem(mask.emblem) end

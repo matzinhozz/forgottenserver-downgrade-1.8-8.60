@@ -143,6 +143,8 @@ class MonsterType
 		int32_t defense = 0;
 		int32_t armor = 0;
 		float mitigation = 0.0f;
+		int32_t minLevel = 0;
+		int32_t maxLevel = 0;
 
 		targetStrategies_t targetStrategies = {};
 		Faction_t faction = FACTION_DEFAULT;

@@ -73,6 +73,43 @@ std::shared_ptr<Npc> makeScriptNpcHandle(Npc* npc)
 	// XML NPC scripts may execute before the NPC is registered in g_game.
 	return std::shared_ptr<Npc>(npc, [](Npc*) {});
 }
+
+int luaSetMonsterLevelSkullRange(lua_State* L)
+{
+	// setMonsterLevelSkullRange(skullType, minLevel, maxLevel)
+	Skulls_t skull = Lua::getInteger<Skulls_t>(L, 1);
+	int32_t minLevel = Lua::getInteger<int32_t>(L, 2);
+	int32_t maxLevel = Lua::getInteger<int32_t>(L, 3);
+	if (minLevel > maxLevel) {
+		reportErrorFunc(L, "setMonsterLevelSkullRange: minLevel cannot be greater than maxLevel");
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	if (!monster_level::setSkullRange(skull, minLevel, maxLevel)) {
+		reportErrorFunc(L, "setMonsterLevelSkullRange: invalid skull type");
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	Lua::pushBoolean(L, true);
+	return 1;
+}
+
+int luaSetMonsterLevelBonus(lua_State* L)
+{
+	// setMonsterLevelBonus(bonusType, value)
+	std::string type = Lua::getString(L, 1);
+	float value = Lua::getNumber<float>(L, 2);
+	if (!monster_level::setBonus(type, value)) {
+		reportErrorFunc(L, "setMonsterLevelBonus: invalid bonus type or value");
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	Lua::pushBoolean(L, true);
+	return 1;
+}
 } // namespace
 
 ScriptEnvironment::DBResultMap ScriptEnvironment::tempResults;
@@ -2523,6 +2560,8 @@ void LuaScriptInterface::registerFunctions()
 
 	registerGlobalMethod("isType", LuaScriptInterface::luaIsType);
 	registerGlobalMethod("rawgetmetatable", LuaScriptInterface::luaRawGetMetatable);
+	registerGlobalMethod("setMonsterLevelSkullRange", luaSetMonsterLevelSkullRange);
+	registerGlobalMethod("setMonsterLevelBonus", luaSetMonsterLevelBonus);
 
 	// configKeys
 	registerTable("configKeys");
@@ -2566,6 +2605,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::BESTIARY_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::MARKET_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::PREY_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::MONSTER_LEVEL_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::ALLOW_MOUNT_IN_PZ);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_DAMAGE_IN_K);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_EXP_IN_K);

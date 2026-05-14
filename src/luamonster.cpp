@@ -478,6 +478,18 @@ int luaMonsterSetInfluencedLevel(lua_State* L)
 	return 1;
 }
 
+int luaMonsterGetLevel(lua_State* L)
+{
+	// monster:getLevel()
+	Monster* monster = getUserdata<Monster>(L, 1);
+	if (monster) {
+		lua_pushinteger(L, monster->getLevel());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 } // namespace
 
 void LuaScriptInterface::registerMonster()
@@ -525,4 +537,5 @@ void LuaScriptInterface::registerMonster()
 	registerMethod("Monster", "setInfluenced", luaMonsterSetInfluenced);
 	registerMethod("Monster", "getInfluencedLevel", luaMonsterGetInfluencedLevel);
 	registerMethod("Monster", "setInfluencedLevel", luaMonsterSetInfluencedLevel);
+	registerMethod("Monster", "getLevel", luaMonsterGetLevel);
 }
