@@ -2980,6 +2980,8 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const Creature* creature, bo
 		msg.add<uint32_t>(creature->getID());
 		if (auto p = creature->getPlayer()) {
 			msg.addString(p->getDisplayName());
+		} else if (creature->getMonster() && creature->getMonster()->getLevel() > 0) {
+			msg.addString(creature->getName() + " [" + std::to_string(creature->getMonster()->getLevel()) + "]");
 		} else {
 			msg.addString(creature->getName());
 		}
