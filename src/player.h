@@ -607,6 +607,9 @@ public:
 		if (resetAttackSpeedBonus > 0 && baseSpeed > static_cast<uint32_t>(resetAttackSpeedBonus)) {
 			baseSpeed -= static_cast<uint32_t>(resetAttackSpeedBonus);
 		}
+		if (baseSpeed < 100) {
+			baseSpeed = 100;
+		}
 		return baseSpeed;
 	}
 

@@ -1,7 +1,9 @@
 local resetOnLogin = CreatureEvent("ResetSystemOnLogin")
 
 function resetOnLogin.onLogin(player)
-	ResetBonusConfig.applyBonuses(player)
+	if ResetBonusConfig then
+		ResetBonusConfig.applyBonuses(player)
+	end
 	return true
 end
 

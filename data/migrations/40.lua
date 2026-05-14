@@ -14,7 +14,11 @@ function onUpdateDatabase()
 	end
 
 	if not exists then
-		db.query("ALTER TABLE `players` ADD COLUMN `reset` int(10) UNSIGNED NOT NULL DEFAULT '0' AFTER `level`")
+		local success = db.query("ALTER TABLE `players` ADD COLUMN `reset` int(10) UNSIGNED NOT NULL DEFAULT '0' AFTER `level`")
+		if not success then
+			logger.error("Failed to add `reset` column to `players` table")
+			return false
+		end
 	end
 
 	return true
