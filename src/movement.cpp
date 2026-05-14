@@ -472,8 +472,12 @@ ReturnValue MoveEvent::EquipItem(MoveEvent* moveEvent, Player* player, Item* ite
 			return RETURNVALUE_NOTENOUGHMAGICLEVEL;
 		}
 		
+		if (moveEvent->getRequiredResets() > 0 && player->getResetCount() < moveEvent->getRequiredResets()) {
+			return RETURNVALUE_NOTENOUGHRESET;
+		}
+
 		const ItemType& it = Item::items[item->getID()];
-		if (player->getReset() < it.minReqReset) {
+		if (it.minReqReset > 0 && player->getResetCount() < it.minReqReset) {
 			return RETURNVALUE_NOTENOUGHRESET;
 		}
 

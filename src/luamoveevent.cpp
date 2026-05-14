@@ -169,6 +169,20 @@ int luaMoveEventMagLevel(lua_State* L)
 	return 1;
 }
 
+int luaMoveEventResets(lua_State* L)
+{
+	// moveevent:resets(count)
+	MoveEvent* moveevent = getUserdata<MoveEvent>(L, 1);
+	if (moveevent) {
+		moveevent->setRequiredResets(getInteger<uint32_t>(L, 2));
+		moveevent->setWieldInfo(WIELDINFO_RESETS);
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 int luaMoveEventPremium(lua_State* L)
 {
 	// moveevent:premium(bool)
@@ -354,6 +368,7 @@ void LuaScriptInterface::registerMoveEvents()
 	registerMethod("MoveEvent", "register", luaMoveEventRegister);
 	registerMethod("MoveEvent", "level", luaMoveEventLevel);
 	registerMethod("MoveEvent", "magicLevel", luaMoveEventMagLevel);
+	registerMethod("MoveEvent", "resets", luaMoveEventResets);
 	registerMethod("MoveEvent", "slot", luaMoveEventSlot);
 	registerMethod("MoveEvent", "id", luaMoveEventItemId);
 	registerMethod("MoveEvent", "aid", luaMoveEventActionId);

@@ -2974,12 +2974,196 @@ int luaPlayerSetResetCount(lua_State* L)
 	return 1;
 }
 
-int luaPlayerGetResetExpReduction(lua_State* L)
+int luaPlayerAddResetCount(lua_State* L)
 {
-
 	Player* player = getUserdata<Player>(L, 1);
 	if (player) {
-		lua_pushnumber(L, player->getResetExpReduction());
+		player->addResetCount(getInteger<uint32_t>(L, 2, 1));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetAttackSpeedBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetAttackSpeedBonus(getInteger<int32_t>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetAttackSpeedBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetAttackSpeedBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetDamageBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetDamageBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetDamageBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetDamageBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetDefenseBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetDefenseBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetDefenseBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetDefenseBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetHealingBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetHealingBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetHealingBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetHealingBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetHpBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetHpBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetHpBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetHpBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetManaBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetManaBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetManaBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetManaBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetManaPotionBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetManaPotionBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetManaPotionBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetManaPotionBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetResetManaSpellBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		lua_pushnumber(L, player->getResetManaSpellBonus());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSetResetManaSpellBonus(lua_State* L)
+{
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setResetManaSpellBonus(getNumber<float>(L, 2));
+		pushBoolean(L, true);
 	} else {
 		lua_pushnil(L);
 	}
@@ -3785,10 +3969,27 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "getAccountManagerMode", luaPlayerGetAccountManagerMode);
 
 
+	// Reset system methods
 	registerMethod("Player", "getResetCount", luaPlayerGetResetCount);
-	registerMethod("Player", "addReset", luaPlayerAddReset);
 	registerMethod("Player", "setResetCount", luaPlayerSetResetCount);
-	registerMethod("Player", "getResetExpReduction", luaPlayerGetResetExpReduction);
+	registerMethod("Player", "addResetCount", luaPlayerAddResetCount);
+	registerMethod("Player", "addReset", luaPlayerAddReset);
+	registerMethod("Player", "setResetAttackSpeedBonus", luaPlayerSetResetAttackSpeedBonus);
+	registerMethod("Player", "getResetAttackSpeedBonus", luaPlayerGetResetAttackSpeedBonus);
+	registerMethod("Player", "getResetDamageBonus", luaPlayerGetResetDamageBonus);
+	registerMethod("Player", "setResetDamageBonus", luaPlayerSetResetDamageBonus);
+	registerMethod("Player", "getResetDefenseBonus", luaPlayerGetResetDefenseBonus);
+	registerMethod("Player", "setResetDefenseBonus", luaPlayerSetResetDefenseBonus);
+	registerMethod("Player", "getResetHealingBonus", luaPlayerGetResetHealingBonus);
+	registerMethod("Player", "setResetHealingBonus", luaPlayerSetResetHealingBonus);
+	registerMethod("Player", "getResetHpBonus", luaPlayerGetResetHpBonus);
+	registerMethod("Player", "setResetHpBonus", luaPlayerSetResetHpBonus);
+	registerMethod("Player", "getResetManaBonus", luaPlayerGetResetManaBonus);
+	registerMethod("Player", "setResetManaBonus", luaPlayerSetResetManaBonus);
+	registerMethod("Player", "getResetManaPotionBonus", luaPlayerGetResetManaPotionBonus);
+	registerMethod("Player", "setResetManaPotionBonus", luaPlayerSetResetManaPotionBonus);
+	registerMethod("Player", "getResetManaSpellBonus", luaPlayerGetResetManaSpellBonus);
+	registerMethod("Player", "setResetManaSpellBonus", luaPlayerSetResetManaSpellBonus);
 	registerMethod("Player", "sendAutoLootWindow", LuaScriptInterface::luaPlayerSendAutoLootWindow);
 	registerMethod("Player", "getAutoLootItemCount", LuaScriptInterface::luaPlayerGetAutoLootItemCount);
 	registerMethod("Player", "setAutoLootEnabled", LuaScriptInterface::luaPlayerSetAutoLootEnabled);

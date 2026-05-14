@@ -123,6 +123,12 @@ public:
 		void setRequiredReset(uint32_t r) {
 			reset = r;
 		}
+		std::string getResetDamageFormula() const {
+			return resetDamageFormula;
+		}
+		void setResetDamageFormula(const std::string& formula) {
+			resetDamageFormula = formula;
+		}
 	uint32_t getLevel() const { return level; }
 	void setLevel(uint32_t lvl) { level = lvl; }
 	uint32_t getMagicLevel() const { return magLevel; }
@@ -219,6 +225,7 @@ private:
 	uint32_t manaPercent = 0;
 	uint32_t soul = 0;
 	uint32_t reset = 0;
+	std::string resetDamageFormula;
 
 	bool needWeapon = false;
 	bool blockingSolid = false;

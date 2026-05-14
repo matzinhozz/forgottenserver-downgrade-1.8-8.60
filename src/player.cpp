@@ -160,6 +160,7 @@ std::string Player::getDescription(int32_t lookDistance) const
 	std::ostringstream s;
 	const bool hideMonkVocation = playerIsMonkVocation(vocation.get()) &&
 	                              !ConfigManager::getBoolean(ConfigManager::MONK_VOCATION_ENABLED);
+	const std::string subjectPronoun = (sex == PLAYERSEX_FEMALE) ? "She" : "He";
 
 	if (lookDistance == -1) {
 		s << "yourself.";
@@ -173,7 +174,11 @@ std::string Player::getDescription(int32_t lookDistance) const
 		}
 
 		if (ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED) && reset > 0) {
-			s << " Resets [" << reset << "].";
+			if (lookDistance == -1) {
+				s << " You have " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+			} else {
+				s << " " << subjectPronoun << " ha" << (reset == 1 ? "s" : "ve") << " " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+			}
 		}
 	} else {
 		s << name;
@@ -196,7 +201,11 @@ std::string Player::getDescription(int32_t lookDistance) const
 			s << " has no vocation.";
 		}
 		if (ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED) && reset > 0) {
-			s << " Resets [" << reset << "].";
+			if (lookDistance == -1) {
+				s << " You have " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+			} else {
+				s << " " << subjectPronoun << " ha" << (reset == 1 ? "s" : "ve") << " " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+			}
 		}
 	}
 
@@ -4556,34 +4565,12 @@ Skulls_t Player::getSkull() const
 
 void Player::doReset() // reset system
 {
-	++reset;
-	uint32_t bonusReset = reset * getInteger(ConfigManager::RESET_STATBONUS);
-	capacity += bonusReset;
-
-	// Reset to level 8 stats
-	experience = Player::getExpForLevel(8);
-	level = 8;
-	levelPercent = 0;
-
-	if (getBoolean(ConfigManager::RESET_SKILLS)) {
-		magLevel = 0;
-		magLevelPercent = 0;
-		manaSpent = 0;
-
-		for (int i = SKILL_FIRST; i <= SKILL_LAST; ++i) {
-			skills[i].level = 10;
-			skills[i].tries = 0;
-			skills[i].percent = 0;
-		}
+	if (!ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
+		return;
 	}
-
+	++reset;
 	health = getMaxHealth();
 	mana = getMaxMana();
-
-	// Persist immediately
-	Database::getInstance().executeQuery(
-		fmt::format("UPDATE `players` SET `reset` = {:d} WHERE `id` = {:d}", reset, getGUID()));
-
 	sendStats();
 	sendSkills();
 }
@@ -6851,10 +6838,15 @@ bool Player::addOfflineTrainingTries(skills_t skill, uint64_t tries)
 	return sendUpdate;
 }
 
-void Player::addReset(uint32_t count /*= 1*/)
+void Player::addResetCount(uint32_t count /*= 1*/)
 {
 	reset += count;
 	Database::getInstance().executeQuery(fmt::format("UPDATE `players` SET `reset` = {:d} WHERE `id` = {:d}", reset, getGUID()));
+}
+
+void Player::addReset(uint32_t count /*= 1*/)
+{
+	addResetCount(count);
 }
 
 void Player::setResetCount(uint32_t count)
@@ -6863,16 +6855,6 @@ void Player::setResetCount(uint32_t count)
 	Database::getInstance().executeQuery(fmt::format("UPDATE `players` SET `reset` = {:d} WHERE `id` = {:d}", reset, getGUID()));
 }
 
-double Player::getResetExpReduction() const
-{
-	if (!ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
-		return 1.0;
-	}
-
-	int32_t reductionPerReset = ConfigManager::getInteger(ConfigManager::RESET_REDUCTION_PERCENTAGE);
-	double multiplier = 1.0 - (static_cast<double>(reset * reductionPerReset) / 100.0);
-	return std::max<double>(0.1, multiplier);
-}
 
 void Player::applyOfflineTraining(uint32_t trainingTime)
 {

@@ -5021,6 +5021,49 @@ void Game::combatGetTypeInfo(CombatType_t combatType, Creature* target, TextColo
 	}
 }
 
+void Game::applyResetSystemBonuses(CombatDamage& damage, Player* attackerPlayer, Player* targetPlayer)
+{
+	if (!ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
+		return;
+	}
+
+	const bool isHeal = (damage.primary.type == COMBAT_HEALING);
+
+	// Damage bonus: Attacker is player, target is NOT a player (PvE only)
+	if (!isHeal && attackerPlayer && !targetPlayer) {
+		float dmgPct = attackerPlayer->getResetDamageBonus();
+		if (damage.spellResetMultiplier >= 0.0f) {
+			dmgPct = damage.spellResetMultiplier;
+		}
+		if (dmgPct > 0.0f) {
+			damage.primary.value += static_cast<int32_t>(damage.primary.value * dmgPct / 100.0f);
+			if (damage.secondary.value != 0) {
+				damage.secondary.value += static_cast<int32_t>(damage.secondary.value * dmgPct / 100.0f);
+			}
+		}
+	}
+
+	// Defense bonus: Target is player, attacker is NOT a player (PvE only)
+	if (!isHeal && targetPlayer && !attackerPlayer) {
+		float defPct = targetPlayer->getResetDefenseBonus();
+		if (defPct > 0.0f) {
+			defPct = std::min(defPct, 90.0f);
+			damage.primary.value -= static_cast<int32_t>(damage.primary.value * defPct / 100.0f);
+			if (damage.secondary.value != 0) {
+				damage.secondary.value -= static_cast<int32_t>(damage.secondary.value * defPct / 100.0f);
+			}
+		}
+	}
+
+	// Healing bonus: Target is player, any source
+	if (isHeal && targetPlayer) {
+		float healPct = targetPlayer->getResetHealingBonus();
+		if (healPct > 0.0f) {
+			damage.primary.value += static_cast<int32_t>(damage.primary.value * healPct / 100.0f);
+		}
+	}
+}
+
 bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage& damage)
 {
 	if (!target || target->isDead() || target->isRemoved()) {
@@ -5035,6 +5078,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 
 	const Position& targetPos = target->getPosition();
 	if (damage.primary.type == COMBAT_HEALING) {
+		applyResetSystemBonuses(damage, attacker ? attacker->getPlayer() : nullptr, target->getPlayer());
 		int32_t healAmount = damage.primary.value + damage.secondary.value;
 		if (healAmount > 0) {
 			int32_t realHeal = target->getHealth();
@@ -5199,17 +5243,8 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 		damage.primary.value = std::abs(damage.primary.value);
 		damage.secondary.value = std::abs(damage.secondary.value);
 
-		// Reset system: damage bonus per reset
-		if (attackerPlayer && ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
-			uint32_t resets = attackerPlayer->getReset();
-			if (resets > 0) {
-				int32_t bonusPercent = resets * ConfigManager::getInteger(ConfigManager::RESET_DMGBONUS);
-				if (bonusPercent > 0) {
-					damage.primary.value += damage.primary.value * bonusPercent / 100;
-					damage.secondary.value += damage.secondary.value * bonusPercent / 100;
-				}
-			}
-		}
+		// Reset system: apply damage/defense bonuses (PvE only)
+		applyResetSystemBonuses(damage, attackerPlayer, targetPlayer);
 
 		if (targetPlayer && targetPlayer->isAvatarActive()) {
 			damage.primary.value -= static_cast<int32_t>(std::ceil(damage.primary.value * AVATAR_DAMAGE_REDUCTION_PERCENT / 100.0));
@@ -5492,6 +5527,25 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, CombatDamage& 
 				}
 				damage.origin = ORIGIN_NONE;
 				return combatChangeMana(attacker, target, damage);
+			}
+		}
+
+		// Reset system: mana bonuses
+		if (ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
+			float healPct = targetPlayer->getResetHealingBonus();
+			if (healPct > 0.0f) {
+				manaChange += static_cast<int32_t>(manaChange * healPct / 100.0f);
+			}
+			if (attacker) {
+				float spellPct = targetPlayer->getResetManaSpellBonus();
+				if (spellPct > 0.0f) {
+					manaChange += static_cast<int32_t>(manaChange * spellPct / 100.0f);
+				}
+			} else {
+				float potionPct = targetPlayer->getResetManaPotionBonus();
+				if (potionPct > 0.0f) {
+					manaChange += static_cast<int32_t>(manaChange * potionPct / 100.0f);
+				}
 			}
 		}
 

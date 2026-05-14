@@ -1366,9 +1366,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(ACCOUNT_TYPE_COMMUNITYMANAGER);
 	registerEnum(ACCOUNT_TYPE_GOD);
 
-	registerGlobalVariable("RESET_REDUCTION_PERCENTAGE", ConfigManager::RESET_REDUCTION_PERCENTAGE);
 	registerGlobalVariable("RESET_SYSTEM_ENABLED", ConfigManager::RESET_SYSTEM_ENABLED);
-	registerGlobalVariable("RESET_LEVEL", ConfigManager::RESET_LEVEL);
 
 	registerGlobalVariable("AUTOLOOT_MAXITEMS_FREE", ConfigManager::AUTOLOOT_MAXITEMS_FREE);
 	registerGlobalVariable("AUTOLOOT_MAXITEMS_PREMIUM", ConfigManager::AUTOLOOT_MAXITEMS_PREMIUM);
@@ -1475,6 +1473,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(COMBAT_PARAM_DISPEL);
 	registerEnum(COMBAT_PARAM_USECHARGES);
 	registerEnum(COMBAT_PARAM_CHAIN_EFFECT);
+	registerEnum(COMBAT_PARAM_RESET_DAMAGE_MULTIPLIER);
 
 	registerEnum(CONDITION_NONE);
 	registerEnum(CONDITION_POISON);
@@ -2071,6 +2070,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(WIELDINFO_MAGLV);
 	registerEnum(WIELDINFO_VOCREQ);
 	registerEnum(WIELDINFO_PREMIUM);
+	registerEnum(WIELDINFO_RESETS);
 
 	registerEnum(PlayerFlag_CannotUseCombat);
 	registerEnum(PlayerFlag_CannotAttackPlayer);

@@ -363,10 +363,7 @@ bool ConfigManager::load()
 		integers[Integer::STATUS_PORT] = getGlobalInteger(L, "statusProtocolPort", 7171);
 		integers[Integer::ADMIN_PORT] = getGlobalInteger(L, "adminPort", 7170); // Default admin port to 7170
 
-		integers[RESET_LEVEL] = getGlobalInteger(L, "resetLevel", 100);
-		integers[RESET_STATBONUS] = getGlobalInteger(L, "resetStats", 5);
-		integers[RESET_DMGBONUS] = getGlobalInteger(L, "resetDmgBonus", 0);
-		integers[RESET_REDUCTION_PERCENTAGE] = getGlobalInteger(L, "resetReductionPercentage", 0);
+	LAST_INTEGER_CONFIG
 
 		integers[Integer::MARKET_OFFER_DURATION] = getGlobalInteger(L, "marketOfferDuration", 30 * 24 * 60 * 60);
 	}
@@ -420,8 +417,7 @@ bool ConfigManager::load()
 	booleans[Boolean::GENERATE_ACCOUNT_NUMBER] = getGlobalBoolean(L, "generateAccountNumber", false);
 	booleans[Boolean::CHECK_DUPLICATE_STORAGE_KEYS] = getGlobalBoolean(L, "checkDuplicateStorageKeys", false);
 	booleans[Boolean::DLL_CHECK_KICK] = getGlobalBoolean(L, "dllCheckKick", false);
-	booleans[Boolean::RESET_SYSTEM_ENABLED] = getGlobalBoolean(L, "resetSystemEnabled", false); // reset system
-	booleans[Boolean::RESET_SKILLS] = getGlobalBoolean(L, "resetSkills", true); // reset skills/magic on reset
+	booleans[Boolean::RESET_SYSTEM_ENABLED] = getGlobalBoolean(L, "resetssystem", false);
 	booleans[Boolean::NPCS_USING_BANK_MONEY] = getGlobalBoolean(L, "npcsUsingBankMoney", false);
 	booleans[Boolean::STAMINA_TRAINER] = getGlobalBoolean(L, "staminaTrainer", false);
 	booleans[Boolean::STAMINA_PZ] = getGlobalBoolean(L, "staminaPz", false);

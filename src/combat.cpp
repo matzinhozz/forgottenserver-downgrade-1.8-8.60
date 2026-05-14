@@ -463,6 +463,11 @@ bool Combat::setParam(CombatParam_t param, uint32_t value)
 			params.chainEffect = static_cast<uint8_t>(value);
 			return true;
 		}
+
+		case COMBAT_PARAM_RESET_DAMAGE_MULTIPLIER: {
+			params.resetDamageMultiplier = *reinterpret_cast<const float*>(&value);
+			return true;
+		}
 	}
 	return false;
 }
@@ -987,6 +992,9 @@ void Combat::doTargetCombat(Creature* caster, Creature* target, CombatDamage& da
 			}
 		}
 
+		if (params.resetDamageMultiplier >= 0.0f) {
+			damage.spellResetMultiplier = params.resetDamageMultiplier;
+		}
 		success = g_game.combatChangeHealth(caster, target, damage);
 	} else {
 		success = g_game.combatChangeMana(caster, target, damage);
@@ -1240,6 +1248,9 @@ void Combat::doAreaCombat(Creature* caster, const Position& position, const Area
 			if (g_game.combatBlockHit(damageCopy, caster, creature.get(), params.blockedByShield, params.blockedByArmor,
 			                          params.itemId != 0, params.ignoreResistances)) {
 				continue;
+			}
+			if (params.resetDamageMultiplier >= 0.0f) {
+				damageCopy.spellResetMultiplier = params.resetDamageMultiplier;
 			}
 			success = g_game.combatChangeHealth(caster, creature.get(), damageCopy);
 		} else {

@@ -90,6 +90,17 @@ function Player:onGainExperience(source, exp, rawExp, sendText)
 		return exp
 	end
 
+	if ResetBonusConfig then
+		local resetXpBonus = ResetBonusConfig.getTotalBonus("experience", self:getResetCount(), self:getVocationId())
+		if resetXpBonus > 0 then
+			result = result * (1 + resetXpBonus / 100)
+		end
+	end
+
+	if ResetStages then
+		result = result * ResetStages.getMultiplier(self:getResetCount())
+	end
+
 	return math.floor(result)
 end
 

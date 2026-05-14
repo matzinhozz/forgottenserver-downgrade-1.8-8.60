@@ -11,12 +11,9 @@ dllCheckKick = true -- true = kick enabled, false = kick disabled (default)
 dllCheckKickTime = 5 -- time in seconds (optional usage)
 
 -- Reset System
---resetLevel = 510 -- min level to reset
---resetStats = 5 -- capacity bonus per reset (cumulative: reset * this value)
---resetDmgBonus = 5 -- % extra damage per reset (e.g. 5 = 5% per reset, 3 resets = 15% extra)
---resetSystemEnabled = false -- enable/disable the reset system
---resetSkills = true -- true = reset skills/magic level on reset, false = keep them
---resetReductionPercentage = 10 -- XP reduction percentage per reset (e.g. 10 = 10%)    
+-- Enable/disable the full reset system (damage, defense, healing, XP, attack speed, HP/mana bonuses)
+-- All bonus configuration is done in data/scripts/resetsystem/configbonus.lua
+resetssystem = false
 
 Autoloot_enabled = true
 AutoLoot_BlockIDs = ""

@@ -250,6 +250,7 @@ enum CombatParam_t
 	COMBAT_PARAM_DISPEL,
 	COMBAT_PARAM_USECHARGES,
 	COMBAT_PARAM_CHAIN_EFFECT,
+	COMBAT_PARAM_RESET_DAMAGE_MULTIPLIER,
 };
 
 enum class CallBackParam
@@ -715,6 +716,7 @@ struct CombatDamage
 	bool leeched = false;
 	bool fatal = false;
 	bool dodge = false;
+	float spellResetMultiplier = -1.0f;
 };
 
 using ShopInfoList = std::list<ShopInfo>;

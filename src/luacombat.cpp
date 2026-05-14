@@ -274,6 +274,26 @@ int luaCombatSetOrigin(lua_State* L)
 	return 1;
 }
 
+int luaCombatSetResetDamageMultiplier(lua_State* L)
+{
+	// combat:setResetDamageMultiplier(multiplier)
+	if (!isType<Combat>(L, 1)) {
+		reportErrorFunc(L, LuaScriptInterface::getErrorDesc(LuaErrorCode::COMBAT_NOT_FOUND));
+		lua_pushnil(L);
+		return 1;
+	}
+
+	const Combat_ptr& combat = getSharedPtr<Combat>(L, 1);
+	if (!combat) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	combat->setResetDamageMultiplier(getNumber<float>(L, 2));
+	pushBoolean(L, true);
+	return 1;
+}
+
 int luaCombatExecute(lua_State* L)
 {
 	// combat:execute(creature, variant)
@@ -377,6 +397,7 @@ void LuaScriptInterface::registerCombat()
 	registerMethod("Combat", "clearConditions", luaCombatClearConditions);
 	registerMethod("Combat", "setCallback", luaCombatSetCallback);
 	registerMethod("Combat", "setOrigin", luaCombatSetOrigin);
+	registerMethod("Combat", "setResetDamageMultiplier", luaCombatSetResetDamageMultiplier);
 
 	registerMethod("Combat", "execute", luaCombatExecute);
 }

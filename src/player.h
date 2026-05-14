@@ -132,6 +132,12 @@ public:
 	const std::string& getName() const override { return name; }
 	void setName(std::string_view name) { this->name = name; }
 	const std::string& getNameDescription() const override { return name; }
+	std::string getDisplayName() const {
+		if (reset > 0) {
+			return name + " [" + std::to_string(reset) + "]";
+		}
+		return name;
+	}
 	std::string getDescription(int32_t lookDistance) const override;
 
 	CreatureType_t getType() const override { return CREATURETYPE_PLAYER; }
@@ -147,8 +153,6 @@ public:
 	bool hasMount(const Mount* mount) const;
 	bool hasMounts() const;
 	void dismount();
-
-	void doReset(); // reset system
 
 	void sendFYIBox(std::string_view message)
 	{
@@ -213,10 +217,64 @@ public:
 
 	Vocation* getVocation() const { return vocation.get(); }
 
-	uint32_t getResetCount() const { return reset; }
+	void doReset(); // reset system (handled in Lua, retained for backward compat)
+
+	uint32_t getResetCount() const {
+		return reset;
+	}
+	void setResetCount(uint32_t count) {
+		reset = count;
+	}
+	void addResetCount(uint32_t amount = 1);
 	void addReset(uint32_t count = 1);
-	void setResetCount(uint32_t count);
-	double getResetExpReduction() const;
+	int32_t getResetAttackSpeedBonus() const {
+		return resetAttackSpeedBonus;
+	}
+	void setResetAttackSpeedBonus(int32_t value) {
+		resetAttackSpeedBonus = value;
+	}
+	float getResetDamageBonus() const {
+		return resetDamageBonus;
+	}
+	void setResetDamageBonus(float value) {
+		resetDamageBonus = std::max(0.0f, value);
+	}
+	float getResetDefenseBonus() const {
+		return resetDefenseBonus;
+	}
+	void setResetDefenseBonus(float value) {
+		resetDefenseBonus = std::max(0.0f, value);
+	}
+	float getResetHealingBonus() const {
+		return resetHealingBonus;
+	}
+	void setResetHealingBonus(float value) {
+		resetHealingBonus = std::max(0.0f, value);
+	}
+	float getResetHpBonus() const {
+		return resetHpBonus;
+	}
+	void setResetHpBonus(float value) {
+		resetHpBonus = std::max(0.0f, value);
+	}
+	float getResetManaBonus() const {
+		return resetManaBonus;
+	}
+	void setResetManaBonus(float value) {
+		resetManaBonus = std::max(0.0f, value);
+	}
+	float getResetManaPotionBonus() const {
+		return resetManaPotionBonus;
+	}
+	void setResetManaPotionBonus(float value) {
+		resetManaPotionBonus = std::max(0.0f, value);
+	}
+	float getResetManaSpellBonus() const {
+		return resetManaSpellBonus;
+	}
+	void setResetManaSpellBonus(float value) {
+		resetManaSpellBonus = std::max(0.0f, value);
+	}
 
 	OperatingSystem_t getOperatingSystem() const { return operatingSystem; }
 	void setOperatingSystem(OperatingSystem_t clientos) { operatingSystem = clientos; }
@@ -421,9 +479,9 @@ public:
 		return static_cast<uint32_t>(std::max<int32_t>(0, static_cast<int32_t>(capacity) + varStats[STAT_CAPACITY] - static_cast<int32_t>(inventoryWeight)));
 	}
 
-	int32_t getMaxHealth() const override { return std::max<int32_t>(1, healthMax + varStats[STAT_MAXHITPOINTS]); }
+	int32_t getMaxHealth() const override { return std::max<int32_t>(1, healthMax + varStats[STAT_MAXHITPOINTS] + static_cast<int32_t>(std::round(resetHpBonus))); }
 	uint32_t getMana() const { return mana; }
-	uint32_t getMaxMana() const { return std::max<int32_t>(0, manaMax + varStats[STAT_MAXMANAPOINTS]); }
+	uint32_t getMaxMana() const { return std::max<int32_t>(0, manaMax + varStats[STAT_MAXMANAPOINTS] + static_cast<int32_t>(std::round(resetManaBonus))); }
 
 	Item* getInventoryItem(slots_t slot) const;
 	Item* getInventoryItem(uint32_t slot) const;
@@ -545,10 +603,11 @@ public:
 	void setAttackSpeed(uint32_t speed) { attackSpeed = speed; }
 	uint32_t getAttackSpeed() const
 	{
-		if (attackSpeed > 0) {
-			return attackSpeed;
+		uint32_t baseSpeed = attackSpeed > 0 ? attackSpeed : vocation->getAttackSpeed();
+		if (resetAttackSpeedBonus > 0 && baseSpeed > static_cast<uint32_t>(resetAttackSpeedBonus)) {
+			baseSpeed -= static_cast<uint32_t>(resetAttackSpeedBonus);
 		}
-		return vocation->getAttackSpeed();
+		return baseSpeed;
 	}
 
 	// combat functions
@@ -1363,6 +1422,14 @@ private:
 	uint32_t conditionSuppressions = 0;
 	uint32_t level = 1;
 	uint32_t reset = 0; // reset system
+	int32_t resetAttackSpeedBonus = 0;
+	float resetDamageBonus = 0.0f;
+	float resetDefenseBonus = 0.0f;
+	float resetHealingBonus = 0.0f;
+	float resetHpBonus = 0.0f;
+	float resetManaBonus = 0.0f;
+	float resetManaPotionBonus = 0.0f;
+	float resetManaSpellBonus = 0.0f;
 	uint32_t magLevel = 0;
 	uint32_t actionTaskEvent = 0;
 	uint32_t nextStepEvent = 0;

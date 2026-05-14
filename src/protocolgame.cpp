@@ -2093,7 +2093,11 @@ void ProtocolGame::sendCreatureSay(const Creature* creature, SpeakClasses type, 
 	msg.addByte(0xAA);
 	msg.add<uint32_t>(0x00);
 
-	msg.addString(creature->getName());
+	if (auto p = creature->getPlayer()) {
+		msg.addString(p->getDisplayName());
+	} else {
+		msg.addString(creature->getName());
+	}
 
 	// Add level only for players
 	if (const Player* speaker = creature->getPlayer()) {
@@ -2974,7 +2978,11 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const Creature* creature, bo
 		msg.add<uint16_t>(0x61);
 		msg.add<uint32_t>(remove);
 		msg.add<uint32_t>(creature->getID());
-		msg.addString(creature->getName());
+		if (auto p = creature->getPlayer()) {
+			msg.addString(p->getDisplayName());
+		} else {
+			msg.addString(creature->getName());
+		}
 	}
 
 	if (creature->isHealthHidden()) {

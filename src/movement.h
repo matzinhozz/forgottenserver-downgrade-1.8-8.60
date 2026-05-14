@@ -181,6 +181,8 @@ public:
 	void setRequiredLevel(uint32_t level) { reqLevel = level; }
 	uint32_t getRequiredMagLevel() { return reqMagLevel; }
 	void setRequiredMagLevel(uint32_t level) { reqMagLevel = level; }
+	uint32_t getRequiredResets() const { return reqResets; }
+	void setRequiredResets(uint32_t resets) { reqResets = resets; }
 	bool needPremium() { return premium; }
 	void setNeedPremium(bool b) { premium = b; }
 	uint32_t getWieldInfo() { return wieldInfo; }
@@ -208,6 +210,7 @@ private:
 	// onEquip information
 	uint32_t reqLevel = 0;
 	uint32_t reqMagLevel = 0;
+	uint32_t reqResets = 0;
 	bool premium = false;
 	std::string vocationString;
 	uint32_t wieldInfo = 0;

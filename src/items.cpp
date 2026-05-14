@@ -2106,7 +2106,7 @@ void Items::parseScriptAttribute(ItemType& it, const pugi::xml_node& attributeNo
 						}
 					} else if (key == "reset") {
 						it.minReqReset = subValue.as_uint();
-						moveevent.setWieldInfo(WIELDINFO_RESET);
+						moveevent.setWieldInfo(WIELDINFO_RESETS);
 					} else if (key == "vocation") {
 						std::string vocations = subValue.as_string();
 						std::istringstream vss(vocations);
@@ -2294,7 +2294,7 @@ void Items::parseScriptAttribute(ItemType& it, const pugi::xml_node& attributeNo
 					}
 				} else if (key == "reset") {
 					weapon->setRequiredReset(subValue.as_uint());
-					weapon->setWieldInfo(WIELDINFO_RESET);
+					weapon->setWieldInfo(WIELDINFO_RESETS);
 				}
 			}
 

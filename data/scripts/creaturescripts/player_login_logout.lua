@@ -57,10 +57,11 @@ function loginMessage.onLogin(player)
 
     player:openChannel(10)
 
-    if configManager.getBoolean(RESET_SYSTEM_ENABLED) then
-        local reductionMultiplier = player:getResetExpReduction()
-        player:setExperienceRate(ExperienceRateType.STAMINA, reductionMultiplier * 100)
-    end
+	if configManager.getBoolean(RESET_SYSTEM_ENABLED) then
+		if ResetBonusConfig then
+			ResetBonusConfig.applyBonuses(player)
+		end
+	end
 
     if player:isTokenProtected() then
         player:setTokenLocked(true)

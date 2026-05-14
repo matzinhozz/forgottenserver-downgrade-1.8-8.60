@@ -31,6 +31,18 @@ function closingDoor.onStepIn(creature, item, position, fromPosition)
 			end
 		end
 	end
+	if item.actionid >= 150001 and item.actionid <= 150999 then
+		local requiredResets = item.actionid - 150000
+		if player:getResetCount() >= requiredResets then
+			return true
+		else
+			player:sendTextMessage(MESSAGE_EVENT_ADVANCE,
+				string.format("You need %d reset(s) to pass here.", requiredResets))
+			player:teleportTo(fromPosition, true)
+			return false
+		end
+	end
+
 	for index, value in ipairs(LevelDoorTable) do
 		 if value.openDoor == item.itemid then
 			if item.actionid > 0 and player:getLevel() >= item.actionid - 1000 then

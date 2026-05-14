@@ -486,6 +486,7 @@ public:
 
 	bool combatChangeHealth(Creature* attacker, Creature* target, CombatDamage& damage);
 	bool combatChangeMana(Creature* attacker, Creature* target, CombatDamage& damage);
+	void applyResetSystemBonuses(CombatDamage& damage, Player* attackerPlayer, Player* targetPlayer);
 
 	// animation help functions
 	void addCreatureHealth(const Creature* target);

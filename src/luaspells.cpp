@@ -923,6 +923,22 @@ int luaSpellCheckFloor(lua_State* L)
 	}
 	return 1;
 }
+int luaSpellResetDamageFormula(lua_State* L)
+{
+	// spell:resetDamageFormula(formula)
+	Spell* spell = getUserdata<Spell>(L, 1);
+	if (spell) {
+		if (lua_gettop(L) == 1) {
+			pushString(L, spell->getResetDamageFormula());
+		} else {
+			spell->setResetDamageFormula(getString(L, 2));
+			pushBoolean(L, true);
+		}
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
 } // namespace
 
 void LuaScriptInterface::registerSpells()
@@ -943,6 +959,7 @@ void LuaScriptInterface::registerSpells()
 	registerMethod("Spell", "mana", luaSpellMana);
 	registerMethod("Spell", "manaPercent", luaSpellManaPercent);
 	registerMethod("Spell", "soul", luaSpellSoul);
+	registerMethod("Spell", "resetDamageFormula", luaSpellResetDamageFormula);
 	registerMethod("Spell", "range", luaSpellRange);
 	registerMethod("Spell", "isPremium", luaSpellPremium);
 	registerMethod("Spell", "isEnabled", luaSpellEnabled);

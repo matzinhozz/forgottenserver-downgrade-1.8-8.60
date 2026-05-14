@@ -96,6 +96,8 @@ struct CombatParams
 	bool ignoreResistances = false;
 
 	uint8_t chainEffect = CONST_ME_NONE;
+
+	float resetDamageMultiplier = -1.0f;
 };
 
 class AreaCombat
@@ -147,6 +149,9 @@ public:
 
 	bool setParam(CombatParam_t param, uint32_t value);
 	int32_t getParam(CombatParam_t param) const;
+
+	void setResetDamageMultiplier(float value) { params.resetDamageMultiplier = value; }
+	float getResetDamageMultiplier() const { return params.resetDamageMultiplier; }
 
 	void setArea(std::unique_ptr<AreaCombat> area);
 	bool hasArea() const { return area != nullptr; }
