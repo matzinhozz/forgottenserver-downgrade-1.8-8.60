@@ -465,7 +465,9 @@ bool Combat::setParam(CombatParam_t param, uint32_t value)
 		}
 
 		case COMBAT_PARAM_RESET_DAMAGE_MULTIPLIER: {
-			params.resetDamageMultiplier = *reinterpret_cast<const float*>(&value);
+			float f;
+			std::memcpy(&f, &value, sizeof(float));
+			params.resetDamageMultiplier = f;
 			return true;
 		}
 	}
