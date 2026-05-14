@@ -155,7 +155,7 @@ function ResetBonusConfig.getTotalBonus(bonusType, resetCount, vocationId)
 				end
 			end
 		end
-		if not found and i > lastStep then
+		if not found then
 			if vocConfig.ranges then
 				for _, range in ipairs(vocConfig.ranges) do
 					if i >= range.minReset and (range.maxReset == 0 or i <= range.maxReset) then

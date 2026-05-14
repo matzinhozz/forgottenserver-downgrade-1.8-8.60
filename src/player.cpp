@@ -177,7 +177,7 @@ std::string Player::getDescription(int32_t lookDistance) const
 			if (lookDistance == -1) {
 				s << " You have " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
 			} else {
-				s << " " << subjectPronoun << " ha" << (reset == 1 ? "s" : "ve") << " " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+				s << " " << subjectPronoun << " has " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
 			}
 		}
 	} else {
@@ -204,7 +204,7 @@ std::string Player::getDescription(int32_t lookDistance) const
 			if (lookDistance == -1) {
 				s << " You have " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
 			} else {
-				s << " " << subjectPronoun << " ha" << (reset == 1 ? "s" : "ve") << " " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
+				s << " " << subjectPronoun << " has " << reset << " reset" << (reset == 1 ? "" : "s") << ".";
 			}
 		}
 	}
@@ -4568,7 +4568,7 @@ void Player::doReset() // reset system
 	if (!ConfigManager::getBoolean(ConfigManager::RESET_SYSTEM_ENABLED)) {
 		return;
 	}
-	++reset;
+	addResetCount(1);
 	health = getMaxHealth();
 	mana = getMaxMana();
 	sendStats();

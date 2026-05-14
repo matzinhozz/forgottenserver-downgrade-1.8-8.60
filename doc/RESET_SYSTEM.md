@@ -222,7 +222,7 @@ Defina o **ActionID** no mapa (Remere's RME) como `150000 + resets_exigidos`:
 
 Os bonus de dano, defesa, cura e mana **nao usam eventos Lua por jogador**. Sao aplicados diretamente nas funcoes de combate do engine:
 
-```
+```text
 combatChangeHealth()
 ├── HEALING branch
 │   ├── applyResetSystemBonuses()   ← HEALING BONUS (targetPlayer->resetHealingBonus)
@@ -234,7 +234,6 @@ combatChangeHealth()
 
 combatChangeMana()
 └── MANA RESTORATION branch (manaChange > 0)
-    ├── resetHealingBonus   (ampla toda cura de mana)
     ├── resetManaSpellBonus  (se ha caster: spells)
     └── resetManaPotionBonus (se nao ha caster: potions/itens)
 ```

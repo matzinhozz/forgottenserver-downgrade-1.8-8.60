@@ -363,8 +363,6 @@ bool ConfigManager::load()
 		integers[Integer::STATUS_PORT] = getGlobalInteger(L, "statusProtocolPort", 7171);
 		integers[Integer::ADMIN_PORT] = getGlobalInteger(L, "adminPort", 7170); // Default admin port to 7170
 
-	LAST_INTEGER_CONFIG
-
 		integers[Integer::MARKET_OFFER_DURATION] = getGlobalInteger(L, "marketOfferDuration", 30 * 24 * 60 * 60);
 	}
 
