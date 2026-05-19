@@ -125,6 +125,7 @@ private:
 	void parseEnableSharedPartyExperience(NetworkMessage& msg);
 
 	void parseModalWindowAnswer(NetworkMessage& msg);
+	void parseImbuementDurations(NetworkMessage& msg);
 
 	// trade methods
 	void parseRequestTrade(NetworkMessage& msg);
@@ -232,6 +233,7 @@ private:
 
 	// inventory
 	void sendInventoryItem(slots_t slot, const Item* item);
+	void sendImbuementDurations(slots_t updatedSlot = CONST_SLOT_WHEREEVER, const Item* updatedItem = nullptr);
 
 	// messages
 	void sendModalWindow(const ModalWindow& modalWindow);
@@ -329,6 +331,7 @@ private:
 	bool useItemTierByte = false;
 	bool debugAssertSent = false;
 	bool acceptPackets = false;
+	bool imbuementTrackerOpen = false;
 
 	uint32_t dllCheckSequence = 0;
 

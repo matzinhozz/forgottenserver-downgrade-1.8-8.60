@@ -14,6 +14,7 @@
 #include "outputmessage.h"
 #include "player.h"
 #include "protocolgame.h"
+#include "imbuement.h"
 #include "scheduler.h"
 #include "scriptmanager.h"
 
@@ -774,6 +775,9 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 				parseNewPing(msg);
 			}
 			break; // GameClientExtendedPing
+		case 0x60:
+			parseImbuementDurations(msg);
+			break;
 		case 0x64:
 			parseAutoWalk(msg);
 			break;
@@ -2736,6 +2740,10 @@ void ProtocolGame::sendInventoryItem(slots_t slot, const Item* item)
 		msg.addByte(slot);
 	}
 	writeToOutputBuffer(msg);
+
+	if (imbuementTrackerOpen) {
+		sendImbuementDurations(slot, item);
+	}
 }
 
 void ProtocolGame::sendModalWindow(const ModalWindow& modalWindow)
@@ -3634,4 +3642,85 @@ void ProtocolGame::parseSwitchCast(uint8_t direction)
 	std::stringstream ss;
 	ss << "Switched to cast: " << player->getName();
 	sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, ss.str());
+}
+
+void ProtocolGame::parseImbuementDurations(NetworkMessage& msg)
+{
+	bool open = msg.getByte() != 0;
+	imbuementTrackerOpen = open;
+	if (open) {
+		sendImbuementDurations();
+	}
+}
+
+void ProtocolGame::sendImbuementDurations(slots_t updatedSlot, const Item* updatedItem)
+{
+	if (!player || !imbuementTrackerOpen) {
+		return;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0x5D); // GameServerImbuementDurations = 93
+
+	const slots_t slots[] = {
+		CONST_SLOT_HEAD,
+		CONST_SLOT_BACKPACK,
+		CONST_SLOT_ARMOR,
+		CONST_SLOT_RIGHT,
+		CONST_SLOT_LEFT,
+		CONST_SLOT_FEET
+	};
+
+	std::vector<std::pair<slots_t, const Item*>> trackedItems;
+	for (slots_t slot : slots) {
+		const Item* item = (slot == updatedSlot) ? updatedItem : player->getInventoryItem(slot);
+		if (item && item->getImbuementSlots() > 0) {
+			trackedItems.push_back({slot, item});
+		}
+	}
+
+	msg.addByte(static_cast<uint8_t>(trackedItems.size()));
+
+	for (const auto& p : trackedItems) {
+		slots_t slot = p.first;
+		const Item* item = p.second;
+
+		msg.addByte(static_cast<uint8_t>(slot));
+		msg.addItem(item, isOTC, useItemTierByte);
+
+		uint16_t totalSlots = item->getImbuementSlots();
+		msg.addByte(static_cast<uint8_t>(totalSlots));
+
+		const auto& imbuements = const_cast<Item*>(item)->getImbuements();
+		for (uint16_t slotIndex = 0; slotIndex < totalSlots; ++slotIndex) {
+			if (slotIndex < imbuements.size()) {
+				const auto& imb = imbuements[slotIndex];
+				msg.addByte(1); // slotImbued = true
+
+				// Find definition
+				const ImbuementDefinition* def = nullptr;
+				for (const auto& d : Imbuements::getInstance().getDefinitions()) {
+					if (d.imbuementType == imb->imbuetype && d.baseId == imb->baseId) {
+						def = &d;
+						break;
+					}
+				}
+
+				if (def) {
+					msg.addString(def->name);
+					msg.add<uint16_t>(def->iconId);
+				} else {
+					msg.addString("Imbuement");
+					msg.add<uint16_t>(0);
+				}
+
+				msg.add<uint32_t>(imb->duration);
+				msg.addByte(1); // state: decaying
+			} else {
+				msg.addByte(0); // slotImbued = false
+			}
+		}
+	}
+
+	writeToOutputBuffer(msg);
 }

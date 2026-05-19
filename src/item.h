@@ -675,7 +675,7 @@ public:
 
 	bool isEquipped() const;
 
-	void decayImbuements(bool infight);
+	bool decayImbuements(bool infight);
 
 	static std::string getNameDescription(const ItemType& it, const Item* item = nullptr, int32_t subType = -1,
 	                                      bool addArticle = true);

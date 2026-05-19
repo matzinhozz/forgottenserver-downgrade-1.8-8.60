@@ -944,6 +944,13 @@ public:
 		}
 	}
 
+	void sendImbuementDurations()
+	{
+		if (client) {
+			client->sendImbuementDurations();
+		}
+	}
+
 	void sendQuiverUpdate(bool sendAll = false)
 	{
 		if (client) {

@@ -2052,16 +2052,20 @@ void Player::onThink(uint32_t interval)
 		}
 	}
 
-	// if (isImbued()) { // TODO: Reimplement a check like this to first see if player has any items, then items with imbuements before decaying.
+	bool imbuementDecayed = false;
 	for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
 		Item* item = inventory[slot].get();
 		if (item && item->hasImbuements()) {
-			item->decayImbuements(hasCondition(CONDITION_INFIGHT));
+			if (item->decayImbuements(hasCondition(CONDITION_INFIGHT))) {
+				imbuementDecayed = true;
+			}
 			sendSkills();
 			sendStats();
 		}
 	}
-// } // part of the above TODO:
+	if (imbuementDecayed) {
+		sendImbuementDurations();
+	}
 
 	if (g_game.getWorldType() != WORLD_TYPE_PVP_ENFORCED) {
 		checkSkullTicks(interval / 1000);

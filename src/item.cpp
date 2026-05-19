@@ -1731,16 +1731,18 @@ std::vector<std::shared_ptr<Imbuement>>& Item::getImbuements() {
 	return imbuements;
 }
 
-void Item::decayImbuements(bool infight) {
+bool Item::decayImbuements(bool infight) {
 	if (!ConfigManager::getBoolean(ConfigManager::IMBUEMENT_SYSTEM_ENABLED)) {
-		return;
+		return false;
 	}
 
+	bool decayed = false;
 	std::vector<std::shared_ptr<Imbuement>> expired;
 	for (auto& imbue : imbuements) {
 		if (imbue->isEquipDecay()) {
 			if (imbue->duration > 0) {
 				imbue->duration -= 1;
+				decayed = true;
 			}
 			if (imbue->duration == 0) {
 				expired.push_back(imbue);
@@ -1750,6 +1752,7 @@ void Item::decayImbuements(bool infight) {
 		if (imbue->isInfightDecay() && infight) {
 			if (imbue->duration > 0) {
 				imbue->duration -= 1;
+				decayed = true;
 			}
 			if (imbue->duration == 0) {
 				expired.push_back(imbue);
@@ -1758,7 +1761,9 @@ void Item::decayImbuements(bool infight) {
 	}
 	for (auto& imbue : expired) {
 		removeImbuement(imbue, true);
+		decayed = true;
 	}
+	return decayed;
 }
 
 void Item::stopDecaying()

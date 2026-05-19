@@ -925,6 +925,12 @@ class ProtocolSpectator {
                 spy->sendInventoryItem(slot, item);
         }
 
+        void sendImbuementDurations() {
+            auto o = owner.lock();
+            if (o)
+                o->sendImbuementDurations();
+        }
+
         void parseLookAt(NetworkMessage &msg) {
 		    auto o = owner.lock();
 		    if (!o) {
