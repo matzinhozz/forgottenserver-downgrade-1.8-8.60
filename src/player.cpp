@@ -3114,9 +3114,8 @@ ReturnValue Player::queryAdd(int32_t index, const Thing& thing, uint32_t count, 
 		case CONST_SLOT_RIGHT: {
 			if (slotPosition & SLOTP_RIGHT) {
 				if (!getBoolean(ConfigManager::CLASSIC_EQUIPMENT_SLOTS)) {
-					if (item->getWeaponType() != WEAPON_SHIELD && item->getWeaponType() != WEAPON_QUIVER) {
-						ret = RETURNVALUE_CANNOTBEDRESSED;
-					} else {
+					WeaponType_t type = item->getWeaponType();
+					if (type == WEAPON_SHIELD || type == WEAPON_QUIVER) {
 						const Item* leftItem = inventory[CONST_SLOT_LEFT].get();
 						if (leftItem) {
 							if ((leftItem->getSlotPosition() | slotPosition) & SLOTP_TWO_HAND) {
@@ -3131,6 +3130,12 @@ ReturnValue Player::queryAdd(int32_t index, const Thing& thing, uint32_t count, 
 						} else {
 							ret = RETURNVALUE_NOERROR;
 						}
+					} else if (type != WEAPON_DISTANCE && type != WEAPON_WAND &&
+					           getBoolean(ConfigManager::ALLOW_DUAL_WIELDING) &&
+					           vocation->canDualWield()) {
+						ret = RETURNVALUE_NOERROR;
+					} else {
+						ret = RETURNVALUE_CANNOTBEDRESSED;
 					}
 				} else if (slotPosition & SLOTP_TWO_HAND) {
 					if (inventory[CONST_SLOT_LEFT] && inventory[CONST_SLOT_LEFT].get() != item) {
