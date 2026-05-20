@@ -16,6 +16,7 @@
 #include "iologindata.h"
 #include "instance_utils.h"
 #include "inbox.h"
+#include "kv/kv.hpp"
 #include "monster.h"
 #include "movement.h"
 #include "npc.h"
@@ -4894,8 +4895,10 @@ bool Player::checkChainSystem() const
 		return false;
 	}
 
-	auto value = getStorageValue(CHAIN_SYSTEM_STORAGE);
-	return value.has_value() && value.value() == 1;
+	auto playerKV = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()));
+	auto settings = playerKV->scoped("settings");
+	auto chainValue = settings->get("chainSystem");
+	return chainValue.has_value() && chainValue->get<BooleanType>();
 }
 
 PartyShields_t Player::getPartyShield(const Player* player) const
