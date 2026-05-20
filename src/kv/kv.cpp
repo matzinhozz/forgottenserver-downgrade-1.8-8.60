@@ -3,7 +3,7 @@
 
 #include "otpch.h"
 #include "kv/kv.hpp"
-#include "database/database.h"
+#include "database.h"
 #include "logger.h"
 #include <fmt/format.h>
 
