@@ -1,5 +1,5 @@
 function onUpdateDatabase()
-	logger.info("Updating database to version 40 (Reset System: verify resets column)")
+	logMigration("Updating database to version 40 (Reset System: verify resets column)")
 
 	local res = db.storeQuery(
 		"SELECT COUNT(*) AS `cnt` FROM `information_schema`.`COLUMNS`"
@@ -16,7 +16,7 @@ function onUpdateDatabase()
 	if not exists then
 		local success = db.query("ALTER TABLE `players` ADD COLUMN `reset` int(10) UNSIGNED NOT NULL DEFAULT '0' AFTER `level`")
 		if not success then
-			logger.error("Failed to add `reset` column to `players` table")
+			logMigration("Failed to add `reset` column to `players` table")
 			return false
 		end
 	end
