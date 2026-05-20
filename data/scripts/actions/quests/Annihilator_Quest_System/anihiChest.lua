@@ -8,10 +8,11 @@ local rewardItems = {
 local action = Action()
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
 
-    if player:getStorageValue(PlayerStorageKeys.annihilatorReward) == 1 then
-        player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "It is empty.")
-        return true
-    end
+	local quest = player:questKV("annihilator")
+	if quest:get("reward") then
+		player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "It is empty.")
+		return true
+	end
 
     local reward = rewardItems[item.uid]
     if not reward or ItemType(reward.id):getId() == 0 then
@@ -28,8 +29,9 @@ function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
         return player:sendTextMessage(MESSAGE_INFO_DESCR, "You have found an item weighing " .. ("%.2f"):format(virtualItem:getWeight() / 100) .. " oz, it's too heavy or you do not have enough room.")
     end
 
-    player:sendTextMessage(MESSAGE_INFO_DESCR, "You have found a " .. virtualItem:getName():lower() .. ".")
-    player:setStorageValue(PlayerStorageKeys.annihilatorReward, 1)
+	player:sendTextMessage(MESSAGE_INFO_DESCR, "You have found a " .. virtualItem:getName():lower() .. ".")
+	quest:set("reward", true)
+	quest:set("completedAt", os.time())
     player:getPosition():sendMagicEffect(30)
     return true
 end
