@@ -2985,19 +2985,10 @@ int LuaScriptInterface::luaDoPlayerAddItem(lua_State* L)
 				uint32_t uid = getScriptEnv()->addThing(newItem);
 				lua_pushinteger(L, uid);
 				return 1;
-			} else {
-				// stackable item stacked with existing object, newItem will be released
-				Lua::pushBoolean(L, false);
-	return 1;
-}
-
-int LuaScriptInterface::luaKVGC(lua_State* L) {
-	auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
-	if (ptr) {
-		ptr->reset();
-	}
-	return 0;
-}
+		} else {
+			// stackable item stacked with existing object, newItem will be released
+			Lua::pushBoolean(L, false);
+			return 1;
 		}
 	}
 
@@ -4434,4 +4425,12 @@ int LuaScriptInterface::luaKVKeys(lua_State* L) {
 		lua_rawseti(L, -2, ++index);
 	}
 	return 1;
+}
+
+int LuaScriptInterface::luaKVGC(lua_State* L) {
+	auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
+	if (ptr) {
+		ptr->reset();
+	}
+	return 0;
 }
