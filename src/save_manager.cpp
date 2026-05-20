@@ -11,6 +11,7 @@
 #include "iomapserialize.h"
 #include "logger.h"
 #include "thread_pool.h"
+#include "kv/kv.hpp"
 
 extern Game g_game;
 
@@ -51,6 +52,11 @@ void SaveManager::saveAll()
 
 	if (!g_game.saveAccountStorageValues()) {
 		LOG_ERROR("[SaveManager] Failed to save account storage values.");
+	}
+
+	// Save KV store
+	if (!KVStore::getInstance().saveAll()) {
+		LOG_ERROR("[SaveManager] Failed to save KV store.");
 	}
 
 	// Save all online players (on dispatcher thread - must be serial for thread safety)

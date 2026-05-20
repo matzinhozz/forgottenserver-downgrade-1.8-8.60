@@ -391,9 +391,24 @@ bool DBInsert::execute()
 		return true;
 	}
 
-	// executes buffer
-	bool res = Database::getInstance().executeQuery(query + values);
+	std::string fullQuery = query + " " + values + upsertClause;
+	bool res = Database::getInstance().executeQuery(fullQuery);
 	values.clear();
 	length = query.length();
 	return res;
+}
+
+void DBInsert::upsert(std::vector<std::string> columns)
+{
+	if (columns.empty()) {
+		return;
+	}
+
+	upsertClause = " ON DUPLICATE KEY UPDATE ";
+	for (size_t i = 0; i < columns.size(); ++i) {
+		upsertClause += fmt::format("`{}` = VALUES(`{}`)", columns[i], columns[i]);
+		if (i < columns.size() - 1) {
+			upsertClause += ", ";
+		}
+	}
 }
