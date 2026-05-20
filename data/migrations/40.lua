@@ -9,8 +9,8 @@ function onUpdateDatabase()
 	)
 	local exists = false
 	if res then
-		exists = res:getNumber("cnt") > 0
-		res:free()
+		exists = result.getNumber(res, "cnt") > 0
+		result.free(res)
 	end
 
 	if not exists then
