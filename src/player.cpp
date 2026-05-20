@@ -411,6 +411,10 @@ Item* Player::getWeapon(slots_t slot, bool ignoreAmmo) const
 
 Item* Player::getWeapon(bool ignoreAmmo /* = false*/) const
 {
+	if (isDualWielding()) {
+		return getWeapon(getAttackHand(), ignoreAmmo);
+	}
+
 	Item* item = getWeapon(CONST_SLOT_LEFT, ignoreAmmo);
 	if (item) {
 		return item;
@@ -514,6 +518,17 @@ void Player::getShieldAndWeapon(const Item*& shield, const Item*& weapon) const
 	shield = nullptr;
 	weapon = nullptr;
 
+	if (isDualWielding()) {
+		if (lastAttackHand == HAND_LEFT) {
+			shield = inventory[CONST_SLOT_RIGHT].get();
+			weapon = inventory[CONST_SLOT_LEFT].get();
+		} else {
+			shield = inventory[CONST_SLOT_LEFT].get();
+			weapon = inventory[CONST_SLOT_RIGHT].get();
+		}
+		return;
+	}
+
 	for (uint32_t slot = CONST_SLOT_RIGHT; slot <= CONST_SLOT_LEFT; slot++) {
 		Item* item = inventory[slot].get();
 		if (!item) {
@@ -538,6 +553,78 @@ void Player::getShieldAndWeapon(const Item*& shield, const Item*& weapon) const
 			}
 		}
 	}
+}
+
+bool Player::isDualWielding() const
+{
+	if (!getBoolean(ConfigManager::ALLOW_DUAL_WIELDING)) {
+		return false;
+	}
+
+	if (!vocation->canDualWield()) {
+		return false;
+	}
+
+	Item* leftWeapon = getWeapon(CONST_SLOT_LEFT, true);
+	Item* rightWeapon = getWeapon(CONST_SLOT_RIGHT, true);
+	if (!leftWeapon || !rightWeapon) {
+		return false;
+	}
+
+	if (getString(ConfigManager::DUAL_WIELDING_MODE) == "itemxml") {
+		auto* leftAttr = leftWeapon->getCustomAttribute("dualwielding");
+		auto* rightAttr = rightWeapon->getCustomAttribute("dualwielding");
+		if (!leftAttr || !rightAttr) {
+			return false;
+		}
+	}
+
+	WeaponType_t leftType = leftWeapon->getWeaponType();
+	WeaponType_t rightType = rightWeapon->getWeaponType();
+	if (leftType == WEAPON_DISTANCE || leftType == WEAPON_WAND) {
+		return false;
+	}
+	if (rightType == WEAPON_DISTANCE || rightType == WEAPON_WAND) {
+		return false;
+	}
+
+	return true;
+}
+
+int32_t Player::getDualWieldDamageBoost() const
+{
+	int32_t boost = 0;
+
+	int64_t storageBoost = 0;
+	auto storageVal = getStorageValue(DUAL_WIELD_DAMAGE_BOOST_STORAGE);
+	if (storageVal.has_value()) {
+		storageBoost = storageVal.value();
+		if (storageBoost > 0) {
+			boost += static_cast<int32_t>(storageBoost);
+		}
+	}
+
+	for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
+		Item* item = inventory[slot].get();
+		if (!item) {
+			continue;
+		}
+		auto* attr = item->getCustomAttribute("dualWieldDamageBoost");
+		if (attr) {
+			int64_t val = boost::get<int64_t>(attr->value);
+			if (val > 0) {
+				boost += static_cast<int32_t>(val);
+			}
+		}
+	}
+
+	int32_t baseRate = static_cast<int32_t>(getInteger(ConfigManager::DUAL_WIELDING_DAMAGE_RATE));
+	int32_t maxBoost = 100 - baseRate;
+	if (boost > maxBoost) {
+		boost = maxBoost;
+	}
+
+	return boost;
 }
 
 int32_t Player::getDefense() const
@@ -3069,6 +3156,11 @@ ReturnValue Player::queryAdd(int32_t index, const Thing& thing, uint32_t count, 
 					           leftType == WEAPON_AMMO || type == WEAPON_SHIELD || type == WEAPON_AMMO ||
 					           type == WEAPON_QUIVER || leftType == WEAPON_QUIVER) {
 						ret = RETURNVALUE_NOERROR;
+					} else if (type != WEAPON_DISTANCE && type != WEAPON_WAND &&
+					           leftType != WEAPON_DISTANCE && leftType != WEAPON_WAND &&
+					           getBoolean(ConfigManager::ALLOW_DUAL_WIELDING) &&
+					           vocation->canDualWield()) {
+						ret = RETURNVALUE_NOERROR;
 					} else {
 						ret = RETURNVALUE_CANONLYUSEONEWEAPON;
 					}
@@ -3114,6 +3206,11 @@ ReturnValue Player::queryAdd(int32_t index, const Thing& thing, uint32_t count, 
 					} else if (rightType == WEAPON_NONE || type == WEAPON_NONE || rightType == WEAPON_SHIELD ||
 					           rightType == WEAPON_AMMO || type == WEAPON_SHIELD || type == WEAPON_AMMO ||
 					           type == WEAPON_QUIVER || rightType == WEAPON_QUIVER) {
+						ret = RETURNVALUE_NOERROR;
+					} else if (type != WEAPON_DISTANCE && type != WEAPON_WAND &&
+					           rightType != WEAPON_DISTANCE && rightType != WEAPON_WAND &&
+					           getBoolean(ConfigManager::ALLOW_DUAL_WIELDING) &&
+					           vocation->canDualWield()) {
 						ret = RETURNVALUE_NOERROR;
 					} else {
 						ret = RETURNVALUE_CANONLYUSEONEWEAPON;

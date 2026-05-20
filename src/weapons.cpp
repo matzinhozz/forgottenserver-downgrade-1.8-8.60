@@ -157,6 +157,15 @@ int32_t Weapon::playerWeaponCheck(Player* player, Creature* target, uint8_t shoo
 	}
 
 	int32_t damageModifier = 100;
+
+	if (player->isDualWielding()) {
+		damageModifier = static_cast<int32_t>(getInteger(ConfigManager::DUAL_WIELDING_DAMAGE_RATE));
+		damageModifier += player->getDualWieldDamageBoost();
+		if (damageModifier > 100) {
+			damageModifier = 100;
+		}
+	}
+
 	if (player->getLevel() < getReqLevel()) {
 		damageModifier = (isWieldedUnproperly() ? damageModifier / 2 : 0);
 	}
@@ -336,9 +345,17 @@ void Weapon::onUsedWeapon(Player* player, Item* item, Tile* destTile) const
 		skills_t skillType;
 		uint32_t skillPoint;
 		if (getSkillType(player, item, skillType, skillPoint)) {
-			player->addSkillAdvance(skillType, skillPoint);
+			if (!player->isDualWielding() || !player->getBlockSkillAdvance()) {
+				player->addSkillAdvance(skillType, skillPoint);
+			}
+
+			if (player->getAttackHand() == CONST_SLOT_LEFT) {
+				player->switchBlockSkillAdvance();
+			}
 		}
 	}
+
+	player->switchAttackHand();
 
 	uint32_t manaCost = getManaCost(player);
 	if (manaCost != 0) {
