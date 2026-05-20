@@ -31,6 +31,8 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/inbox.cpp
 	${CMAKE_CURRENT_LIST_DIR}/iologindata.cpp
 	${CMAKE_CURRENT_LIST_DIR}/imbuement.cpp
+	${CMAKE_CURRENT_LIST_DIR}/kv/kv.cpp
+	${CMAKE_CURRENT_LIST_DIR}/kv/value_wrapper.cpp
 	${CMAKE_CURRENT_LIST_DIR}/iomap.cpp
 	${CMAKE_CURRENT_LIST_DIR}/iomapserialize.cpp
 	${CMAKE_CURRENT_LIST_DIR}/item.cpp
@@ -161,6 +163,8 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/housetile.h
 	${CMAKE_CURRENT_LIST_DIR}/iologindata.h
 	${CMAKE_CURRENT_LIST_DIR}/imbuement.h
+	${CMAKE_CURRENT_LIST_DIR}/kv/kv.hpp
+	${CMAKE_CURRENT_LIST_DIR}/kv/value_wrapper.hpp
 	${CMAKE_CURRENT_LIST_DIR}/instance_utils.h
 	${CMAKE_CURRENT_LIST_DIR}/iomap.h
 	${CMAKE_CURRENT_LIST_DIR}/iomapserialize.h

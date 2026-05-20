@@ -196,9 +196,12 @@ public:
 	bool addRow(std::ostringstream& row);
 	bool execute();
 
+	void upsert(std::vector<std::string> columns);
+
 private:
 	std::string query;
 	std::string values;
+	std::string upsertClause;
 	size_t length;
 };
 
