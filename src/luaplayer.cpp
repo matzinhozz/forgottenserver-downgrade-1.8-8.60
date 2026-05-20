@@ -3784,6 +3784,8 @@ int LuaScriptInterface::luaPlayerSendCastChannelMessage(lua_State* L)
 	return 1;
 }
 
+int luaPlayerKV(lua_State* L);
+
 void LuaScriptInterface::registerPlayer()
 {
     // Player

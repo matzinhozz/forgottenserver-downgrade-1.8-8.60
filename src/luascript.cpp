@@ -2991,6 +2991,7 @@ int LuaScriptInterface::luaDoPlayerAddItem(lua_State* L)
 			return 1;
 		}
 	}
+	}
 
 	Lua::pushBoolean(L, false);
 	return 1;
