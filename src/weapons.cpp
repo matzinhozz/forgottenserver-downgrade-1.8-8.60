@@ -283,7 +283,7 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 		damage.primary.type = params.combatType;
 		damage.primary.value = (getWeaponDamage(player, target, item) * damageModifier) / 100;
 		damage.secondary.type = getElementType();
-		damage.secondary.value = getElementDamage(player, target, item);
+		damage.secondary.value = (getElementDamage(player, target, item) * damageModifier) / 100;
 
 		if (player->checkChainSystem()) {
 			auto chainCombat = std::make_shared<Combat>();

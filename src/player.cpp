@@ -520,11 +520,23 @@ void Player::getShieldAndWeapon(const Item*& shield, const Item*& weapon) const
 
 	if (isDualWielding()) {
 		if (lastAttackHand == HAND_LEFT) {
-			shield = inventory[CONST_SLOT_RIGHT].get();
 			weapon = inventory[CONST_SLOT_LEFT].get();
+			Item* offhand = inventory[CONST_SLOT_RIGHT].get();
+			if (offhand) {
+				WeaponType_t offhandType = offhand->getWeaponType();
+				if (offhandType == WEAPON_SHIELD || offhandType == WEAPON_QUIVER) {
+					shield = offhand;
+				}
+			}
 		} else {
-			shield = inventory[CONST_SLOT_LEFT].get();
 			weapon = inventory[CONST_SLOT_RIGHT].get();
+			Item* offhand = inventory[CONST_SLOT_LEFT].get();
+			if (offhand) {
+				WeaponType_t offhandType = offhand->getWeaponType();
+				if (offhandType == WEAPON_SHIELD || offhandType == WEAPON_QUIVER) {
+					shield = offhand;
+				}
+			}
 		}
 		return;
 	}
@@ -575,6 +587,11 @@ bool Player::isDualWielding() const
 		auto* leftAttr = leftWeapon->getCustomAttribute("dualwielding");
 		auto* rightAttr = rightWeapon->getCustomAttribute("dualwielding");
 		if (!leftAttr || !rightAttr) {
+			return false;
+		}
+		int64_t leftVal = boost::get<int64_t>(leftAttr->value);
+		int64_t rightVal = boost::get<int64_t>(rightAttr->value);
+		if (leftVal == 0 || rightVal == 0) {
 			return false;
 		}
 	}

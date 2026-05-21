@@ -100,7 +100,7 @@ private:
 
 	bool magicShield = false;
 	bool skillLoss = true;
-	bool dualWield = true;
+	bool dualWield = false;
 };
 
 using VocationMap = std::map<uint16_t, std::shared_ptr<Vocation>>;

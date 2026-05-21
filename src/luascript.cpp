@@ -2601,6 +2601,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::ALLOW_DUAL_WIELDING);
 	registerEnumIn("configKeys", ConfigManager::DUAL_WIELDING_SPEED_RATE);
 	registerEnumIn("configKeys", ConfigManager::DUAL_WIELDING_DAMAGE_RATE);
+	registerEnumIn("configKeys", ConfigManager::DUAL_WIELDING_MODE);
 	registerEnumIn("configKeys", ConfigManager::SERVER_SAVE_NOTIFY_MESSAGE);
 	registerEnumIn("configKeys", ConfigManager::SERVER_SAVE_CLEAN_MAP);
 	registerEnumIn("configKeys", ConfigManager::SERVER_SAVE_CLOSE);
