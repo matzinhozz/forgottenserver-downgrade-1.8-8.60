@@ -131,6 +131,11 @@ int64_t getMoveItemExhaustionDelay(const Position& toPos)
 	return getInteger(ConfigManager::ACTIONS_DELAY_INTERVAL);
 }
 
+bool hasNotMoveableActionId(const Item& item)
+{
+	return item.getActionId() == ACTIONID_NOT_MOVEABLE;
+}
+
 void closeContainersFromOtherInstances(Player* player)
 {
 	if (!player) {
@@ -1270,6 +1275,11 @@ void Game::playerMoveItem(Player* player, const Position& fromPos, uint16_t spri
 
 	if (!InstanceUtils::isPlayerInSameInstance(player, item->getInstanceID())) {
 		player->sendCancelMessage(RETURNVALUE_NOTPOSSIBLE);
+		return;
+	}
+
+	if (hasNotMoveableActionId(*item)) {
+		player->sendCancelMessage(RETURNVALUE_NOTMOVEABLE);
 		return;
 	}
 

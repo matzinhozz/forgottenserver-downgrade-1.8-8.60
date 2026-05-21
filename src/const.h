@@ -7,6 +7,7 @@
 inline constexpr int32_t NETWORKMESSAGE_MAXSIZE = 65500;
 inline constexpr uint8_t TILE_MAX_ITEMS = 10;
 inline constexpr int32_t TALK_ACTION_EXHAUST_MS = 2000;
+inline constexpr uint16_t ACTIONID_NOT_MOVEABLE = 100;
 
 enum MagicEffectClasses : uint16_t
 {
