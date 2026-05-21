@@ -38,7 +38,7 @@ public:
 	explicit(false) ValueWrapper(const std::initializer_list<ValueWrapper> &init_list, uint64_t timestamp = 0);
 
 	static ValueWrapper deleted() {
-		static ValueWrapper wrapper;
+		ValueWrapper wrapper;
 		wrapper.setDeleted(true);
 		return wrapper;
 	}
