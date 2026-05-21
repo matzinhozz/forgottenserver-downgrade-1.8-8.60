@@ -4239,7 +4239,8 @@ int LuaScriptInterface::luaKVSet(lua_State* L) {
 					} else if (Lua::isString(L, -1)) {
 						arr.emplace_back(std::string(Lua::getString(L, -1)));
 					} else {
-						arr.emplace_back(0);
+						lua_pushnil(L);
+						return 1;
 					}
 					lua_pop(L, 1);
 				}
@@ -4304,12 +4305,13 @@ int LuaScriptInterface::luaKVSet(lua_State* L) {
 					}
 				} else if (Lua::isString(L, -1)) {
 					arr.emplace_back(std::string(Lua::getString(L, -1)));
-				} else {
-					arr.emplace_back(0);
-				}
-				lua_pop(L, 1);
+			} else {
+				lua_pushnil(L);
+				return 1;
 			}
-			KVStore::getInstance().set(key, ValueWrapper(arr));
+			lua_pop(L, 1);
+		}
+		KVStore::getInstance().set(key, ValueWrapper(arr));
 		} else {
 			MapType map;
 			lua_pushnil(L);

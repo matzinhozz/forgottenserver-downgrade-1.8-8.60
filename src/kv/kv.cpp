@@ -107,7 +107,9 @@ std::optional<ValueWrapper> KVStore::get(const std::string &key, bool forceLoad)
 	if (value) {
 		{
 			std::scoped_lock lock(mutex_);
-			setLocked(key, *value);
+			if (store_.find(key) == store_.end()) {
+				setLocked(key, *value);
+			}
 		}
 		processEvictions();
 	}
@@ -224,8 +226,15 @@ std::optional<ValueWrapper> KVStore::load(const std::string &key) {
 std::vector<std::string> KVStore::loadPrefix(const std::string &prefix) {
 	std::vector<std::string> keys;
 	Database &db = Database::getInstance();
-	std::string keySearch = db.escapeString(prefix + "%");
-	const auto query = fmt::format("SELECT `key_name` FROM `kv_store` WHERE `key_name` LIKE {}", keySearch);
+
+	// Escape LIKE metacharacters
+	std::string escaped = prefix;
+	for (auto pos = escaped.find_first_of(R"(\%_)"); pos != std::string::npos; pos = escaped.find_first_of(R"(\%_)", pos + 2)) {
+		escaped.insert(pos, "\\");
+	}
+
+	std::string keySearch = db.escapeString(escaped + "%");
+	const auto query = fmt::format("SELECT `key_name` FROM `kv_store` WHERE `key_name` LIKE {} ESCAPE '\\'", keySearch);
 	const auto result = db.storeQuery(query);
 	if (result == nullptr) {
 		return keys;
@@ -262,6 +271,9 @@ bool KVStore::prepareSave(const std::string &key, const ValueWrapper &value, DBI
 }
 
 bool KVStore::saveAll() {
+	// Drain pending evictions first so they are included in the save
+	processEvictions();
+
 	auto store = getStore();
 
 	auto update = dbUpdate();

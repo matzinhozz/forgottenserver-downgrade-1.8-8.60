@@ -189,6 +189,7 @@ std::optional<ValueWrapper> ValueWrapper::deserialize(const char* data, size_t s
 
 	auto deser = [&](auto& self) -> ValueWrapper {
 		auto type = readType();
+		size_t remaining;
 		switch (type) {
 			case SerType::Null: {
 				return ValueWrapper(timestamp);
@@ -215,6 +216,8 @@ std::optional<ValueWrapper> ValueWrapper::deserialize(const char* data, size_t s
 			}
 			case SerType::Array: {
 				uint32_t count = readLEChecked<uint32_t>(ptr, end);
+				remaining = static_cast<size_t>(end - ptr);
+				if (count > remaining || count > 1000000) throw std::runtime_error("Invalid array count");
 				ArrayType arr;
 				arr.reserve(count);
 				for (uint32_t i = 0; i < count; ++i) {
@@ -224,6 +227,8 @@ std::optional<ValueWrapper> ValueWrapper::deserialize(const char* data, size_t s
 			}
 			case SerType::Map: {
 				uint32_t count = readLEChecked<uint32_t>(ptr, end);
+				remaining = static_cast<size_t>(end - ptr);
+				if (count > remaining || count > 1000000) throw std::runtime_error("Invalid map count");
 				MapType map;
 				for (uint32_t i = 0; i < count; ++i) {
 					uint32_t keyLen = readLEChecked<uint32_t>(ptr, end);
