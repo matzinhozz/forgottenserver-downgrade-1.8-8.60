@@ -10,3 +10,8 @@ modifyDamageInK = false
 modifyExpInK = false
 defaultExpColor = "white"
 defaultHealthDisplay = "real"
+
+-- Loot Grouping
+-- When enabled, loot from multiple kills of the same monster type within 500ms
+-- is grouped into a single message: Loot of a (3x) rat: 5 gold coins, 2 cheese.
+lootGroupingEnabled = true
