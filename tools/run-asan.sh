@@ -9,6 +9,9 @@ LOG_PREFIX="${LOG_DIR}/asan_${RUN_ID}"
 UBSAN_LOG_PREFIX="${LOG_DIR}/ubsan_${RUN_ID}"
 DEFINITIVE_LOG="${ROOT_DIR}/asan-definitive.log"
 RUN_LOG="${LOG_DIR}/run_${RUN_ID}.log"
+JOBS="${JOBS:-$(nproc)}"
+
+source "${ROOT_DIR}/tools/cmake-linux-env.sh"
 
 cd "${ROOT_DIR}"
 
@@ -17,13 +20,22 @@ if ! command -v cmake >/dev/null 2>&1; then
 	exit 1
 fi
 
-cmake --preset asan-linux
-cmake --build --preset asan-linux
+tfs_check_lua55_paths
+
+cmake_args=(--preset asan-linux)
+tfs_append_linux_cmake_cache_args cmake_args
+cmake "${cmake_args[@]}"
+cmake --build --preset asan-linux --parallel "${JOBS}"
 
 ASAN_BIN="${BUILD_DIR}/tfs"
 if [[ ! -x "${ASAN_BIN}" ]]; then
 	echo "ASan build binary not found: ${ASAN_BIN}"
 	exit 1
+fi
+
+if [[ "${TFS_BUILD_ONLY:-0}" == "1" ]]; then
+	echo "ASan build completed: ${ASAN_BIN}"
+	exit 0
 fi
 
 mkdir -p "${LOG_DIR}"

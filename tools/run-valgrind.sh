@@ -6,6 +6,9 @@ BUILD_DIR="${ROOT_DIR}/build-valgrind-linux"
 ROOT_BIN="${ROOT_DIR}/tfs"
 BUILD_BIN="${BUILD_DIR}/tfs"
 LOG_FILE="valgrind-definitive.log"
+JOBS="${JOBS:-$(nproc)}"
+
+source "${ROOT_DIR}/tools/cmake-linux-env.sh"
 
 cd "${ROOT_DIR}"
 
@@ -19,12 +22,21 @@ if ! command -v valgrind >/dev/null 2>&1; then
 	exit 1
 fi
 
-cmake --preset valgrind-linux
-cmake --build --preset valgrind-linux
+tfs_check_lua55_paths
+
+cmake_args=(--preset valgrind-linux)
+tfs_append_linux_cmake_cache_args cmake_args
+cmake "${cmake_args[@]}"
+cmake --build --preset valgrind-linux --parallel "${JOBS}"
 
 if [[ ! -x "${BUILD_BIN}" ]]; then
 	echo "Valgrind build binary not found: ${BUILD_BIN}"
 	exit 1
+fi
+
+if [[ "${TFS_BUILD_ONLY:-0}" == "1" ]]; then
+	echo "Valgrind build completed: ${BUILD_BIN}"
+	exit 0
 fi
 
 # Keep the runtime cwd at the repository root because TFS expects config.lua and data/
