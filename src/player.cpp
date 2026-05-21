@@ -5681,7 +5681,8 @@ void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
 	}
 
 	std::unordered_map<uint16_t, uint32_t> toSell;
-	uint32_t MAX_BATCH_SIZE = 10;
+	static constexpr uint32_t STACKABLE_BATCH = 100;
+	static constexpr uint32_t NON_STACKABLE_BATCH = 10;
 	uint32_t processedCount = 0;
 	bool hasMore = false;
 
@@ -5704,15 +5705,9 @@ void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
 		}
 
 		toSell[item->getID()] += item->getItemCount();
-		if (item->isStackable()) {
-			MAX_BATCH_SIZE = 100;
-			processedCount++;
-		} else {
-			MAX_BATCH_SIZE = 10;
-			processedCount += item->getItemCount();
-		}
-
-		if (processedCount >= MAX_BATCH_SIZE) {
+		processedCount++;
+		uint32_t threshold = item->isStackable() ? STACKABLE_BATCH : NON_STACKABLE_BATCH;
+		if (processedCount >= threshold) {
 			hasMore = true;
 			break;
 		}
