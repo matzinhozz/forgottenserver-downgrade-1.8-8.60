@@ -34,6 +34,12 @@ namespace {
 		}
 		return value;
 	}
+
+	template <typename T>
+	T readLEChecked(const char*& ptr, const char* end) {
+		if (ptr + sizeof(T) > end) throw std::runtime_error("Unexpected end of data");
+		return readLE<T>(ptr);
+	}
 }
 
 ValueWrapper::ValueWrapper(uint64_t timestamp) :
@@ -192,23 +198,23 @@ std::optional<ValueWrapper> ValueWrapper::deserialize(const char* data, size_t s
 				return ValueWrapper(*ptr++ != 0, timestamp);
 			}
 			case SerType::Int: {
-				return ValueWrapper(readLE<int32_t>(ptr), timestamp);
+				return ValueWrapper(readLEChecked<int32_t>(ptr, end), timestamp);
 			}
 			case SerType::Double: {
-				uint64_t bits = readLE<uint64_t>(ptr);
+				uint64_t bits = readLEChecked<uint64_t>(ptr, end);
 				double val;
 				std::memcpy(&val, &bits, sizeof(val));
 				return ValueWrapper(val, timestamp);
 			}
 			case SerType::String: {
-				uint32_t len = readLE<uint32_t>(ptr);
+				uint32_t len = readLEChecked<uint32_t>(ptr, end);
 				if (ptr + len > end) throw std::runtime_error("Unexpected end of data");
 				std::string str(ptr, len);
 				ptr += len;
 				return ValueWrapper(str, timestamp);
 			}
 			case SerType::Array: {
-				uint32_t count = readLE<uint32_t>(ptr);
+				uint32_t count = readLEChecked<uint32_t>(ptr, end);
 				ArrayType arr;
 				arr.reserve(count);
 				for (uint32_t i = 0; i < count; ++i) {
@@ -217,10 +223,10 @@ std::optional<ValueWrapper> ValueWrapper::deserialize(const char* data, size_t s
 				return ValueWrapper(arr, timestamp);
 			}
 			case SerType::Map: {
-				uint32_t count = readLE<uint32_t>(ptr);
+				uint32_t count = readLEChecked<uint32_t>(ptr, end);
 				MapType map;
 				for (uint32_t i = 0; i < count; ++i) {
-					uint32_t keyLen = readLE<uint32_t>(ptr);
+					uint32_t keyLen = readLEChecked<uint32_t>(ptr, end);
 					if (ptr + keyLen > end) throw std::runtime_error("Unexpected end of data");
 					std::string key(ptr, keyLen);
 					ptr += keyLen;
