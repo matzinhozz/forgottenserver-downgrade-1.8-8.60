@@ -4358,7 +4358,10 @@ int LuaScriptInterface::luaKVGet(lua_State* L) {
 	}
 
 	if (Lua::isUserdata(L, 1)) {
-		auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
+		auto* ptr = static_cast<std::shared_ptr<KV>*>(luaL_testudata(L, 1, "KV"));
+		if (!ptr) {
+			luaL_error(L, "KV:get called on non-KV userdata");
+		}
 		valueWrapper = (*ptr)->get(key, forceLoad);
 	} else {
 		valueWrapper = KVStore::getInstance().get(key, forceLoad);
@@ -4466,7 +4469,10 @@ int LuaScriptInterface::luaKVRemove(lua_State* L) {
 	// kv.remove(key) or scopedKV:remove(key)
 	const auto key = Lua::getString(L, -1);
 	if (Lua::isUserdata(L, 1)) {
-		auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
+		auto* ptr = static_cast<std::shared_ptr<KV>*>(luaL_testudata(L, 1, "KV"));
+		if (!ptr) {
+			luaL_error(L, "KV:remove called on non-KV userdata");
+		}
 		(*ptr)->remove(key);
 	} else {
 		KVStore::getInstance().remove(key);
@@ -4485,7 +4491,10 @@ int LuaScriptInterface::luaKVKeys(lua_State* L) {
 	}
 
 	if (Lua::isUserdata(L, 1)) {
-		auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
+		auto* ptr = static_cast<std::shared_ptr<KV>*>(luaL_testudata(L, 1, "KV"));
+		if (!ptr) {
+			luaL_error(L, "KV:keys called on non-KV userdata");
+		}
 		keys = (*ptr)->keys(prefix);
 	} else {
 		keys = KVStore::getInstance().keys(prefix);
@@ -4501,7 +4510,7 @@ int LuaScriptInterface::luaKVKeys(lua_State* L) {
 }
 
 int LuaScriptInterface::luaKVGC(lua_State* L) {
-	auto* ptr = static_cast<std::shared_ptr<KV>*>(lua_touserdata(L, 1));
+	auto* ptr = static_cast<std::shared_ptr<KV>*>(luaL_testudata(L, 1, "KV"));
 	if (ptr) {
 		ptr->reset();
 	}
