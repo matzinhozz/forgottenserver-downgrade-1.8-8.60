@@ -5632,7 +5632,7 @@ void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
                                    std::shared_ptr<std::unordered_map<uint16_t, uint32_t>> prices,
                                    uint64_t totalPrice)
 {
-	Player* player = g_game.getPlayerByID(playerId);
+	auto player = g_game.getPlayerByID(playerId);
 	if (!player) {
 		return;
 	}
@@ -5734,7 +5734,7 @@ void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
 				uint32_t removeCount = std::min(remaining, itemCount);
 				g_game.internalRemoveItem(item, removeCount);
 				uint64_t value = static_cast<uint64_t>(removeCount) * sellPrice;
-				g_game.addMoney(player, value);
+				g_game.addMoney(player.get(), value);
 				totalPrice += value;
 				remaining -= removeCount;
 				found = true;
