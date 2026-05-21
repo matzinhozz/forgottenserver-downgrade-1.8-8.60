@@ -589,7 +589,7 @@ quest:set("completedAt", os.time())
 | `src/database.h/.cpp` | `DBInsert::upsert()` adicionado |
 | `src/luascript.cpp` | Bindings Lua (`kv` table, `KV` metatable) |
 | `src/luaplayer.cpp` | `player:kv()` |
-| `src/save_manager.cpp` | KV save no server save |
+| `src/save_manager.cpp` | Salvamento do KV durante o server save |
 | `data/lib/core/player.lua` | Helper `Player:questKV(name)` |
 | `data/migrations/41.lua` | Migration: cria tabela `kv_store` |
 | `schema.sql` | Tabela `kv_store` |
