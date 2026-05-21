@@ -5810,7 +5810,7 @@ void Player::addPendingLoot(std::string monsterName, Container* corpse)
 		if (!sharedGroup) {
 			return;
 		}
-		auto* player = g_game.getPlayerByID(playerId);
+		auto player = g_game.getPlayerByID(playerId);
 		if (player) {
 			player->flushPendingLoot(key);
 		}
@@ -5849,7 +5849,7 @@ void Player::flushPendingLoot(const std::string& groupKey)
 		if (count > 1) {
 			ss << count << " " << it.getPluralName();
 		} else {
-			ss << it.getArticle() << " " << it.getName();
+			ss << it.article << " " << it.name;
 		}
 	}
 	ss << ".";
@@ -5863,8 +5863,8 @@ void Player::flushPendingLoot(const std::string& groupKey)
 			leader->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
 		}
 		for (auto& member : party->getMembers()) {
-			if (member) {
-				member->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+			if (auto memberPtr = member.lock()) {
+				memberPtr->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
 			}
 		}
 	} else {
