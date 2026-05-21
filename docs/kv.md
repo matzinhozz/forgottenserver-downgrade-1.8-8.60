@@ -212,6 +212,80 @@ local kills = quest:get("demonKills") or 0
 quest:set("demonKills", kills + 1)
 ```
 
+### KV Global — Dados compartilhados entre sistemas
+
+O KV global (`kv` sem player) é ideal para estado do servidor, eventos, e dependências entre quests. Diferente do storage de player que isola dados por personagem, o KV global é acessível por qualquer script.
+
+**Exemplo: Demon Oak requer Annihilator concluída**
+
+Este é um caso clássico de quest com pré-requisito. O jogador precisa ter completado a Annihilator antes de poder fazer a Demon Oak. Usando KV, a verificação é trivial:
+
+```lua
+-- No script da Demon Oak (checagem de acesso)
+local function canEnterDemonOak(player)
+    -- Verifica se o player completou a Annihilator
+    local anni = player:questKV("annihilator")
+    if not anni:get("reward") then
+        player:sendTextMessage(MESSAGE_INFO_DESCR, 
+            "You must complete the Annihilator quest first.")
+        return false
+    end
+    
+    -- Verifica se já completou a Demon Oak
+    local demonOak = player:questKV("demonOak")
+    if demonOak:get("completed") then
+        player:sendTextMessage(MESSAGE_INFO_DESCR, 
+            "You have already completed the Demon Oak quest.")
+        return false
+    end
+    
+    return true
+end
+```
+
+**Exemplo: estado global de evento entre múltiplos scripts**
+
+```lua
+-- Script A: seta o evento
+local rs = kv.scoped("events"):scoped("rattlesnake")
+rs:set("active", true)
+rs:set("startedBy", player:getName())
+rs:set("startedAt", os.time())
+rs:set("participants", {})
+
+-- Script B (outro arquivo): verifica se evento está ativo
+local rs = kv.scoped("events"):scoped("rattlesnake")
+if rs:get("active") then
+    local participants = rs:get("participants") or {}
+    table.insert(participants, player:getName())
+    rs:set("participants", participants)
+end
+
+-- Script C (outro arquivo): finaliza o evento
+local rs = kv.scoped("events"):scoped("rattlesnake")
+rs:set("active", false)
+rs:set("endedAt", os.time())
+rs:set("winner", player:getName())
+
+-- God command: inspecionar estado do evento
+local rs = kv.scoped("events"):scoped("rattlesnake")
+for _, k in ipairs(rs:keys()) do
+    player:sendTextMessage(MESSAGE_INFO_DESCR, k .. " = " .. PrettyString(rs:get(k)))
+end
+```
+
+**Tabela de escopos recomendados:**
+
+| Escopo | Uso |
+|--------|-----|
+| `player.<guid>.quests.<name>.*` | Dados de quest por jogador |
+| `player.<guid>.settings.*` | Configurações do jogador (chain, autoloot...) |
+| `player.<guid>.cooldowns.*` | Cooldowns e exhausts personalizados |
+| `account.<id>.*` | Dados compartilhados entre personagens da conta |
+| `events.<name>.*` | Estado de eventos globais |
+| `game.*` | Configurações e estado global do servidor |
+| `raids.*` | Estado e histórico de raids |
+
 ### Exemplos Gerais
 
 ```lua
