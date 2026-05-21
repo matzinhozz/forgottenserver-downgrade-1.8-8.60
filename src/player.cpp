@@ -5984,6 +5984,25 @@ void Player::flushPendingLoot(const std::string& groupKey)
 
 	auto& group = it->second;
 	if (!group || group->items.empty()) {
+		std::string text;
+		if (!group) {
+			m_pendingLootGroups.erase(it);
+			return;
+		}
+		text = "Loot of " + group->monsterName + ": nothing.";
+		const auto& party = getParty();
+		if (party && party->isSharedExperienceEnabled()) {
+			if (const auto& leader = party->getLeader()) {
+				leader->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+			}
+			for (auto& member : party->getMembers()) {
+				if (auto memberPtr = member.lock()) {
+					memberPtr->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+				}
+			}
+		} else {
+			sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+		}
 		m_pendingLootGroups.erase(it);
 		return;
 	}
@@ -6007,7 +6026,11 @@ void Player::flushPendingLoot(const std::string& groupKey)
 		if (count > 1) {
 			ss << count << " " << it.getPluralName();
 		} else {
-			ss << it.article << " " << it.name;
+			if (it.article.empty() || Item::items[itemId].stackable) {
+				ss << "1 " << it.getPluralName();
+			} else {
+				ss << it.article << " " << it.name;
+			}
 		}
 	}
 	ss << ".";
