@@ -128,6 +128,13 @@ std::unordered_set<std::string> KVStore::keys(const std::string &prefix) {
 	}
 
 	for (const auto &key : loadPrefix(prefix)) {
+		{
+			std::scoped_lock lock(mutex_);
+			auto it = store_.find(prefix + key);
+			if (it != store_.end() && it->second.first.isDeleted()) {
+				continue;
+			}
+		}
 		keys.insert(key);
 	}
 
@@ -153,7 +160,10 @@ void KVStore::processEvictions() {
 	}
 
 	for (const auto &[key, value] : evictions) {
-		save(key, value);
+		if (!save(key, value)) {
+			std::scoped_lock lock(mutex_);
+			pendingEvictions_.emplace_back(key, value);
+		}
 	}
 }
 
@@ -166,11 +176,19 @@ void KVStore::flush() {
 			snapshot.emplace_back(k, v.first);
 		}
 		snapshot.insert(snapshot.end(), pendingEvictions_.begin(), pendingEvictions_.end());
+	}
+
+	bool allSaved = true;
+	for (const auto &[k, v] : snapshot) {
+		if (!save(k, v)) {
+			allSaved = false;
+		}
+	}
+
+	if (allSaved) {
+		std::scoped_lock lock(mutex_);
 		store_.clear();
 		pendingEvictions_.clear();
-	}
-	for (const auto &[k, v] : snapshot) {
-		save(k, v);
 	}
 }
 

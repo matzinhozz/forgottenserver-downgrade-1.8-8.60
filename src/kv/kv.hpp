@@ -139,6 +139,7 @@ public:
 
 private:
 	std::string buildKey(const std::string &key) const {
+		if (key.empty()) return prefix_;
 		return fmt::format("{}.{}", prefix_, key);
 	}
 
