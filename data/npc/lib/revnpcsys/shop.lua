@@ -157,10 +157,30 @@ if not NpcShop then
         return false
     end
 
-    --- Retrieves the items in the NpcShop.
+    --- Retrieves the items in the NpcShop, including loot pouch entry.
     ---@return table The items in the shop.
     function NpcShop:getItems()
-        return self.items
+        local items = {}
+        for _, item in ipairs(self.items) do
+            items[#items + 1] = item
+        end
+        local hasSellable = false
+        for _, item in ipairs(self.items) do
+            if item.sell and item.sell > 0 then
+                hasSellable = true
+                break
+            end
+        end
+        if hasSellable then
+            items[#items + 1] = {
+                id = ITEM_GOLD_POUCH,
+                name = "all loot in pouch",
+                buy = 0,
+                sell = 1,
+                subtype = nil
+            }
+        end
+        return items
     end
 
     -- Retrieves an item from the shop based on its ID and subtype.
@@ -298,6 +318,19 @@ if not NpcShop then
         local shopItem = shop:getItem(itemid, subType)
         local focus = NpcFocus(npc)
         local talkQueue = NpcTalkQueue(npc)
+
+        -- Gold Pouch: sell all loot from pouch
+        if itemid == ITEM_GOLD_POUCH then
+            local prices = {}
+            for _, item in ipairs(shop.items) do
+                if item.sell and item.sell > 0 then
+                    prices[item.id] = item.sell
+                end
+            end
+            player:sellAllLootPouch(npc:getId(), prices)
+            return true
+        end
+
         if not shopItem then
             error("[NpcShop.onSell] items[itemid] == nil")
             return false

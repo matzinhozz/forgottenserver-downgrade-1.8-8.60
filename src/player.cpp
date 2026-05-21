@@ -5627,6 +5627,160 @@ Container* Player::getOrCreateGoldPouchPage(Container* pouch)
 	return pouch;
 }
 
+// Sell-all from loot pouch - batch processing
+void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
+                                   std::shared_ptr<std::unordered_map<uint16_t, uint32_t>> prices,
+                                   uint64_t totalPrice)
+{
+	Player* player = g_game.getPlayerByID(playerId);
+	if (!player) {
+		return;
+	}
+
+	int32_t onBuy, onSell;
+	Npc* shopOwner = player->getShopOwner(onBuy, onSell);
+	Npc* npc = g_game.getNpcByID(npcId);
+	if (!shopOwner || !npc || shopOwner != npc) {
+		return;
+	}
+
+	Container* pouch = player->getLootPouch();
+	if (!pouch) {
+		player->sendTextMessage(MESSAGE_STATUS_WARNING, "You have no items in your loot pouch.");
+		return;
+	}
+
+	bool hasSellable = false;
+	for (ContainerIterator it = pouch->iterator(); it.hasNext(); it.advance()) {
+		Item* item = *it;
+		if (!item) {
+			continue;
+		}
+		if (prices->find(item->getID()) == prices->end()) {
+			continue;
+		}
+		if (item->getTier() > 0 || item->hasImbuements()) {
+			continue;
+		}
+		if (const Container* child = item->getContainer()) {
+			if (child->size() > 0) {
+				continue;
+			}
+		}
+		hasSellable = true;
+		break;
+	}
+
+	if (!hasSellable) {
+		if (pouch->size() == 0) {
+			player->sendTextMessage(MESSAGE_STATUS_WARNING, "You have no items in your loot pouch.");
+		} else {
+			player->sendTextMessage(MESSAGE_STATUS_WARNING, "You have no sellable items in your loot pouch.");
+		}
+		return;
+	}
+
+	std::unordered_map<uint16_t, uint32_t> toSell;
+	uint32_t MAX_BATCH_SIZE = 10;
+	uint32_t processedCount = 0;
+	bool hasMore = false;
+
+	for (ContainerIterator it = pouch->iterator(); it.hasNext() && !hasMore; it.advance()) {
+		Item* item = *it;
+		if (!item) {
+			continue;
+		}
+
+		if (prices->find(item->getID()) == prices->end()) {
+			continue;
+		}
+		if (item->getTier() > 0 || item->hasImbuements()) {
+			continue;
+		}
+		if (const Container* child = item->getContainer()) {
+			if (child->size() > 0) {
+				continue;
+			}
+		}
+
+		toSell[item->getID()] += item->getItemCount();
+		if (item->isStackable()) {
+			MAX_BATCH_SIZE = 100;
+			processedCount++;
+		} else {
+			MAX_BATCH_SIZE = 10;
+			processedCount += item->getItemCount();
+		}
+
+		if (processedCount >= MAX_BATCH_SIZE) {
+			hasMore = true;
+			break;
+		}
+	}
+
+	for (auto& [itemId, amount] : toSell) {
+		uint32_t sellPrice = (*prices)[itemId];
+		uint32_t remaining = amount;
+
+		while (remaining > 0) {
+			bool found = false;
+			for (ContainerIterator it = pouch->iterator(); it.hasNext() && remaining > 0; it.advance()) {
+				Item* item = *it;
+				if (!item || item->getID() != itemId) {
+					continue;
+				}
+
+				uint32_t itemCount = item->getItemCount();
+				uint32_t removeCount = std::min(remaining, itemCount);
+				g_game.internalRemoveItem(item, removeCount);
+				uint64_t value = static_cast<uint64_t>(removeCount) * sellPrice;
+				g_game.addMoney(player, value);
+				totalPrice += value;
+				remaining -= removeCount;
+				found = true;
+				break;
+			}
+			if (!found) {
+				break;
+			}
+		}
+	}
+
+	if (hasMore) {
+		bool stillHasSellable = false;
+		for (ContainerIterator it = pouch->iterator(); it.hasNext() && !stillHasSellable; it.advance()) {
+			Item* item = *it;
+			if (!item) {
+				continue;
+			}
+			if (prices->find(item->getID()) == prices->end()) {
+				continue;
+			}
+			if (item->getTier() > 0 || item->hasImbuements()) {
+				continue;
+			}
+			if (const Container* child = item->getContainer()) {
+				if (child->size() > 0) {
+					continue;
+				}
+			}
+			stillHasSellable = true;
+		}
+
+		if (stillHasSellable) {
+			g_scheduler.addEvent(50, [playerId, npcId, prices, totalPrice]() {
+				sellAllLootPouchBatch(playerId, npcId, prices, totalPrice);
+			});
+			return;
+		}
+	}
+
+	if (totalPrice > 0) {
+		std::string msg = "You sold all of the items from your loot pouch for " + std::to_string(totalPrice) + " gold.";
+		player->sendTextMessage(MESSAGE_INFO_DESCR, msg);
+	}
+}
+
 void Player::lootCorpse(Container* container)
 {
 	if (!container) {

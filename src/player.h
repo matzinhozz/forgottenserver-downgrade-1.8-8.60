@@ -1219,6 +1219,7 @@ public:
 	void parseAutoLootWindow(const std::string& text);
 	Container* findNonEmptyContainer(uint16_t itemId);
 	Container* findGoldPouch() const;
+	Container* getLootPouch() const { return findGoldPouch(); }
 	Container* getOrCreateGoldPouchPage(Container* pouch);
 	void lootCorpse(Container* container);
 
@@ -1568,5 +1569,9 @@ private:
 	friend class ProtocolGame;
 	friend class ProtocolSpectator;
 };
+
+void sellAllLootPouchBatch(uint32_t playerId, uint32_t npcId,
+                           std::shared_ptr<std::unordered_map<uint16_t, uint32_t>> prices,
+                           uint64_t totalPrice);
 
 #endif

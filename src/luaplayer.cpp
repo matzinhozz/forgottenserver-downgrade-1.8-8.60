@@ -1550,6 +1550,56 @@ int luaPlayerRemoveMoney(lua_State* L)
 	return 1;
 }
 
+int luaPlayerGetLootPouch(lua_State* L)
+{
+	// player:getLootPouch()
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (player) {
+		Container* pouch = player->getLootPouch();
+		if (pouch) {
+			pushUserdata<Container>(L, pouch);
+			setMetatable(L, -1, "Container");
+		} else {
+			lua_pushnil(L);
+		}
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerSellAllLootPouch(lua_State* L)
+{
+	// player:sellAllLootPouch(npcId, pricesTable)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	uint32_t npcId = getNumber<uint32_t>(L, 2);
+
+	luaL_checktype(L, 3, LUA_TTABLE);
+	auto prices = std::make_shared<std::unordered_map<uint16_t, uint32_t>>();
+
+	lua_pushnil(L);
+	while (lua_next(L, 3) != 0) {
+		if (lua_isnumber(L, -2) && lua_isnumber(L, -1)) {
+			auto itemId = static_cast<uint16_t>(lua_tointeger(L, -2));
+			auto price = static_cast<uint32_t>(lua_tointeger(L, -1));
+			if (price > 0) {
+				(*prices)[itemId] = price;
+			}
+		}
+		lua_pop(L, 1);
+	}
+
+	sellAllLootPouchBatch(player->getID(), npcId, prices, 0);
+
+	lua_pushboolean(L, true);
+	return 1;
+}
+
 int luaPlayerShowTextDialog(lua_State* L)
 {
 	// player:showTextDialog(id or name or userdata[, text[, canWrite[, length]]])
@@ -3911,6 +3961,9 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "getMoney", luaPlayerGetMoney);
 	registerMethod("Player", "addMoney", luaPlayerAddMoney);
 	registerMethod("Player", "removeMoney", luaPlayerRemoveMoney);
+
+	registerMethod("Player", "getLootPouch", luaPlayerGetLootPouch);
+	registerMethod("Player", "sellAllLootPouch", luaPlayerSellAllLootPouch);
 
 	registerMethod("Player", "showTextDialog", luaPlayerShowTextDialog);
 
