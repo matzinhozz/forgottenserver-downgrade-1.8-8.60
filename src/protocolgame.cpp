@@ -103,7 +103,7 @@ auto findClient(uint32_t guid)
 		}
 	}
 
-	writeToOutputBuffer(msg);
+	return std::make_pair(waitList.end(), slot);
 }
 
 void ProtocolGame::sendWeaponProficiency(uint16_t itemId, uint32_t experience, const std::vector<uint8_t>& perkLevels)

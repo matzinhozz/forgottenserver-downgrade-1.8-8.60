@@ -808,7 +808,7 @@ struct ProficiencyPerk
 	uint8_t augmentType = 0;
 	uint16_t bestiaryId = 0;
 	std::string bestiaryName;
-	skills_t skillId = SKILL_NONE;
+	skills_t skillId = SKILL_FIST;
 	CombatType_t element = COMBAT_NONE;
 	WeaponProficiencyBonus_t type = WeaponProficiencyBonus_t::ATTACK_DAMAGE;
 };
