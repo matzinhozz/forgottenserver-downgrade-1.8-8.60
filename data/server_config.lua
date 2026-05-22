@@ -3,7 +3,7 @@
 
 -- Imbuement System
 imbuementSystemEnabled = false
-proficiencyImbuement1511 = false
+proficiencyImbuement1511 = true
 
 -- Reset System
 -- Enable or disable the full reset system.
