@@ -6043,7 +6043,7 @@ void Player::flushPendingLoot(const std::string& groupKey)
 			ss << count << " " << it.getPluralName();
 		} else {
 			if (it.article.empty() || Item::items[itemId].stackable) {
-				ss << "1 " << it.getPluralName();
+				ss << "1 " << it.name;
 			} else {
 				ss << it.article << " " << it.name;
 			}
