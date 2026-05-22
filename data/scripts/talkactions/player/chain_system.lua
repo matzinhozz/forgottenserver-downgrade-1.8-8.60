@@ -1,7 +1,5 @@
 local chainStorage = 40001
 
-local chainSystem = TalkAction("!chain")
-
 local function isChainSystemEnabled()
 	if ChainSystem and ChainSystem.enabled ~= nil then
 		return ChainSystem.enabled
@@ -20,23 +18,31 @@ local function isChainSystemEnabled()
 	return true
 end
 
+local chainSystem = TalkAction("!chain")
+
 function chainSystem.onSay(player, words, param)
 	if not isChainSystemEnabled() then
 		player:sendTextMessage(MESSAGE_INFO_DESCR, "Chain system is not enabled on this server.")
 		return true
 	end
 
+	local settings = player:kv():scoped("settings")
+
 	param = param:trim():lower()
 	if param == "on" then
-		player:setStorageValue(chainStorage, 1)
-		player:sendTextMessage(MESSAGE_INFO_DESCR, "Chain system ativado.")
+		settings:set("chainSystem", true)
+		player:sendTextMessage(MESSAGE_INFO_DESCR, "Chain system enabled.")
 	elseif param == "off" then
-		player:setStorageValue(chainStorage, 0)
-		player:sendTextMessage(MESSAGE_INFO_DESCR, "Chain system desativado.")
+		settings:set("chainSystem", false)
+		player:sendTextMessage(MESSAGE_INFO_DESCR, "Chain system disabled.")
 	else
-		local state = player:getStorageValue(chainStorage)
-		local stateText = (state == 1) and "ativado" or "desativado"
-		player:sendTextMessage(MESSAGE_INFO_DESCR, string.format("Chain system: %s. Use !chain on ou !chain off.", stateText))
+		local enabled = settings:get("chainSystem")
+		if enabled == nil then
+			enabled = player:getStorageValue(chainStorage) == 1
+			settings:set("chainSystem", enabled)
+		end
+		local stateText = (enabled == true) and "enabled" or "disabled"
+		player:sendTextMessage(MESSAGE_INFO_DESCR, string.format("Chain system: %s. Use !chain on or !chain off.", stateText))
 	end
 	return false
 end

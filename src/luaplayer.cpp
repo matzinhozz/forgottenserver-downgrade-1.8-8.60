@@ -18,6 +18,7 @@
 #include "tile.h"
 #include "vocation.h"
 #include "familiar.h"
+#include "kv/kv.h"
 
 extern Game g_game;
 extern Vocations g_vocations;
@@ -3783,6 +3784,8 @@ int LuaScriptInterface::luaPlayerSendCastChannelMessage(lua_State* L)
 	return 1;
 }
 
+int luaPlayerKV(lua_State* L);
+
 void LuaScriptInterface::registerPlayer()
 {
     // Player
@@ -4108,8 +4111,25 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "setReset", luaPlayerSetReset);
 	registerMethod("Player", "reloadWarList", luaPlayerReloadWarList);
 
+	// KV
+	registerMethod("Player", "kv", luaPlayerKV);
+
 	// OfflinePlayer
 	registerClass("OfflinePlayer", "Player", luaOfflinePlayerCreate);
 	registerMetaMethod("OfflinePlayer", "__gc", luaOfflinePlayerRemove);
 	registerMetaMethod("OfflinePlayer", "__close", luaOfflinePlayerRemove);
+}
+
+int luaPlayerKV(lua_State* L) {
+	// player:kv()
+	Player* player = Lua::getPlayer(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	auto scoped = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", player->getGUID()));
+	Lua::pushSharedPtr(L, scoped);
+	Lua::setMetatable(L, -1, "KV");
+	return 1;
 }

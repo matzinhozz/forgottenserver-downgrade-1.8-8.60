@@ -362,6 +362,10 @@ end
 
 function Player.hasExhaustion(self, key) return self:getExhaustion(key) > 0 end
 
+function Player.questKV(self, questName)
+	return self:kv():scoped("quests"):scoped(questName)
+end
+
 ---@param type ExperienceRateType
 ---@param value integer
 function Player:addExperienceRate(type, value)

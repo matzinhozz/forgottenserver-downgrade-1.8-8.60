@@ -447,6 +447,14 @@ CREATE TABLE IF NOT EXISTS `player_debugasserts` (
   FOREIGN KEY (`player_id`) REFERENCES `players`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8;
 
+CREATE TABLE IF NOT EXISTS `kv_store` (
+  `key_name` varchar(191) NOT NULL,
+  `timestamp` bigint NOT NULL,
+  `value` longblob NOT NULL,
+  PRIMARY KEY (`key_name`),
+  KEY `timestamp` (`timestamp`)
+) ENGINE=InnoDB DEFAULT CHARACTER SET=utf8mb4 COLLATE=utf8mb4_bin;
+
 CREATE TABLE IF NOT EXISTS `server_config` (
   `config` varchar(50) NOT NULL,
   `value` varchar(256) NOT NULL DEFAULT '',
