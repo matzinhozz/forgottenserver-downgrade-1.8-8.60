@@ -13,7 +13,7 @@
 #include "map.h"
 #include "mounts.h"
 #include "player.h"
-#include "scriptmanager.h"
+#include "protocolgame.h"
 #include "spells.h"
 #include "tile.h"
 #include "vocation.h"
@@ -4160,7 +4160,8 @@ int luaPlayerSendWeaponProficiency(lua_State* L) {
 		}
 	}
 
-	player->client->sendWeaponProficiency(itemId, experience, perkLevels);
+	auto protocol = static_cast<ProtocolGame*>(player->client.get());
+	protocol->sendWeaponProficiency(itemId, experience, perkLevels);
 	lua_pushboolean(L, true);
 	return 1;
 }
@@ -4177,7 +4178,8 @@ int luaPlayerSendProficiencyNotification(lua_State* L) {
 	uint32_t experience = Lua::getInteger<uint32_t>(L, 3);
 	bool hasUnnusedPerk = Lua::getBoolean(L, 4);
 
-	player->client->sendProficiencyNotification(itemId, experience, hasUnnusedPerk);
+	auto protocol = static_cast<ProtocolGame*>(player->client.get());
+	protocol->sendProficiencyNotification(itemId, experience, hasUnnusedPerk);
 	lua_pushboolean(L, true);
 	return 1;
 }
