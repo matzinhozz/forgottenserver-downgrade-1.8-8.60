@@ -62,6 +62,7 @@ enum LuaDataType
 	LuaData_XMLDocument,
 	LuaData_XMLNode,
 	LuaData_Zone,
+	LuaData_KV,
 };
 
 template <class T>
@@ -88,6 +89,7 @@ class House;
 class InstantSpell;
 class Item;
 class ItemType;
+class KV;
 class Loot;
 class LuaScriptInterface;
 class LuaVariant;
@@ -407,6 +409,7 @@ protected:
 	void registerGlobalEvents();
 	void registerWeapons();
 	void registerXML();
+	void registerKV();
 
 	void registerMethod(std::string_view globalName, std::string_view methodName, lua_CFunction func);
 
@@ -513,6 +516,14 @@ private:
 	static int luaSystemNanoTime(lua_State* L);
 
     static int luaTableCreate(lua_State* L);
+
+	// KV
+	static int luaKVScoped(lua_State* L);
+	static int luaKVSet(lua_State* L);
+	static int luaKVGet(lua_State* L);
+	static int luaKVKeys(lua_State* L);
+	static int luaKVRemove(lua_State* L);
+	static int luaKVGC(lua_State* L);
 
     // global helper declared to satisfy registration in luascript.cpp
     static int luaTransformToSHA1(lua_State* L);

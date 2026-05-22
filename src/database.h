@@ -196,9 +196,12 @@ public:
 	bool addRow(std::ostringstream& row);
 	bool execute();
 
+	void upsert(const std::vector<std::string>& columns);
+
 private:
 	std::string query;
 	std::string values;
+	std::string upsertClause;
 	size_t length;
 };
 
@@ -220,8 +223,12 @@ public:
 
 	bool begin()
 	{
+		if (!Database::getInstance().beginTransaction()) {
+			state = STATE_NO_START;
+			return false;
+		}
 		state = STATE_START;
-		return Database::getInstance().beginTransaction();
+		return true;
 	}
 
 	bool commit()

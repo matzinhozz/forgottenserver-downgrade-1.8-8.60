@@ -383,11 +383,14 @@ Manual compilation notes are kept below only for advanced/custom setups.
 
 ### Ubuntu 22.04 / 24.04
 
-Requires **Boost 1.75+** and **Lua 5.5**.
+Manual build requirements:
 
-Ubuntu 24.04 is recommended because it already ships the required Boost version. Lua 5.5 is installed manually below.
+- Ubuntu 24.04 is recommended.
+- Ubuntu 22.04 works, but its system Boost can be older than the required version when HTTP support is enabled. In that case, use `./build.sh` or install a newer Boost manually.
+- Lua 5.5 is installed manually because Ubuntu does not ship it as a normal apt package.
+- `simdutf` is installed manually into `$HOME/.local`.
 
-Install dependencies:
+Install system dependencies:
 
 ```bash
 sudo apt update
@@ -400,7 +403,7 @@ sudo apt install -y \
   libabsl-dev
 ```
 
-Install Lua 5.5 manually:
+Install Lua 5.5:
 
 ```bash
 cd /tmp
@@ -414,14 +417,16 @@ sudo make install
 lua -v
 ```
 
-If CMake cannot find the manually installed Lua, pass the paths explicitly:
+The build command below passes Lua explicitly. Keep these CMake flags when building manually:
 
 ```bash
 -DLUA_INCLUDE_DIR=/usr/local/include \
--DLUA_LIBRARY=/usr/local/lib/liblua.a
+-DLUA_LIBRARY=/usr/local/lib/liblua.a \
+-DLUA_LIBRARIES="/usr/local/lib/liblua.a;m;dl" \
+-DLUA_VERSION_STRING=5.5.0
 ```
 
-Install `simdutf` manually on Linux:
+Install `simdutf`:
 
 ```bash
 cd ~
@@ -432,7 +437,7 @@ cmake --build build -- -j"$(nproc)"
 cmake --install build
 ```
 
-Build in Release mode:
+Build the server in Release mode:
 
 ```bash
 git clone https://github.com/Mateuzkl/forgottenserver-downgrade-1.8-8.60
@@ -460,8 +465,9 @@ cmake --build . -- -j"$(nproc)"
 |---|---|
 | `-DCMAKE_BUILD_TYPE=Release` | Enables optimized release build |
 | `-DDISABLE_STATS=1` | Removes runtime stats overhead |
-| `-DENABLE_SLOW_TASK_DETECTION=OFF` | Removes per-task timing overhead |
+| `-DENABLE_SLOW_TASK_DETECTION=ON` | Enables slow task diagnostics |
 | `-DUSE_MIMALLOC=ON` | Uses Microsoft's mimalloc allocator |
+| `-DCMAKE_PREFIX_PATH="/usr/local;$HOME/.local"` | Helps CMake find manual Lua and simdutf installs |
 
 Optional Linux tuning:
 
