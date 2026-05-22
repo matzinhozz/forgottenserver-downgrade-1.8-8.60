@@ -1,6 +1,10 @@
 -- Server-only configuration.
 -- MyAAC reads config.lua, so keep advanced Lua values and server-only toggles here.
 
+-- Imbuement System
+imbuementSystemEnabled = false
+proficiencyImbuement1511 = false
+
 -- Reset System
 -- Enable or disable the full reset system.
 resetssystem = true
