@@ -1027,6 +1027,34 @@ int luaItemTypeGetImbuementSlot(lua_State* L)
 	return 1;
 }
 
+int luaItemTypeGetProficiencyId(lua_State* L)
+{
+	// itemType:getProficiencyId()
+	const ItemType* itemType = getUserdata<const ItemType>(L, 1);
+	if (itemType) {
+		if (!ConfigManager::getBoolean(ConfigManager::WEAPON_PROFICIENCY_ENABLED)) {
+			lua_pushinteger(L, 0);
+			return 1;
+		}
+
+		uint16_t profId = itemType->proficiencyId;
+		if (profId == 0) {
+			switch (itemType->weaponType) {
+				case WEAPON_SWORD: profId = 1; break;
+				case WEAPON_AXE:   profId = 2; break;
+				case WEAPON_CLUB:  profId = 3; break;
+				case WEAPON_DISTANCE: profId = 4; break;
+				case WEAPON_WAND:  profId = 5; break;
+				default: break;
+			}
+		}
+		lua_pushinteger(L, profId);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 } // namespace
 
 void LuaScriptInterface::registerItemType()
@@ -1114,6 +1142,7 @@ void LuaScriptInterface::registerItemType()
 	registerMethod("ItemType", "getMinReqMagicLevel", luaItemTypeGetMinReqMagicLevel);
 
 	registerMethod("ItemType", "getImbuementSlot", luaItemTypeGetImbuementSlot);
+	registerMethod("ItemType", "getProficiencyId", luaItemTypeGetProficiencyId);
 
 	registerMethod("ItemType", "hasSubType", luaItemTypeHasSubType);
 }
