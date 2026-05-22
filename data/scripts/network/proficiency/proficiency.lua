@@ -2,6 +2,27 @@
 -- Opcode 0xE7: Client -> Server (weapon proficiency action)
 -- Opcode 0xEA: Client -> Server (apply perks)
 
+local function sendWeaponProficiency(player, itemId, experience, perkLevels)
+	local msg = NetworkMessage()
+	msg:addByte(0xE8)
+	msg:addU16(itemId)
+	msg:addU32(experience)
+	msg:addByte(#perkLevels)
+	for _, level in ipairs(perkLevels) do
+		msg:addByte(level)
+	end
+	msg:sendToPlayer(player)
+end
+
+local function sendProficiencyNotification(player, itemId, experience, hasUnnusedPerk)
+	local msg = NetworkMessage()
+	msg:addByte(0xE9)
+	msg:addU16(itemId)
+	msg:addU32(experience)
+	msg:addByte(hasUnnusedPerk and 1 or 0)
+	msg:sendToPlayer(player)
+end
+
 local action = PacketHandler(0xE7)
 
 function action.onReceive(player, msg)
@@ -37,7 +58,7 @@ function action.onReceive(player, msg)
 						perkLevels[#perkLevels + 1] = i - 1
 					end
 				end
-				player:sendWeaponProficiency(weaponId, exp, perkLevels)
+				sendWeaponProficiency(player, weaponId, exp, perkLevels)
 			end
 		end
 
@@ -61,7 +82,7 @@ function action.onReceive(player, msg)
 					perkLevels[#perkLevels + 1] = i - 1
 				end
 			end
-			player:sendWeaponProficiency(itemId, exp, perkLevels)
+			sendWeaponProficiency(player, itemId, exp, perkLevels)
 		end
 
 	elseif actionType == 2 then
@@ -99,7 +120,7 @@ function action.onReceive(player, msg)
 				mastered = (maxExp > 0 and exp >= maxExp),
 			})
 
-			player:sendWeaponProficiency(itemId, exp, {})
+			sendWeaponProficiency(player, itemId, exp, {})
 			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Weapon perks have been reset.")
 		end
 	end
@@ -168,7 +189,7 @@ function apply.onReceive(player, msg)
 			perkLevels[#perkLevels + 1] = i - 1
 		end
 	end
-	player:sendWeaponProficiency(itemId, exp, perkLevels)
+	sendWeaponProficiency(player, itemId, exp, perkLevels)
 	player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Weapon perks updated.")
 end
 

@@ -4345,36 +4345,6 @@ int LuaScriptInterface::luaKVSet(lua_State* L) {
 	return 1;
 }
 
-static void pushValueWrapper(lua_State* L, const ValueWrapper& val, bool /* nested */) {
-	auto variant = val.getVariant();
-	std::visit([L](const auto& v) {
-		using VT = std::decay_t<decltype(v)>;
-		if constexpr (std::is_same_v<VT, StringType>) {
-			Lua::pushString(L, v);
-		} else if constexpr (std::is_same_v<VT, BooleanType>) {
-			Lua::pushBoolean(L, v);
-		} else if constexpr (std::is_same_v<VT, IntType>) {
-			lua_pushnumber(L, v);
-		} else if constexpr (std::is_same_v<VT, DoubleType>) {
-			lua_pushnumber(L, v);
-		} else if constexpr (std::is_same_v<VT, ArrayType>) {
-			lua_newtable(L);
-			for (size_t j = 0; j < v.size(); ++j) {
-				pushValueWrapper(L, v[j], true);
-				lua_rawseti(L, -2, static_cast<lua_Integer>(j + 1));
-			}
-		} else if constexpr (std::is_same_v<VT, MapType>) {
-			lua_newtable(L);
-			for (const auto& [mk, mv] : v) {
-				pushValueWrapper(L, *mv, true);
-				lua_setfield(L, -2, mk.c_str());
-			}
-		} else {
-			lua_pushnil(L);
-		}
-	}, variant);
-}
-
 int LuaScriptInterface::luaKVGet(lua_State* L) {
 	// kv.get(key[, forceLoad]) or scopedKV:get(key[, forceLoad])
 	std::optional<ValueWrapper> valueWrapper;

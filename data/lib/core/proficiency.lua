@@ -1,6 +1,28 @@
 -- Weapon Proficiency System Library
 Proficiency = Proficiency or {}
 
+-- Network send helpers (use NetworkMessage + sendToPlayer)
+local function sendWeaponProficiency(player, itemId, experience, perkLevels)
+	local msg = NetworkMessage()
+	msg:addByte(0xE8)
+	msg:addU16(itemId)
+	msg:addU32(experience)
+	msg:addByte(#perkLevels)
+	for _, level in ipairs(perkLevels) do
+		msg:addByte(level)
+	end
+	msg:sendToPlayer(player)
+end
+
+local function sendProficiencyNotification(player, itemId, experience, hasUnnusedPerk)
+	local msg = NetworkMessage()
+	msg:addByte(0xE9)
+	msg:addU16(itemId)
+	msg:addU32(experience)
+	msg:addByte(hasUnnusedPerk and 1 or 0)
+	msg:sendToPlayer(player)
+end
+
 Proficiency.ExperienceTable = {
 	{ regular = 600,    knight = 600,    crossbow = 600 },
 	{ regular = 8000,   knight = 8000,   crossbow = 8000 },
@@ -288,7 +310,7 @@ function Proficiency.addWeaponXP(player, amount)
 	})
 
 	-- Notify client
-	player:sendProficiencyNotification(itemId, newExp, hasUnused)
+	sendProficiencyNotification(player, itemId, newExp, hasUnused)
 
 	-- Level up notification
 	if newLevel > oldLevel then
@@ -419,7 +441,7 @@ function Proficiency.applyPerk(player, slot, perkName)
 			perkLevels[#perkLevels + 1] = i - 1
 		end
 	end
-	player:sendWeaponProficiency(info.itemId, info.experience, perkLevels)
+	sendWeaponProficiency(player, info.itemId, info.experience, perkLevels)
 
 	player:sendTextMessage(MESSAGE_EVENT_ADVANCE,
 		string.format("Applied '%s' to slot %d.", Proficiency.getPerkName(foundPerk), slot))
