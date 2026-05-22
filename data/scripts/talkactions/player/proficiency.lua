@@ -63,22 +63,21 @@ function proficiency.onSay(player, words, param)
 
 		for i = 0, maxLevel - 1 do
 			local levelData = info.profile.Levels[i + 1]
-			if i < unlocked then
-				msg = msg .. string.format("Slot %d: [UNLOCKED]\n", i)
-				local selectedIndex = info.perks[i + 1]
-				if levelData and levelData.Perks then
-					for j, perk in ipairs(levelData.Perks) do
-						local marker = ((j - 1) == selectedIndex) and " [ACTIVE]" or ""
-						msg = msg .. string.format("  - %s%s\n", Proficiency.getPerkName(perk), marker)
-					end
+			local isUnlocked = i < unlocked
+			local selectedIndex = info.perks[i + 1]
+			local status = isUnlocked and "[UNLOCKED]" or "[LOCKED]"
+			msg = msg .. string.format("Slot %d: %s\n", i, status)
+
+			if levelData and levelData.Perks then
+				for j, perk in ipairs(levelData.Perks) do
+					local isSelected = isUnlocked and ((j - 1) == selectedIndex)
+					local marker = isSelected and " *" or ""
+					local lockInfo = not isUnlocked and " [LOCKED]" or ""
+					msg = msg .. string.format("  - %s%s%s\n",
+						Proficiency.getPerkName(perk), marker, lockInfo)
 				end
 			else
-				msg = msg .. string.format("Slot %d: [LOCKED]\n", i)
-				if levelData and levelData.Perks then
-					msg = msg .. string.format("  %d perk(s) available when unlocked\n", #levelData.Perks)
-				else
-					msg = msg .. "  (no perks available)\n"
-				end
+				msg = msg .. "  (no perks available)\n"
 			end
 			msg = msg .. "\n"
 		end
