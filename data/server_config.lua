@@ -5,6 +5,12 @@
 imbuementSystemEnabled = false
 proficiencyImbuement1511 = true
 
+-- Weapon Proficiency
+weaponProficiencyEnabled = true
+weaponProficiencyMaxLevels = 10
+weaponProficiencyMaxPerksPerLevel = 6
+weaponProficiencyGainMultiplier = 0.33
+
 -- Reset System
 -- Enable or disable the full reset system.
 resetssystem = true
