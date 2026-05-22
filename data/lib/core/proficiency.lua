@@ -450,3 +450,5 @@ function Proficiency.applyPerk(player, slot, perkName)
 		string.format("Applied '%s' to slot %d.", Proficiency.getPerkName(foundPerk), slot))
 	return true
 end
+
+Proficiency.loadJson()
