@@ -23,33 +23,36 @@ ScriptingManager& ScriptingManager::getInstance()
 	return instance;
 }
 
-Actions* g_actions = nullptr;
+std::unique_ptr<Actions> g_actions = nullptr;
 CreatureEvents* g_creatureEvents = nullptr;
 Chat* g_chat = nullptr;
 Events* g_events = nullptr;
 GlobalEvents* g_globalEvents = nullptr;
-Spells* g_spells = nullptr;
-TalkActions* g_talkActions = nullptr;
-MoveEvents* g_moveEvents = nullptr;
+std::unique_ptr<Spells> g_spells = nullptr;
+std::unique_ptr<TalkActions> g_talkActions = nullptr;
+std::unique_ptr<MoveEvents> g_moveEvents = nullptr;
 Weapons* g_weapons = nullptr;
-Scripts* g_scripts = nullptr;
+std::unique_ptr<Scripts> g_scripts = nullptr;
 
 extern LuaEnvironment g_luaEnvironment;
 
 ScriptingManager::~ScriptingManager()
 {
-	// Nullify globals before unique_ptrs destroy the objects
 	g_events = nullptr;
+	events_.reset();
 	g_weapons = nullptr;
-	g_spells = nullptr;
-	g_actions = nullptr;
-	g_talkActions = nullptr;
-	g_moveEvents = nullptr;
+	weapons_.reset();
+	g_spells.reset();
+	g_actions.reset();
+	g_talkActions.reset();
+	g_moveEvents.reset();
 	g_chat = nullptr;
+	chat_.reset();
 	g_creatureEvents = nullptr;
+	creatureEvents_.reset();
 	g_globalEvents = nullptr;
-	g_scripts = nullptr;
-	// unique_ptr members auto-destroy in reverse declaration order
+	globalEvents_.reset();
+	g_scripts.reset();
 }
 
 bool ScriptingManager::loadPreItems()
@@ -66,9 +69,8 @@ bool ScriptingManager::loadPreItems()
 		weapons_ = std::make_unique<Weapons>();
 		g_weapons = weapons_.get();
 	}
-	if (!moveEvents_) {
-		moveEvents_ = std::make_unique<MoveEvents>();
-		g_moveEvents = moveEvents_.get();
+	if (!g_moveEvents) {
+		g_moveEvents = std::make_unique<MoveEvents>();
 	}
 
 	return true;
@@ -94,8 +96,7 @@ bool ScriptingManager::loadScriptSystems()
 	LOG_INFO(fmt::format(">> Using {}", LUA_VERSION));
 #endif
 
-	scripts_ = std::make_unique<Scripts>();
-	g_scripts = scripts_.get();
+	g_scripts = std::make_unique<Scripts>();
 	LOG_INFO(">> Loading lua libs");
 	if (!g_scripts->loadScripts("scripts/lib", true, false)) {
 		LOG_ERROR("> ERROR: Unable to load lua libs!");
@@ -115,15 +116,11 @@ bool ScriptingManager::loadScriptSystems()
 		g_weapons = weapons_.get();
 	}
 	g_weapons->loadDefaults();
-	spells_ = std::make_unique<Spells>();
-	g_spells = spells_.get();
-	actions_ = std::make_unique<Actions>();
-	g_actions = actions_.get();
-	talkActions_ = std::make_unique<TalkActions>();
-	g_talkActions = talkActions_.get();
-	if (!moveEvents_) {
-		moveEvents_ = std::make_unique<MoveEvents>();
-		g_moveEvents = moveEvents_.get();
+	g_spells = std::make_unique<Spells>();
+	g_actions = std::make_unique<Actions>();
+	g_talkActions = std::make_unique<TalkActions>();
+	if (!g_moveEvents) {
+		g_moveEvents = std::make_unique<MoveEvents>();
 	}
 	creatureEvents_ = std::make_unique<CreatureEvents>();
 	g_creatureEvents = creatureEvents_.get();

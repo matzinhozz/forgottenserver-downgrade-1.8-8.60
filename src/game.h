@@ -567,8 +567,6 @@ public:
 	Raids raids;
 	Mounts mounts;
 
-	std::forward_list<std::shared_ptr<Item>> toDecayItems;
-
 	std::unordered_set<Position, PositionHasher> getTilesToClean() const { return tilesToClean; }
 	bool isTileInCleanList(Tile* tile)
 	{

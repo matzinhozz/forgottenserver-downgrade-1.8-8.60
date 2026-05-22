@@ -276,15 +276,21 @@ bool Item::hasItemUID() const noexcept
 
 std::shared_ptr<Item> Item::clone() const
 {
+	const int32_t remainingDuration = getDuration();
 	auto item = Item::CreateItem(id, count);
 	if (item && attributes) {
 		item->attributes = std::make_unique<ItemAttributes>(*attributes);
 		if (!item->isStackable()) {
 			item->setItemUID(Item::generateItemUID());
 		}
-		if (item->getDuration() > 0) {
-			item->setDecaying(DECAYING_TRUE);
-			g_game.toDecayItems.push_front(item);
+
+		item->removeAttribute(ITEM_ATTRIBUTE_DECAYSTATE);
+		item->removeAttribute(ITEM_ATTRIBUTE_DURATION_TIMESTAMP);
+		if (remainingDuration > 0) {
+			item->setDuration(remainingDuration);
+			item->setDecaying(DECAYING_PENDING);
+		} else {
+			item->removeAttribute(ITEM_ATTRIBUTE_DURATION);
 		}
 	}
 	return item;

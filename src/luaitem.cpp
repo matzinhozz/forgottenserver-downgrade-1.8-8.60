@@ -517,6 +517,9 @@ int luaItemRemoveAttribute(lua_State* L)
 	if (ret) {
 		ret = (attribute != ITEM_ATTRIBUTE_DURATION_TIMESTAMP);
 		if (ret) {
+			if (attribute == ITEM_ATTRIBUTE_DURATION || attribute == ITEM_ATTRIBUTE_DECAYSTATE) {
+				g_game.stopDecay(item);
+			}
 			item->removeAttribute(attribute);
 		} else {
 			reportErrorFunc(L, "Attempt to erase protected key \"duration timestamp\"");

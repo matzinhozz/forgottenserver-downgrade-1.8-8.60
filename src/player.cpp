@@ -1219,7 +1219,7 @@ DepotLocker* Player::getDepotLocker(uint32_t depotId)
 {
 	auto it = depotLockerMap.find(depotId);
 	if (it != depotLockerMap.end()) {
-		it->second->stopDecaying();
+		it->second->startDecaying();
 		return it->second.get();
 	}
 
@@ -1262,6 +1262,7 @@ DepotLocker* Player::getDepotLocker(uint32_t depotId)
 
 	DepotChest* chest = getDepotChest(depotId, true);
 	it->second->internalAddThing(chest);
+	it->second->startDecaying();
 
 	return it->second.get();
 }
@@ -3920,7 +3921,6 @@ void Player::postRemoveNotification(Thing* thing, const Cylinder* newParent, int
 					bool isOwner = false;
 
 					for (const auto& it : depotChests) {
-						it.second->stopDecaying();
 						if (it.second.get() == depotChest) {
 							isOwner = true;
 							onSendContainer(container);

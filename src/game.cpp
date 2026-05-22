@@ -1959,9 +1959,6 @@ ReturnValue Game::internalRemoveItem(Item* item, int32_t count /*= -1*/, bool te
 		if (item->isRemoved()) {
 			item->onRemoved();
 			item->stopDecaying();
-			if (item->canDecay()) {
-				toDecayItems.remove_if([item](const std::shared_ptr<Item>& i) { return i.get() == item; });
-			}
 			ReleaseItem(item);
 		}
 
