@@ -426,6 +426,8 @@ bool ConfigManager::load()
 	booleans[Boolean::MARKET_SYSTEM_ENABLED] = getGlobalBoolean(L, "marketSystemEnabled", false);
 	booleans[Boolean::PREY_SYSTEM_ENABLED] = getGlobalBoolean(L, "preySystemEnabled", false);
 	booleans[Boolean::MONSTER_LEVEL_ENABLED] = getGlobalBoolean(L, "monsterLevelEnabled", false);
+	booleans[Boolean::WEAPON_PROFICIENCY_ENABLED] = getGlobalBoolean(L, "weaponProficiencyEnabled", false);
+	booleans[Boolean::PROFICIENCY_IMBUEMENT_1511] = getGlobalBoolean(L, "proficiencyImbuement1511", false);
 	booleans[Boolean::ALLOW_MOUNT_IN_PZ] = getGlobalBoolean(L, "allowMountInPz", false);
 	booleans[Boolean::CHAIN_SYSTEM_ENABLED] = getGlobalBoolean(L, "toggleChainSystem", true);
 	booleans[Boolean::MODIFY_DAMAGE_IN_K] = getGlobalBoolean(L, "modifyDamageInK", false);
@@ -566,6 +568,7 @@ bool ConfigManager::load()
 	floats[COMBAT_CHAIN_SKILL_FORMULA_FIST] = getGlobalFloat(L, "combatChainSkillFormulaFist", 1.0f);
 	floats[COMBAT_CHAIN_SKILL_FORMULA_DISTANCE] = getGlobalFloat(L, "combatChainSkillFormulaDistance", 0.9f);
 	floats[COMBAT_CHAIN_SKILL_FORMULA_WANDS_AND_RODS] = getGlobalFloat(L, "combatChainSkillFormulaWandsAndRods", 1.0f);
+	floats[WEAPON_PROFICIENCY_GAIN_MULTIPLIER] = getGlobalFloat(L, "weaponProficiencyGainMultiplier", 0.33f);
 
 	integers[Integer::NEW_PLAYER_SPAWN_POS_X] = getGlobalInteger(L, "newPlayerSpawnPosX", 0);
 	integers[Integer::NEW_PLAYER_SPAWN_POS_Y] = getGlobalInteger(L, "newPlayerSpawnPosY", 0);
@@ -609,6 +612,8 @@ bool ConfigManager::load()
 	integers[Integer::GUILD_WAR_MAX_FRAG_LIMIT] = getGlobalInteger(L, "guildWarMaxFragLimit", 1000);
 	integers[Integer::COMBAT_CHAIN_DELAY] = getGlobalInteger(L, "combatChainDelay", 50);
 	integers[Integer::COMBAT_CHAIN_TARGETS] = getGlobalInteger(L, "combatChainTargets", 5);
+	integers[Integer::WEAPON_PROFICIENCY_MAX_LEVELS] = getGlobalInteger(L, "weaponProficiencyMaxLevels", 10);
+	integers[Integer::WEAPON_PROFICIENCY_MAX_PERKS_PER_LEVEL] = getGlobalInteger(L, "weaponProficiencyMaxPerksPerLevel", 6);
 	booleans[Boolean::GUILD_WAR_ANNOUNCE_KILLS] = getGlobalBoolean(L, "guildWarAnnounceKills", true);
 
 	strings[String::ADMIN_PASSWORD] = getGlobalString(L, "adminPassword", "");

@@ -211,6 +211,7 @@ const std::unordered_map<std::string, ItemParseAttributes_t> ItemParseAttributes
     {"worth", ITEM_PARSE_WORTH},
     {"imbuementslot", ITEM_PARSE_IMBUEMENTSLOT},
     {"wrapableto", ITEM_PARSE_WRAPABLETO},
+    {"proficiency", ITEM_PARSE_PROFICIENCY},
     {"stacksize", ITEM_PARSE_STACKSIZE},
     {"supply", ITEM_PARSE_SUPPLY},
     {"experienceratebase", ITEM_PARSE_EXPERIENCERATE_BASE},
@@ -1962,10 +1963,14 @@ void Items::parseItemNode(const pugi::xml_node& itemNode, uint16_t id)
 					break;
 				}
 
-				case ITEM_PARSE_WRAPABLETO: {
-					it.wrapableTo = pugi::cast<uint16_t>(valueAttribute.value());
-					break;
-				}
+			case ITEM_PARSE_WRAPABLETO: {
+				it.wrapableTo = pugi::cast<uint16_t>(valueAttribute.value());
+				break;
+			}
+			case ITEM_PARSE_PROFICIENCY: {
+				it.proficiencyId = pugi::cast<uint16_t>(valueAttribute.value());
+				break;
+			}
 				case ITEM_PARSE_IMBUEMENTSLOT: {
 					it.imbuementSlot = pugi::cast<uint16_t>(valueAttribute.value());
 					for (auto subAttributeNode : attributeNode.children()) {

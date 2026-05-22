@@ -1,103 +1,64 @@
-local function hasImbuementSlots(item)
-	if not item then
-		return false
-	end
-
-	local ok, slots = pcall(function()
-		return item:getImbuementSlots()
-	end)
-	return ok and slots and slots > 0
-end
-
-local function isItem(thing)
-	if not thing then
-		return false
-	end
-
-	local ok, isItem = pcall(function()
-		return thing:isItem()
-	end)
-	return ok and isItem
-end
-
-local function containerHasItem(container, target)
-	for _, item in ipairs(container:getItems()) do
-		if item == target then
-			return true
-		end
-
-		local childContainer = item:getContainer()
-		if childContainer and containerHasItem(childContainer, target) then
-			return true
-		end
-	end
-	return false
-end
-
-local function isPlayerBackpackItem(player, thing)
-	if not isItem(thing) or thing:getTopParent() ~= player then
-		return false
-	end
-
-	local backpack = player:getSlotItem(CONST_SLOT_BACKPACK)
-	local container = backpack and backpack:getContainer()
-	return container and containerHasItem(container, thing)
-end
-
-local function findImbuableItem(container)
-	for _, item in ipairs(container:getItems()) do
-		if hasImbuementSlots(item) then
-			return item
-		end
-
-		local childContainer = item:getContainer()
-		if childContainer then
-			local found = findImbuableItem(childContainer)
-			if found then
-				return found
-			end
-		end
-	end
-	return nil
-end
-
-local function findPlayerBackpackItem(player)
-	local backpack = player:getSlotItem(CONST_SLOT_BACKPACK)
-	local container = backpack and backpack:getContainer()
-	if container then
-		return findImbuableItem(container)
-	end
-	return nil
-end
+-- Imbuement Shrine Action (Protocol 15.11 style)
+-- Shrine can be used directly (opens window, item selected inside the window)
+-- or target an item from backpack (legacy/backward compatible)
 
 local action = Action()
 
 function action.onUse(player, item, fromPosition, target, toPosition, isHotkey)
-	local selectedItem = nil
-
-	if isItem(target) then
-		if not isPlayerBackpackItem(player, target) then
-			player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item from your backpack on the imbuing shrine.")
-			return true
-		end
-
-		if not hasImbuementSlots(target) then
-			player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item with imbuement slots from your backpack on the imbuing shrine.")
-			return true
-		end
-		selectedItem = target
-	end
-
-	if not selectedItem then
-		selectedItem = findPlayerBackpackItem(player)
-	end
-
-	if not selectedItem then
-		player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item with imbuement slots from your backpack on the imbuing shrine.")
+	if not configManager.getBoolean(configKeys.IMBUEMENT_SYSTEM_ENABLED) then
+		player:sendCancelMessage("Imbuement system is disabled.")
 		return true
 	end
 
-	ImbuingWindow.openItem(player, selectedItem)
+	if configManager.getBoolean(configKeys.PROFICIENCY_IMBUEMENT_1511) then
+		-- 15.11 style: open window without item, player selects inside the window
+		player:openImbuementWindow()
+	else
+		-- Legacy: require item from backpack
+		local selectedItem = nil
+		if target and target:isItem() then
+			if target:getTopParent() ~= player then
+				player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item from your backpack on the imbuing shrine.")
+				return true
+			end
+			local ok, slots = pcall(function() return target:getImbuementSlots() end)
+			if not ok or not slots or slots == 0 then
+				player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item with imbuement slots from your backpack on the imbuing shrine.")
+				return true
+			end
+			selectedItem = target
+		end
+
+		if not selectedItem then
+			-- Auto-find first imbuable item in backpack
+			local backpack = player:getSlotItem(CONST_SLOT_BACKPACK)
+			local container = backpack and backpack:getContainer()
+			if container then
+				local function findItem(cont)
+					for _, it in ipairs(cont:getItems()) do
+						local ok, slots = pcall(function() return it:getImbuementSlots() end)
+						if ok and slots and slots > 0 then
+							return it
+						end
+						local childCont = it:getContainer()
+						if childCont then
+							local found = findItem(childCont)
+							if found then return found end
+						end
+					end
+					return nil
+				end
+				selectedItem = findItem(container)
+			end
+		end
+
+		if not selectedItem then
+			player:sendTextMessage(MESSAGE_STATUS_SMALL, "Use an item with imbuement slots from your backpack on the imbuing shrine.")
+			return true
+		end
+
+		ImbuingWindow.openItem(player, selectedItem)
+	end
 	return true
 end
 

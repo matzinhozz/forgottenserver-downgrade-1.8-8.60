@@ -1,0 +1,132 @@
+[
+  {
+    "ProficiencyId": 1,
+    "Name": "Default Sword",
+    "Version": 1,
+    "Levels": [
+      {
+        "Perks": [
+          { "SkillId": 8, "Type": 3, "Value": 1 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 17, "Value": 0.03 },
+          { "SkillId": 8, "Type": 25, "Value": 0.05 },
+          { "Type": 12, "Value": 0.04 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 7, "Value": 0.03 },
+          { "Type": 8, "Value": 0.02 },
+          { "Type": 12, "Value": 0.08 }
+        ]
+      }
+    ]
+  },
+  {
+    "ProficiencyId": 2,
+    "Name": "Default Axe",
+    "Version": 1,
+    "Levels": [
+      {
+        "Perks": [
+          { "SkillId": 10, "Type": 3, "Value": 1 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 17, "Value": 0.03 },
+          { "SkillId": 10, "Type": 25, "Value": 0.05 },
+          { "Type": 12, "Value": 0.04 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 7, "Value": 0.03 },
+          { "Type": 8, "Value": 0.02 },
+          { "Type": 12, "Value": 0.08 }
+        ]
+      }
+    ]
+  },
+  {
+    "ProficiencyId": 3,
+    "Name": "Default Club",
+    "Version": 1,
+    "Levels": [
+      {
+        "Perks": [
+          { "SkillId": 9, "Type": 3, "Value": 1 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 17, "Value": 0.03 },
+          { "SkillId": 9, "Type": 25, "Value": 0.05 },
+          { "Type": 12, "Value": 0.04 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 7, "Value": 0.03 },
+          { "Type": 8, "Value": 0.02 },
+          { "Type": 12, "Value": 0.08 }
+        ]
+      }
+    ]
+  },
+  {
+    "ProficiencyId": 4,
+    "Name": "Default Distance",
+    "Version": 1,
+    "Levels": [
+      {
+        "Perks": [
+          { "SkillId": 7, "Type": 3, "Value": 1 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Range": 3, "Type": 22, "Value": 10 },
+          { "Type": 8, "Value": 0.02 },
+          { "Type": 12, "Value": 0.04 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 7, "Value": 0.03 },
+          { "Type": 12, "Value": 0.08 },
+          { "Type": 0, "Value": 2 }
+        ]
+      }
+    ]
+  },
+  {
+    "ProficiencyId": 5,
+    "Name": "Default Wand/Rod",
+    "Version": 1,
+    "Levels": [
+      {
+        "Perks": [
+          { "SkillId": 1, "Type": 3, "Value": 1 }
+        ]
+      },
+      {
+        "Perks": [
+          { "ElementId": 8, "Type": 13, "Value": 0.1 },
+          { "Type": 12, "Value": 0.04 },
+          { "Type": 16, "Value": 0.02 }
+        ]
+      },
+      {
+        "Perks": [
+          { "Type": 7, "Value": 0.03 },
+          { "SkillId": 1, "Type": 26, "Value": 0.04 },
+          { "Type": 12, "Value": 0.08 }
+        ]
+      }
+    ]
+  }
+]

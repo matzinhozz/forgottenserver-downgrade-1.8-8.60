@@ -103,7 +103,34 @@ auto findClient(uint32_t guid)
 		}
 	}
 
-	return std::make_pair(waitList.end(), slot);
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::sendWeaponProficiency(uint16_t itemId, uint32_t experience, const std::vector<uint8_t>& perkLevels)
+{
+	if (!player) return;
+
+	NetworkMessage msg;
+	msg.addByte(0xE8);
+	msg.add<uint16_t>(itemId);
+	msg.add<uint32_t>(experience);
+	msg.addByte(static_cast<uint8_t>(perkLevels.size()));
+	for (uint8_t level : perkLevels) {
+		msg.addByte(level);
+	}
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::sendProficiencyNotification(uint16_t itemId, uint32_t experience, bool hasUnnusedPerk)
+{
+	if (!player) return;
+
+	NetworkMessage msg;
+	msg.addByte(0xE9);
+	msg.add<uint16_t>(itemId);
+	msg.add<uint32_t>(experience);
+	msg.addByte(hasUnnusedPerk ? 1 : 0);
+	writeToOutputBuffer(msg);
 }
 
 constexpr int64_t getWaitTime(std::size_t slot)

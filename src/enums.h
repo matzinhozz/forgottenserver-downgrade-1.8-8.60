@@ -766,4 +766,70 @@ enum SpeechBubble_t : uint8_t
 	SPEECHBUBBLE_LAST
 };
 
+enum class WeaponProficiencyBonus_t : uint8_t
+{
+	ATTACK_DAMAGE = 0,
+	DEFENSE_BONUS = 1,
+	WEAPON_SHIELD_MODIFIER = 2,
+	SKILL_BONUS = 3,
+	SPECIALIZED_MAGIC_LEVEL = 4,
+	SPELL_AUGMENT = 5,
+	WEAPON_PROFICIENCY_BESTIARY = 6,
+	POWERFUL_FOE_BONUS = 7,
+	CRITICAL_HIT_CHANCE = 8,
+	ELEMENTAL_HIT_CHANCE = 9,
+	RUNE_CRITICAL_HIT_CHANCE = 10,
+	AUTO_ATTACK_CRITICAL_HIT_CHANCE = 11,
+	CRITICAL_EXTRA_DAMAGE = 12,
+	ELEMENTAL_CRITICAL_EXTRA_DAMAGE = 13,
+	RUNE_CRITICAL_EXTRA_DAMAGE = 14,
+	AUTO_ATTACK_CRITICAL_EXTRA_DAMAGE = 15,
+	MANA_LEECH = 16,
+	LIFE_LEECH = 17,
+	MANA_GAIN_ON_HIT = 18,
+	LIFE_GAIN_ON_HIT = 19,
+	MANA_GAIN_ON_KILL = 20,
+	LIFE_GAIN_ON_KILL = 21,
+	PERFECT_SHOT_DAMAGE = 22,
+	RANGED_HIT_CHANCE = 23,
+	ATTACK_RANGE = 24,
+	SKILL_PERCENTAGE_AUTO_ATTACK = 25,
+	SKILL_PERCENTAGE_SPELL_DAMAGE = 26,
+	SKILL_PERCENTAGE_SPELL_HEALING = 27,
+};
+
+struct ProficiencyPerk
+{
+	uint8_t level = 0;
+	uint8_t index = 0;
+	double value = 0.0;
+	uint16_t spellId = 0;
+	uint8_t range = 0;
+	uint8_t augmentType = 0;
+	uint16_t bestiaryId = 0;
+	std::string bestiaryName;
+	skills_t skillId = SKILL_NONE;
+	CombatType_t element = COMBAT_NONE;
+	WeaponProficiencyBonus_t type = WeaponProficiencyBonus_t::ATTACK_DAMAGE;
+};
+
+struct ProficiencyLevel
+{
+	std::vector<ProficiencyPerk> perks;
+};
+
+struct Proficiency
+{
+	uint16_t id = 0;
+	std::vector<ProficiencyLevel> levels;
+	uint8_t maxLevel = 0;
+};
+
+struct WeaponProficiencyData
+{
+	uint32_t experience = 0;
+	std::vector<ProficiencyPerk> perks;
+	bool mastered = false;
+};
+
 #endif

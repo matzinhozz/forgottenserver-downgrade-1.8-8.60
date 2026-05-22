@@ -134,12 +134,17 @@ exhaustItemAtUsePotion = true
 -- Default false keeps closer 8.60 behavior.
 forgeSystemEnabled = false
 imbuementSystemEnabled = false
+proficiencyImbuement1511 = false
 monkVocationEnabled = false
 familiarSystemEnabled = false
 bestiarySystemEnabled = false
 marketSystemEnabled = false
 preySystemEnabled = false
 monsterLevelEnabled = false
+weaponProficiencyEnabled = false
+weaponProficiencyMaxLevels = 10
+weaponProficiencyMaxPerksPerLevel = 6
+weaponProficiencyGainMultiplier = 0.33
 
 -- Configuration to allow mounting in Protection Zone (PZ)
 -- true = allows mounting in PZ, false = disables mounting in PZ (default behavior)

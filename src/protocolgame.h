@@ -4,6 +4,7 @@
 #ifndef FS_PROTOCOLGAME_H
 #define FS_PROTOCOLGAME_H
 
+#include <vector>
 #include "chat.h"
 #include "creature.h"
 #include "protocol.h"
@@ -234,6 +235,8 @@ private:
 	// inventory
 	void sendInventoryItem(slots_t slot, const Item* item);
 	void sendImbuementDurations(slots_t updatedSlot = CONST_SLOT_WHEREEVER, const Item* updatedItem = nullptr);
+	void sendWeaponProficiency(uint16_t itemId, uint32_t experience, const std::vector<uint8_t>& perkLevels);
+	void sendProficiencyNotification(uint16_t itemId, uint32_t experience, bool hasUnnusedPerk);
 
 	// messages
 	void sendModalWindow(const ModalWindow& modalWindow);

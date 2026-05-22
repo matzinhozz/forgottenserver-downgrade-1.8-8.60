@@ -3785,6 +3785,8 @@ int LuaScriptInterface::luaPlayerSendCastChannelMessage(lua_State* L)
 }
 
 int luaPlayerKV(lua_State* L);
+int luaPlayerSendWeaponProficiency(lua_State* L);
+int luaPlayerSendProficiencyNotification(lua_State* L);
 
 void LuaScriptInterface::registerPlayer()
 {
@@ -4114,6 +4116,10 @@ void LuaScriptInterface::registerPlayer()
 	// KV
 	registerMethod("Player", "kv", luaPlayerKV);
 
+	// Weapon Proficiency
+	registerMethod("Player", "sendWeaponProficiency", luaPlayerSendWeaponProficiency);
+	registerMethod("Player", "sendProficiencyNotification", luaPlayerSendProficiencyNotification);
+
 	// OfflinePlayer
 	registerClass("OfflinePlayer", "Player", luaOfflinePlayerCreate);
 	registerMetaMethod("OfflinePlayer", "__gc", luaOfflinePlayerRemove);
@@ -4131,5 +4137,47 @@ int luaPlayerKV(lua_State* L) {
 	auto scoped = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", player->getGUID()));
 	Lua::pushSharedPtr(L, scoped);
 	Lua::setMetatable(L, -1, "KV");
+	return 1;
+}
+
+int luaPlayerSendWeaponProficiency(lua_State* L) {
+	// player:sendWeaponProficiency(itemId, experience, {level1, level2, ...})
+	Player* player = Lua::getPlayer(L, 1);
+	if (!player || !player->client) {
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+	uint16_t itemId = Lua::getInteger<uint16_t>(L, 2);
+	uint32_t experience = Lua::getInteger<uint32_t>(L, 3);
+
+	std::vector<uint8_t> perkLevels;
+	if (lua_istable(L, 4)) {
+		lua_pushnil(L);
+		while (lua_next(L, 4) != 0) {
+			perkLevels.push_back(static_cast<uint8_t>(Lua::getInteger<int64_t>(L, -1)));
+			lua_pop(L, 1);
+		}
+	}
+
+	player->client->sendWeaponProficiency(itemId, experience, perkLevels);
+	lua_pushboolean(L, true);
+	return 1;
+}
+
+int luaPlayerSendProficiencyNotification(lua_State* L) {
+	// player:sendProficiencyNotification(itemId, experience, hasUnnusedPerk)
+	Player* player = Lua::getPlayer(L, 1);
+	if (!player || !player->client) {
+		lua_pushboolean(L, false);
+		return 1;
+	}
+
+	uint16_t itemId = Lua::getInteger<uint16_t>(L, 2);
+	uint32_t experience = Lua::getInteger<uint32_t>(L, 3);
+	bool hasUnnusedPerk = Lua::getBoolean(L, 4);
+
+	player->client->sendProficiencyNotification(itemId, experience, hasUnnusedPerk);
+	lua_pushboolean(L, true);
 	return 1;
 }
