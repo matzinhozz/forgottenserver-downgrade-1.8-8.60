@@ -37,7 +37,7 @@ Proficiency.WeaponTypeToProfile = {
 	[WEAPON_AXE] = 2,
 	[WEAPON_CLUB] = 3,
 	[WEAPON_DISTANCE] = 4,
-	[WEAPON_WANDROD] = 5,
+	[WEAPON_WAND] = 5,
 }
 
 Proficiency.PerkNames = {
@@ -105,10 +105,13 @@ function Proficiency.getWeaponProfessionType(item)
 	if not item then return "regular" end
 	local itemType = ItemType(item:getId())
 	local weaponType = itemType:getWeaponType()
-	if weaponType == WEAPON_CROSSBOW then
-		return "crossbow"
+	if weaponType == WEAPON_DISTANCE then
+		local ammoType = itemType:getAmmoType()
+		if ammoType == AMMO_BOLT then
+			return "crossbow"
+		end
+		return "regular"
 	elseif weaponType == WEAPON_SWORD or weaponType == WEAPON_AXE or weaponType == WEAPON_CLUB then
-		-- Check vocation for knight
 		return "regular"
 	end
 	return "regular"
