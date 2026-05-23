@@ -5903,10 +5903,9 @@ void Player::lootCorpse(Container* container)
 
 	for (const auto& pair : toMove) {
 		Item* item = pair.first;
-		uint16_t itemId = item->getID();
 		uint32_t value = 0;
 
-		if (moneyIds.contains(itemId)) {
+		if (autolootConfig.goldEnabled && moneyIds.contains(item->getID())) {
 			value = item->getWorth();
 		}
 
@@ -5968,8 +5967,9 @@ void Player::lootCorpse(Container* container)
 	if (autolootConfig.goldEnabled) {
 		for (ContainerIterator it = container->iterator(); it.hasNext(); it.advance()) {
 			Item* goldItem = *it;
+			const uint16_t itemId = goldItem->getID();
 			uint64_t worth = static_cast<uint64_t>(goldItem->getWorth());
-			if (worth > 0 && !queuedMoneyItems.contains(goldItem)) {
+			if (moneyIds.contains(itemId) && worth > 0 && !queuedMoneyItems.contains(goldItem)) {
 				moneyItemsToDeposit.emplace_back(goldItem, worth);
 				queuedMoneyItems.insert(goldItem);
 			}
@@ -5977,9 +5977,11 @@ void Player::lootCorpse(Container* container)
 	}
 
 	uint64_t totalDepositValue = 0;
-	for (const auto& [item, value] : moneyItemsToDeposit) {
-		if (g_game.internalRemoveItem(item, item->getItemCount()) == RETURNVALUE_NOERROR) {
-			totalDepositValue += value;
+	if (autolootConfig.goldEnabled) {
+		for (const auto& [item, value] : moneyItemsToDeposit) {
+			if (g_game.internalRemoveItem(item, item->getItemCount()) == RETURNVALUE_NOERROR) {
+				totalDepositValue += value;
+			}
 		}
 	}
 
