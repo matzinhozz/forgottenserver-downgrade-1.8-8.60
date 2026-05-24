@@ -1,30 +1,33 @@
-local wildGrowth = {1499, 11099} -- wild growth destroyable by machete
+local wildGrowth = {2130, 10182} -- wild growth destroyable by machete
 
-local jungleGrass = { -- grass destroyable by machete
-	[2782] = 2781,
-	[3985] = 3984
+local jungleGrass = {
+	3696, 3702, 17153
 }
 
 local groundIds = {354, 355} -- pick usable ground
 local sandIds = {231} -- desert sand
 
-local holeId = { -- usable rope holes, for rope spots see global.lua
-	294, 369, 370, 385, 394, 411, 412, 413, 432, 433, 434, 435, 8709, 594, 595, 615,
-	609, 610, 1156, 1931, 482, 483, 859, 4826, 868, 874, 4824, 7515, 7516, 7517,
-	7518, 7520, 7521, 7522, 7768, 967, 7737, 7755, 7767, 8144, 8690
+local holeId = {
+	294, 369, 370, 385, 394, 411, 412, 413, 432, 433, 435, 8709,
+	594, 595, 615, 609, 610, 615, 1156, 482, 483, 868, 874, 4824,
+	7768, 433, 432, 413, 7767, 411, 370, 369, 7737, 7755, 7768, 7767,
+	7515, 7516, 7517, 7518, 7519, 7520, 7521, 7522, 7762, 8144, 8690, 8709,
+	12203, 12961, 17239, 19220, 23364, 43372
 }
 
-local holes = { -- holes opened by shovel, closed client id -> open client id
-	[593] = 594, -- stone pile
-	[606] = 615, -- loose stone pile
-	[608] = 609, -- loose ice pile
-	[867] = 868, -- large hole
-	[7749] = 7755 -- loose stone pile
+local Itemsgrinder = {
+	[675] = {item_id = 30004, effect = CONST_ME_BLUE_FIREWORKS}, -- Sapphire dust
+	[16122] = {item_id = 21507, effect = CONST_ME_GREENSMOKE} -- Pinch of crystal dust
+}
+
+local holes = {
+	593, 606, 608, 867, 21341
 }
 
 local fruits = {
-	2673, 2674, 2675, 2676, 2677, 2678, 2679, 2680, 2681, 2682, 2684, 2685, 5097,
- 8839, 8840, 8841
+	3584, 3585, 3586, 3587, 3588, 3589, 3590,
+	3591, 3592, 3593, 3595, 3596, 5096, 8011, 
+	8012, 8013
 } -- fruits to make decorated cake with knife
 
 function destroyItem(player, target, toPosition)
@@ -70,9 +73,8 @@ function onUseMachete(player, item, fromPosition, target, toPosition, isHotkey)
 		return true
 	end
 
-	local grass = jungleGrass[targetId]
-	if grass then
-		target:transform(grass)
+	if table.contains(jungleGrass, target.itemid) then
+		target:transform(target.itemid == 17153 and 17151 or target.itemid - 1)
 		target:decay()
 		player:addAchievementProgress("Nothing Can Stop Me", 100)
 		return true
@@ -82,7 +84,7 @@ function onUseMachete(player, item, fromPosition, target, toPosition, isHotkey)
 end
 
 function onUsePick(player, item, fromPosition, target, toPosition, isHotkey)
-	if target.itemid == 11227 then -- shiny stone refining
+	if target.itemid == 10310 then -- shiny stone refining
 		local chance = math.random(1, 100)
 		if chance == 1 then
 			player:addItem(ITEM_CRYSTAL_COIN) -- 1% chance of getting crystal coin
@@ -91,7 +93,7 @@ function onUsePick(player, item, fromPosition, target, toPosition, isHotkey)
 		elseif chance <= 51 then
 			player:addItem(ITEM_PLATINUM_COIN) -- 45% chance of getting platinum coin
 		else
-			player:addItem(2145) -- 49% chance of getting small diamond
+			player:addItem(3028) -- 49% chance of getting small diamond
 		end
 		player:addAchievementProgress("Petrologist", 100)
 		target:getPosition():sendMagicEffect(CONST_ME_BLOCKHIT)
@@ -128,12 +130,16 @@ function onUsePick(player, item, fromPosition, target, toPosition, isHotkey)
 end
 
 function onUseRope(player, item, fromPosition, target, toPosition, isHotkey)
+	if toPosition.x == CONTAINER_POSITION then
+		return false
+	end
+
 	local tile = Tile(toPosition)
 	if not tile then return false end
 
 	local ground = tile:getGround()
 
-	if ground and table.contains(ropeSpots, ground:getId()) or tile:getItemById(14435) then
+	if tile:isRopeSpot() or tile:getItemById(14435) then
 		tile = Tile(toPosition:moveUpstairs())
 		if not tile then return false end
 
@@ -185,8 +191,8 @@ function onUseShovel(player, item, fromPosition, target, toPosition, isHotkey)
 		toPosition.z = toPosition.z + 1
 		tile:relocateTo(toPosition)
 		player:addAchievementProgress("The Undertaker", 500)
-	elseif holes[target.itemid] then
-		target:transform(holes[target.itemid])
+	elseif table.contains(holes, target.itemid) then
+		target:transform(holes, target.itemid)
 		target:decay()
 		player:addAchievementProgress("The Undertaker", 500)
 	elseif table.contains(sandIds, groundId) then
@@ -209,19 +215,19 @@ function onUseShovel(player, item, fromPosition, target, toPosition, isHotkey)
 end
 
 function onUseScythe(player, item, fromPosition, target, toPosition, isHotkey)
-	if not table.contains({2550, 10513}, item.itemid) then return false end
+	if not table.contains({3453, 9596}, item.itemid) then return false end
 
-	if target.itemid == 2739 then -- wheat
-		target:transform(2737)
+	if target.itemid == 3653 then -- wheat
+		target:transform(3651)
 		target:decay()
-		Game.createItem(2694, 1, toPosition) -- bunch of wheat
+		Game.createItem(3605, 1, toPosition) -- bunch of wheat
 		player:addAchievementProgress("Happy Farmer", 200)
 		return true
 	end
-	if target.itemid == 5465 then -- burning sugar cane
-		target:transform(5464)
+	if target.itemid == 5464 then -- burning sugar cane
+		target:transform(5463)
 		target:decay()
-		Game.createItem(5467, 1, toPosition) -- bunch of sugar cane
+		Game.createItem(5466, 1, toPosition) -- bunch of sugar cane
 		player:addAchievementProgress("Natural Sweetener", 50)
 		return true
 	end
@@ -229,21 +235,50 @@ function onUseScythe(player, item, fromPosition, target, toPosition, isHotkey)
 end
 
 function onUseCrowbar(player, item, fromPosition, target, toPosition, isHotkey)
-	if not table.contains({2416, 10515}, item.itemid) then return false end
+	if not table.contains({3304, 9598}, item.itemid) then return false end
 
 	return destroyItem(player, target, toPosition)
 end
 
 function onUseKitchenKnife(player, item, fromPosition, target, toPosition,
                            isHotkey)
-	if not table.contains({2566, 10511, 10515}, item.itemid) then return false end
+	if not table.contains({3469, 9594, 9598}, item.itemid) then return false end
 
-	if table.contains(fruits, target.itemid) and player:removeItem(6278, 1) then
+	if table.contains(fruits, target.itemid) and player:removeItem(6277, 1) then
 		target:remove(1)
-		player:addItem(6279, 1)
+		player:addItem(6278, 1)
 		player:getPosition():sendMagicEffect(CONST_ME_MAGIC_GREEN)
 		return true
 	end
 
 	return false
+end
+
+function onGrindItem(player, item, fromPosition, target, toPosition)
+	if not(target.itemid == 21573) then
+		return false
+	end
+
+	for index, value in pairs(Itemsgrinder) do
+		if item.itemid == index then
+			local topParent = item:getTopParent()
+			if topParent.isItem and (not topParent:isItem() or topParent.itemid ~= 470) then
+				local parent = item:getParent()
+				if not parent:isTile() and (parent:addItem(value.item_id, 1) or topParent:addItem(value.item_id, 1)) then
+					item:remove(1)
+					player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You grind a " .. ItemType(index):getName() .. " into fine, " .. ItemType(value.item_id):getName() .. ".")
+					doSendMagicEffect(target:getPosition(), value.effect)
+					return true
+				else
+					Game.createItem(value.item_id, 1, item:getPosition())
+				end
+			else
+				Game.createItem(value.item_id, 1, item:getPosition())
+			end
+			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "You grind a " .. ItemType(index):getName() .. " into fine, " .. ItemType(value.item_id):getName() .. ".")
+			item:remove(1)
+			doSendMagicEffect(target:getPosition(), value.effect)
+			return
+		end
+	end
 end
