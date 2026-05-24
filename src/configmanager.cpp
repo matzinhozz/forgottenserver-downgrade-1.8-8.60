@@ -434,6 +434,7 @@ bool ConfigManager::load()
 	    asLowerCaseString(getGlobalString(L, "defaultHealthDisplay", "real")) == "percent";
 	booleans[Boolean::ALLOW_DUAL_WIELDING] = getGlobalBoolean(L, "allowDualWielding", false);
 	booleans[Boolean::RAID_SPAWN_FILE_ENABLED] = getGlobalBoolean(L, "raidSpawnFileEnabled", true);
+	booleans[Boolean::POWERLAW] = getGlobalBoolean(L, "powerlaw", false);
 
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);
@@ -570,6 +571,7 @@ bool ConfigManager::load()
 	floats[COMBAT_CHAIN_SKILL_FORMULA_FIST] = getGlobalFloat(L, "combatChainSkillFormulaFist", 1.0f);
 	floats[COMBAT_CHAIN_SKILL_FORMULA_DISTANCE] = getGlobalFloat(L, "combatChainSkillFormulaDistance", 0.9f);
 	floats[COMBAT_CHAIN_SKILL_FORMULA_WANDS_AND_RODS] = getGlobalFloat(L, "combatChainSkillFormulaWandsAndRods", 1.0f);
+	floats[POWER_LAW_EXPONENT] = getGlobalFloat(L, "powerLawExponent", 0.3f);
 
 	integers[Integer::NEW_PLAYER_SPAWN_POS_X] = getGlobalInteger(L, "newPlayerSpawnPosX", 0);
 	integers[Integer::NEW_PLAYER_SPAWN_POS_Y] = getGlobalInteger(L, "newPlayerSpawnPosY", 0);
@@ -621,6 +623,8 @@ bool ConfigManager::load()
 	integers[Integer::RAID_SPAWN_FILE_SPAWNTIME] = getGlobalInteger(L, "raidSpawnFileSpawntime", 60);
 	integers[Integer::RAID_SPAWN_FILE_RADIUS] = getGlobalInteger(L, "raidSpawnFileRadius", 1);
 	integers[Integer::RAID_SPAWN_FILE_DIRECTION] = getGlobalInteger(L, "raidSpawnFileDirection", 2);
+	integers[Integer::POWER_LAW_SKILL_THRESHOLD] = getGlobalInteger(L, "powerLawSkillThreshold", 0);
+	integers[Integer::POWER_LAW_MAGIC_THRESHOLD] = getGlobalInteger(L, "powerLawMagicThreshold", 0);
 
 	strings[String::ADMIN_PASSWORD] = getGlobalString(L, "adminPassword", "");
 	strings[String::ADMIN_ENCRYPTION] = getGlobalString(L, "adminEncryption", "");

@@ -32,3 +32,11 @@ raidSpawnFileDirectory = "data/raids"
 raidSpawnFileSpawntime = 60
 raidSpawnFileRadius = 1
 raidSpawnFileDirection = 2
+
+-- Power-Law Skill System
+-- Replaces exponential formula with slow-growth power-law above thresholds.
+-- All skills and magic level share the same growth exponent.
+powerlaw = false
+powerLawSkillThreshold = 350
+powerLawMagicThreshold = 200
+powerLawExponent = 0.3
