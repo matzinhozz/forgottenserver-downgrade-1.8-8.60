@@ -196,6 +196,18 @@ uint64_t Vocation::getReqSkillTries(skills_t skill, uint16_t level) const
 			             static_cast<int32_t>(static_cast<int64_t>(threshold) - (MINIMUM_SKILL_LEVEL + 2)));
 			double result =
 			    lastExpTries * std::pow(static_cast<double>(level) / static_cast<double>(threshold), exponent);
+
+			double prevReq;
+			if (level == static_cast<uint16_t>(threshold)) {
+				prevReq = lastExpTries;
+			} else {
+				prevReq = lastExpTries *
+				    std::pow(static_cast<double>(level - 1) / static_cast<double>(threshold), exponent);
+			}
+
+			if (result <= prevReq) {
+				result = prevReq + 1.0;
+			}
 			if (result > static_cast<double>(UINT64_MAX)) {
 				return UINT64_MAX;
 			}
@@ -222,6 +234,18 @@ uint64_t Vocation::getReqMana(uint32_t magLevel) const
 			             static_cast<int32_t>(static_cast<int64_t>(threshold) - 2));
 			double result =
 			    lastExpMana * std::pow(static_cast<double>(magLevel) / static_cast<double>(threshold), exponent);
+
+			double prevReq;
+			if (magLevel == static_cast<uint32_t>(threshold)) {
+				prevReq = lastExpMana;
+			} else {
+				prevReq = lastExpMana *
+				    std::pow(static_cast<double>(magLevel - 1) / static_cast<double>(threshold), exponent);
+			}
+
+			if (result <= prevReq) {
+				result = prevReq + 1.0;
+			}
 			if (result > static_cast<double>(UINT64_MAX)) {
 				return UINT64_MAX;
 			}
