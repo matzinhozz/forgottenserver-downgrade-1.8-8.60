@@ -295,6 +295,19 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 		} else {
 			Combat::doTargetCombat(player, target, damage, params);
 		}
+
+		if (player->checkCleaveSystem()) {
+			uint32_t cleavePercent = getCleavePercent();
+			if (weaponType == WEAPON_FIST && cleavePercent == 0) {
+				cleavePercent = Combat::getCleaveFistPercent();
+			} else if (cleavePercent == 0) {
+				cleavePercent = Combat::getCleaveDefaultPercent();
+			}
+			if (cleavePercent > 0) {
+				Combat::doCombatCleave(player, target, damage, params, cleavePercent);
+			}
+		}
+
 		if (item->hasImbuements()) {
 			int32_t basePhysDamage = std::abs(damage.primary.value);
 			if (basePhysDamage > 0) {

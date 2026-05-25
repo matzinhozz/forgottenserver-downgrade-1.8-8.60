@@ -142,6 +142,10 @@ public:
 	static void doTargetCombat(Creature* caster, Creature* target, CombatDamage& damage, const CombatParams& params);
 	static void doAreaCombat(Creature* caster, const Position& position, const AreaCombat* area, CombatDamage& damage,
 	                         const CombatParams& params);
+	static void doCombatCleave(Creature* caster, Creature* primaryTarget, const CombatDamage& originalDamage,
+	                           const CombatParams& params, uint32_t cleavePercent);
+	static uint32_t getCleaveDefaultPercent();
+	static uint32_t getCleaveFistPercent();
 
 	bool setCallback(CallBackParam key);
 	CallBack* getCallback(CallBackParam key);
