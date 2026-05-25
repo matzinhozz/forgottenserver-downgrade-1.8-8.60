@@ -1082,7 +1082,26 @@ uint16_t Player::getLookCorpse() const
 
 void Player::setStorageValue(const uint32_t key, const std::optional<int64_t> value, const bool isSpawn /* = false*/)
 {
+	const auto oldValue = getStorageValue(key);
 	Creature::setStorageValue(key, value, isSpawn);
+
+	if (isSpawn || oldValue == getStorageValue(key)) {
+		return;
+	}
+
+	if (value && value.value() != -1) {
+		removedStorageKeys.erase(key);
+		modifiedStorageKeys.insert(key);
+	} else {
+		modifiedStorageKeys.erase(key);
+		removedStorageKeys.insert(key);
+	}
+}
+
+void Player::clearStorageDirty()
+{
+	modifiedStorageKeys.clear();
+	removedStorageKeys.clear();
 }
 
 bool Player::canSee(const Position& pos) const
@@ -1673,11 +1692,15 @@ void Player::onChangeZone(ZoneType_t zone)
 			staminaPzOrangeDelayMs = ConfigManager::getInteger(ConfigManager::STAMINA_ORANGE_DELAY) * 60 * 1000;
 			staminaPzGreenDelayMs = ConfigManager::getInteger(ConfigManager::STAMINA_GREEN_DELAY) * 60 * 1000;
 
-			staminaPzActive = true;
 			staminaPzTicks = 0;
-			uint32_t delay = (staminaMinutes > 2400) ? staminaPzGreenDelayMs / (60 * 1000) : staminaPzOrangeDelayMs / (60 * 1000);
-			uint32_t gain = ConfigManager::getInteger(ConfigManager::STAMINA_PZ_GAIN);
-			sendTextMessage(MESSAGE_STATUS_SMALL, fmt::format("You're in the protection zone. Every {} minutes, gain {} stamina.", delay, gain));
+			if (staminaMinutes < 2520) {
+				staminaPzActive = true;
+				uint32_t delay = (staminaMinutes > 2400) ? staminaPzGreenDelayMs / (60 * 1000) : staminaPzOrangeDelayMs / (60 * 1000);
+				uint32_t gain = ConfigManager::getInteger(ConfigManager::STAMINA_PZ_GAIN);
+				sendTextMessage(MESSAGE_STATUS_SMALL, fmt::format("You're in the protection zone. Every {} minutes, gain {} stamina.", delay, gain));
+			} else {
+				staminaPzActive = false;
+			}
 		}
 		if (!group->access && isMounted() && !ConfigManager::getBoolean(ConfigManager::ALLOW_MOUNT_IN_PZ)) {
 			dismount();
@@ -1749,6 +1772,8 @@ void Player::updateStaminaRegen(int64_t timePassed)
 				sendTextMessage(MESSAGE_STATUS_SMALL, "You are no longer refilling stamina, because your stamina is already full.");
 			}
 		}
+	} else if (staminaPzActive) {
+		staminaPzActive = false;
 	}
 
 	// Stamina Trainer regeneration
@@ -1940,7 +1965,7 @@ void Player::onCreatureMove(Creature* creature, const Tile* newTile, const Posit
 	auto follow = followCreature.lock();
 	if (hasFollowPath && (creature == follow.get() || (creature == this && follow))) {
 		isUpdatingPath = false;
-		g_dispatcher.addTask([id = getID()]() { g_game.updateCreatureWalk(id); });
+		updateFollowPath();
 	}
 
 	if (creature != this) {
@@ -4623,12 +4648,16 @@ bool Player::lastHitIsPlayer(Creature* lastHitCreature)
 
 void Player::changeHealth(int32_t healthChange, bool sendHealthChange /* = true*/)
 {
+	const int32_t oldHealth = getHealth();
 	Creature::changeHealth(healthChange, sendHealthChange);
-	sendStats();
+	if (oldHealth != getHealth()) {
+		sendStats();
+	}
 }
 
 void Player::changeMana(int32_t manaChange)
 {
+	const uint32_t oldMana = mana;
 	if (!hasFlag(PlayerFlag_HasInfiniteMana)) {
 		if (manaChange > 0) {
 			mana += std::min<int32_t>(manaChange, getMaxMana() - mana);
@@ -4637,18 +4666,23 @@ void Player::changeMana(int32_t manaChange)
 		}
 	}
 
-	sendStats();
+	if (oldMana != mana) {
+		sendStats();
+	}
 }
 
 void Player::changeSoul(int32_t soulChange)
 {
+	const uint8_t oldSoul = soul;
 	if (soulChange > 0) {
 		soul += static_cast<uint8_t>(std::min<int32_t>(soulChange, vocation->getSoulMax() - soul));
 	} else {
 		soul = static_cast<uint8_t>(std::max<int32_t>(0, soul + soulChange));
 	}
 
-	sendStats();
+	if (oldSoul != soul) {
+		sendStats();
+	}
 }
 
 bool Player::canWear(uint32_t lookType, uint8_t addons) const
@@ -6246,7 +6280,7 @@ void Player::removeItemImbuements(Item* item, slots_t slot) {
 	sendStats();
 }
 
-void Player::removeImbuementEffect(std::shared_ptr<Imbuement> imbue) {
+void Player::removeImbuementEffect(const std::shared_ptr<Imbuement>& imbue) {
 
 
 	if (imbue->isSkill()) {
@@ -6319,7 +6353,7 @@ void Player::removeImbuementEffect(std::shared_ptr<Imbuement> imbue) {
 	sendStats();
 }
 
-void Player::addImbuementEffect(std::shared_ptr<Imbuement> imbue) {
+void Player::addImbuementEffect(const std::shared_ptr<Imbuement>& imbue) {
 
 
 	if (imbue->isSkill()) {

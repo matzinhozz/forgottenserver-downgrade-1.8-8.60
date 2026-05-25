@@ -3944,7 +3944,6 @@ void Game::playerSetAttackedCreature(uint32_t playerId, uint32_t creatureId)
 	}
 
 	player->setAttackedCreature(attackCreature);
-	g_dispatcher.addTask([this, id = player->getID()]() { updateCreatureWalk(id); });
 }
 
 void Game::playerFollowCreature(uint32_t playerId, uint32_t creatureId)
@@ -3963,7 +3962,6 @@ void Game::playerFollowCreature(uint32_t playerId, uint32_t creatureId)
 	}
 
 	player->setAttackedCreature(nullptr);
-	g_dispatcher.addTask([this, id = player->getID()]() { updateCreatureWalk(id); });
 	player->setFollowCreature(followCreature);
 }
 
@@ -4489,7 +4487,12 @@ void Game::checkCreatureWalk(uint32_t creatureId)
 void Game::updateCreatureWalk(uint32_t creatureId)
 {
 	Creature* creature = getCreatureByID(creatureId);
-	if (creature && !creature->isRemoved() && !creature->isDead()) {
+	if (!creature) {
+		return;
+	}
+
+	creature->completeEventFollowWalk();
+	if (!creature->isRemoved() && !creature->isDead()) {
 		creature->goToFollowCreature();
 	}
 }
@@ -4540,8 +4543,7 @@ void Game::checkCreatures(size_t index)
 	size_t i = 0;
 
 	while (i < checkCreatureList.size()) {
-		auto creatureRef = checkCreatureList[i];
-		Creature* creature = creatureRef.get();
+		Creature* creature = checkCreatureList[i].get();
 
 		if (!creature) {
 			checkCreatureList[i] = checkCreatureList.back();
