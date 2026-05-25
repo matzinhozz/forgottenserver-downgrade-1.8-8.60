@@ -35,3 +35,12 @@ raidSpawnFileDirectory = "data/raids"
 raidSpawnFileSpawntime = 60
 raidSpawnFileRadius = 1
 raidSpawnFileDirection = 2
+
+-- Augment System
+-- Default percentage values for augment types that don't specify an explicit value in items.xml.
+-- NOTE: augmentIncreasedDamagePercent = value between 1 and 100 (ex: 5 = 5%)
+-- NOTE: augmentPowerfulImpactPercent = value between 1 and 100 (ex: 10 = 10%)
+-- NOTE: augmentStrongImpactPercent = value between 1 and 100 (ex: 7 = 7%)
+augmentIncreasedDamagePercent = 5
+augmentPowerfulImpactPercent = 10
+augmentStrongImpactPercent = 7
