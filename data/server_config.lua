@@ -44,3 +44,12 @@ powerlaw = false
 powerLawSkillThreshold = 350
 powerLawMagicThreshold = 200
 powerLawExponent = 0.3
+
+-- Augment System
+-- Default percentage values for augment types that don't specify an explicit value in items.xml.
+-- NOTE: augmentIncreasedDamagePercent = value between 1 and 100 (ex: 5 = 5%)
+-- NOTE: augmentPowerfulImpactPercent = value between 1 and 100 (ex: 10 = 10%)
+-- NOTE: augmentStrongImpactPercent = value between 1 and 100 (ex: 7 = 7%)
+augmentIncreasedDamagePercent = 5
+augmentPowerfulImpactPercent = 10
+augmentStrongImpactPercent = 7
