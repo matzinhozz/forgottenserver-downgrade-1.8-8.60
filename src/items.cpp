@@ -2520,7 +2520,7 @@ std::string Items::getAugmentNameByType(Augment_t augmentType)
 	}
 }
 
-std::string Items::parseAugmentDescription(const ItemType& it, bool ignoreDuplicate)
+std::string Items::parseAugmentDescription(const ItemType& it, bool /*ignoreDuplicate*/)
 {
 	if (it.augments.empty()) {
 		return {};
