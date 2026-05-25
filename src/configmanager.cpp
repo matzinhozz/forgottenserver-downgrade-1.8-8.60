@@ -629,8 +629,8 @@ bool ConfigManager::load()
 	integers[Integer::RAID_SPAWN_FILE_SPAWNTIME] = getGlobalInteger(L, "raidSpawnFileSpawntime", 60);
 	integers[Integer::RAID_SPAWN_FILE_RADIUS] = getGlobalInteger(L, "raidSpawnFileRadius", 1);
 	integers[Integer::RAID_SPAWN_FILE_DIRECTION] = getGlobalInteger(L, "raidSpawnFileDirection", 2);
-	integers[Integer::POWER_LAW_SKILL_THRESHOLD] = getGlobalInteger(L, "powerLawSkillThreshold", 350);
-	integers[Integer::POWER_LAW_MAGIC_THRESHOLD] = getGlobalInteger(L, "powerLawMagicThreshold", 200);
+	integers[Integer::POWER_LAW_SKILL_THRESHOLD] = getGlobalInteger(L, "powerLawSkillThreshold", 0);
+	integers[Integer::POWER_LAW_MAGIC_THRESHOLD] = getGlobalInteger(L, "powerLawMagicThreshold", 0);
 
 	strings[String::ADMIN_PASSWORD] = getGlobalString(L, "adminPassword", "");
 	strings[String::ADMIN_ENCRYPTION] = getGlobalString(L, "adminEncryption", "");
