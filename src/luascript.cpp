@@ -2765,6 +2765,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::MYSQL_SOCK);
 	registerEnumIn("configKeys", ConfigManager::DEFAULT_PRIORITY);
 	registerEnumIn("configKeys", ConfigManager::MAP_AUTHOR);
+	registerEnumIn("configKeys", ConfigManager::ASSETS_DAT_PATH);
 
 	registerEnumIn("configKeys", ConfigManager::SERVER_SAVE_NOTIFY_DURATION);
 	registerEnumIn("configKeys", ConfigManager::SQL_PORT);
