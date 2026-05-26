@@ -15,6 +15,9 @@ dualWieldingMode = "allweapons"
 -- Enable or disable the full reset system.
 resetssystem = true
 
+-- Chain System
+toggleChainSystem = true
+
 -- Cleave System
 cleavesystem = true
 
