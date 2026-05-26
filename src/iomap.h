@@ -100,7 +100,16 @@ public:
             map->spawnfile = getString(ConfigManager::MAP_NAME);
             map->spawnfile += "-spawn.xml";
         }
-        return map->spawns.loadFromXml(map->spawnfile.string());
+
+        // Load traditional spawn file
+        map->spawns.loadFromXml(map->spawnfile.string());
+
+        // Also try Canary/Crystal-style monster+npc files
+        std::string mapName = getString(ConfigManager::MAP_NAME);
+        map->spawns.loadFromMonsterNpcXml(mapName + "-monster.xml");
+        map->spawns.loadFromMonsterNpcXml(mapName + "-npc.xml");
+
+        return map->spawns.isStarted() || !map->spawns.getSpawnList().empty() || map->spawns.getNpcCount() > 0;
     }
 
     /* Load the houses (not house tile-data)
