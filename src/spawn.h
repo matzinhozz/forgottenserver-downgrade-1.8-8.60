@@ -80,6 +80,7 @@ public:
 	static bool isInZone(const Position& centerPos, int32_t radius, const Position& pos);
 
 	bool loadFromXml(std::string_view filename);
+	bool loadFromMonsterNpcXml(std::string_view filename);
 	void startup();
 	void clear();
 
