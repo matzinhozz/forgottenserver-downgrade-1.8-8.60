@@ -555,6 +555,40 @@ int32_t Player::getArmor() const
 	return static_cast<int32_t>(armor * vocation->armorMultiplier);
 }
 
+uint16_t Player::getMantraTotal() const
+{
+	int32_t mantra = 0;
+	static constexpr slots_t mantraSlots[] = { CONST_SLOT_HEAD, CONST_SLOT_NECKLACE, CONST_SLOT_ARMOR, CONST_SLOT_LEGS, CONST_SLOT_RING, CONST_SLOT_FEET };
+	for (const slots_t& slot : mantraSlots) {
+		if (!isItemAbilityEnabled(slot)) {
+			continue;
+		}
+
+		Item* item = inventory[slot].get();
+		if (item) {
+			const ItemType& itemType = Item::items[item->getID()];
+			if (itemType.mantra > 0) {
+				mantra += itemType.mantra;
+			}
+		}
+	}
+	if (isSerene()) {
+		mantra *= 2;
+	}
+	return static_cast<uint16_t>(mantra);
+}
+
+int16_t Player::getMantraAbsorbPercent(int16_t mantraAbsorbValue) const
+{
+	if (mantraAbsorbValue <= 0) {
+		return 0;
+	}
+	if (isSerene()) {
+		mantraAbsorbValue *= 2;
+	}
+	return mantraAbsorbValue;
+}
+
 float Player::getMitigation() const
 {
 	if (!vocation || vocation->getId() == VOCATION_NONE) {
@@ -2635,10 +2669,10 @@ bool Player::hasShield() const
 
 BlockType_t Player::blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage,
                              bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool field /* = false*/,
-                             bool ignoreResistances /* = false*/)
+                             bool ignoreResistances /* = false*/, CombatOrigin origin /* = ORIGIN_NONE */)
 {
 	BlockType_t blockType =
-	    Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, field, ignoreResistances);
+	    Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, field, ignoreResistances, origin);
 
 	if (attacker && combatType != COMBAT_HEALING) {
 		sendCreatureSquare(attacker.get(), SQ_COLOR_YELLOW);
@@ -2676,9 +2710,22 @@ BlockType_t Player::blockHit(const std::shared_ptr<Creature>& attacker, CombatTy
 				continue;
 			}
 
+			int32_t totalAbsorbPercent = 0;
 			const int16_t& absorbPercent = it.abilities->absorbPercent[combatTypeToIndex(combatType)];
 			if (absorbPercent != 0) {
-				damage -= std::ceil(damage * (absorbPercent / 100.));
+				totalAbsorbPercent += absorbPercent;
+			}
+
+			const int16_t mantraAbsorbValue = it.abilities->mantraAbsorbValue[combatTypeToIndex(combatType)];
+			if (mantraAbsorbValue != 0 && origin != ORIGIN_CONDITION) {
+				const int16_t mantraAbsorbPercent = getMantraAbsorbPercent(mantraAbsorbValue);
+				if (mantraAbsorbPercent != 0) {
+					totalAbsorbPercent += mantraAbsorbPercent;
+				}
+			}
+
+			if (totalAbsorbPercent != 0) {
+				damage -= std::ceil(damage * (totalAbsorbPercent / 100.));
 
 				uint16_t charges = item->getCharges();
 				if (charges != 0) {

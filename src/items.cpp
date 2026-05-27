@@ -223,6 +223,7 @@ const std::unordered_map<std::string, ItemParseAttributes_t> ItemParseAttributes
 	{"drop", ITEM_PARSE_DROPBONUS},
     {"elementalbond", ITEM_PARSE_ELEMENTALBOND},
     {"script", ITEM_PARSE_SCRIPT},
+    {"mantra", ITEM_PARSE_MANTRA},
 };
 
 const std::unordered_map<std::string, ItemTypes_t> ItemTypesMap = {
@@ -2136,6 +2137,16 @@ void Items::parseItemNode(const pugi::xml_node& itemNode, uint16_t id, bool pars
 							it.imbuementAllowedTypes[subKey] = maxTier;
 						}
 					}
+					break;
+				}
+
+				case ITEM_PARSE_MANTRA: {
+					int16_t value = pugi::cast<int16_t>(valueAttribute.value());
+					abilities.mantraAbsorbValue[combatTypeToIndex(COMBAT_ENERGYDAMAGE)] += value;
+					abilities.mantraAbsorbValue[combatTypeToIndex(COMBAT_FIREDAMAGE)] += value;
+					abilities.mantraAbsorbValue[combatTypeToIndex(COMBAT_EARTHDAMAGE)] += value;
+					abilities.mantraAbsorbValue[combatTypeToIndex(COMBAT_ICEDAMAGE)] += value;
+					it.mantra = value;
 					break;
 				}
 
