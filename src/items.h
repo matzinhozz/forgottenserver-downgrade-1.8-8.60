@@ -231,6 +231,7 @@ enum ItemParseAttributes_t
 	ITEM_PARSE_SCRIPT,
 	ITEM_PARSE_IMBUEMENTSLOT,
 	ITEM_PARSE_WRAPABLETO,
+	ITEM_PARSE_MANTRA,
 };
 
 struct Abilities
@@ -278,6 +279,8 @@ struct Abilities
 
 	// drop bonus (percentage, 0-100)
 	int32_t dropBonus = 0;
+
+	std::array<int16_t, COMBAT_COUNT> mantraAbsorbValue = {0};
 
 	bool manaShield = false;
 	bool invisible = false;
@@ -388,6 +391,7 @@ public:
 	uint16_t imbuementSlot = 0;
 	uint16_t wrapableTo = 0;
 	std::unordered_map<std::string, uint8_t> imbuementAllowedTypes;
+	int16_t mantra = 0;
 	MagicEffectClasses magicEffect = CONST_ME_NONE;
 	Direction bedPartnerDir = DIRECTION_NONE;
 	WeaponType_t weaponType = WEAPON_NONE;

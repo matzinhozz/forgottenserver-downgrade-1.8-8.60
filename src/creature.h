@@ -238,7 +238,7 @@ public:
 	virtual bool setAttackedCreature(Creature* creature);
 	virtual BlockType_t blockHit(const std::shared_ptr<Creature>& attacker, CombatType_t combatType, int32_t& damage,
 	                             bool checkDefense = false, bool checkArmor = false, bool field = false,
-	                             bool ignoreResistances = false);
+	                             bool ignoreResistances = false, CombatOrigin origin = ORIGIN_NONE);
 
 	bool setMaster(Creature* newMaster);
 	void removeMaster();
