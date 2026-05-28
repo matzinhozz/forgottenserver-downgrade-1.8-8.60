@@ -439,6 +439,7 @@ bool ConfigManager::load()
 	booleans[Boolean::RAID_SPAWN_FILE_ENABLED] = getGlobalBoolean(L, "raidSpawnFileEnabled", true);
 	booleans[Boolean::CLEAVE_SYSTEM_ENABLED] = getGlobalBoolean(L, "cleavesystem", true);
 	booleans[Boolean::POWERLAW] = getGlobalBoolean(L, "powerlaw", false);
+	booleans[Boolean::RARITY_SYSTEM_ENABLED] = getGlobalBoolean(L, "raritySystemEnabled", false);
 
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);

@@ -206,6 +206,13 @@ public:
 
 		void pushToLua(lua_State* L) const { boost::apply_visitor(PushLuaVisitor(L), value); }
 
+		int64_t getInteger() const {
+			if (value.type() == typeid(int64_t)) {
+				return boost::get<int64_t>(value);
+			}
+			return 0;
+		}
+
 		struct SerializeVisitor : public boost::static_visitor<>
 		{
 			PropWriteStream& propWriteStream;
@@ -285,6 +292,8 @@ public:
 		}
 	};
 
+	using CustomAttributeMap = std::unordered_map<std::string, CustomAttribute>;
+
 private:
 	bool hasAttribute(itemAttrTypes type) const { return (type & attributeBits) != 0; }
 	void removeAttribute(itemAttrTypes type);
@@ -294,8 +303,6 @@ private:
 	static double emptyDouble;
 	static bool emptyBool;
 	static Reflect emptyReflect;
-
-	using CustomAttributeMap = std::unordered_map<std::string, CustomAttribute>;
 
 	struct Attribute
 	{
@@ -444,6 +451,14 @@ public:
 	inline static bool isCustomAttrType(itemAttrTypes type) { return (type & ITEM_ATTRIBUTE_CUSTOM) == type; }
 
 	const std::vector<Attribute>& getList() const { return attributes; }
+
+	CustomAttributeMap* getCustomAttributeMap()
+	{
+		if (!hasAttribute(ITEM_ATTRIBUTE_CUSTOM)) {
+			return nullptr;
+		}
+		return std::get_if<CustomAttributeMap>(&getAttr(ITEM_ATTRIBUTE_CUSTOM).value);
+	}
 
 	friend class Item;
 };
@@ -827,6 +842,13 @@ public:
 	double getDodgeChance() const;
 	double getMomentumChance() const;
 	double getTranscendenceChance() const;
+
+	bool hasRarity();
+	int32_t getRarityTier();
+	void setRarityTier(int32_t tier);
+	int64_t getRarityStat(std::string_view stat);
+	void setRarityStat(std::string_view stat, int64_t value);
+	void clearRarityStats();
 
 	bool hasProperty(ITEMPROPERTY prop) const;
 	bool isBlocking() const { return items[id].blockSolid; }

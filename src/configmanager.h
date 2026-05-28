@@ -89,6 +89,7 @@ enum Boolean
 	RAID_SPAWN_FILE_ENABLED,
 	CLEAVE_SYSTEM_ENABLED,
 	POWERLAW,
+	RARITY_SYSTEM_ENABLED,
 
 	LAST_BOOLEAN /* this must be the last one */
 };

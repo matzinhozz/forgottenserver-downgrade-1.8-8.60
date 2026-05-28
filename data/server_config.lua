@@ -62,3 +62,6 @@ powerlaw = false
 powerLawSkillThreshold = 350
 powerLawMagicThreshold = 200
 powerLawExponent = 0.3
+
+-- Rarity System
+raritySystemEnabled = true
