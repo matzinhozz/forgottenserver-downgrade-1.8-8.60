@@ -346,15 +346,6 @@ private:
 	const Attribute* getExistingAttr(itemAttrTypes type) const;
 	Attribute& getAttr(itemAttrTypes type);
 
-	CustomAttributeMap* getCustomAttributeMap()
-	{
-		if (!hasAttribute(ITEM_ATTRIBUTE_CUSTOM)) {
-			return nullptr;
-		}
-
-		return std::get_if<CustomAttributeMap>(&getAttr(ITEM_ATTRIBUTE_CUSTOM).value);
-	}
-
 	template <typename R>
 	void setCustomAttribute(int64_t key, R value)
 	{
