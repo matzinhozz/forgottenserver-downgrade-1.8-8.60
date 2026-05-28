@@ -199,6 +199,117 @@ bool Spawns::loadFromXml(std::string_view filename)
 	return true;
 }
 
+bool Spawns::loadFromMonsterNpcXml(std::string_view filename)
+{
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(filename.data());
+	if (!result) {
+		printXMLError("Error - Spawns::loadFromMonsterNpcXml", filename, result);
+		return false;
+	}
+
+	auto rootNode = doc.document_element();
+
+	auto processSpawnNode = [this](pugi::xml_node spawnNode) {
+		Position centerPos(pugi::cast<uint16_t>(spawnNode.attribute("centerx").value()),
+		                   pugi::cast<uint16_t>(spawnNode.attribute("centery").value()),
+		                   pugi::cast<uint16_t>(spawnNode.attribute("centerz").value()));
+
+		int32_t radius;
+		pugi::xml_attribute radiusAttribute = spawnNode.attribute("radius");
+		if (radiusAttribute) {
+			radius = pugi::cast<int32_t>(radiusAttribute.value());
+		} else {
+			radius = -1;
+		}
+
+		if (radius > 30) {
+			LOG_WARN(fmt::format("[Warning - Spawns::loadFromMonsterNpcXml] Radius size bigger than 30 at position: {}, consider lowering it.", centerPos));
+		}
+
+		if (!spawnNode.first_child()) {
+			LOG_WARN(fmt::format("[Warning - Spawns::loadFromMonsterNpcXml] Empty spawn at position: {} with radius: {}.", centerPos, radius));
+			return;
+		}
+
+		spawnList.push_front(std::make_shared<Spawn>(centerPos, radius));
+		Spawn& spawn = *spawnList.front();
+
+		for (auto& childNode : spawnNode.children()) {
+			int16_t childZ = centerPos.z;
+			pugi::xml_attribute zAttribute = childNode.attribute("z");
+			if (zAttribute) {
+				childZ = pugi::cast<int16_t>(zAttribute.value());
+			}
+
+			if (caseInsensitiveEqual(childNode.name(), "monster")) {
+				pugi::xml_attribute nameAttribute = childNode.attribute("name");
+				if (!nameAttribute) {
+					continue;
+				}
+
+				Direction dir = DIRECTION_NORTH;
+				pugi::xml_attribute directionAttribute = childNode.attribute("direction");
+				if (directionAttribute) {
+					dir = static_cast<Direction>(pugi::cast<uint16_t>(directionAttribute.value()));
+				}
+
+				Position pos(centerPos.x + pugi::cast<uint16_t>(childNode.attribute("x").value()),
+				             centerPos.y + pugi::cast<uint16_t>(childNode.attribute("y").value()), childZ);
+				int32_t interval = pugi::cast<int32_t>(childNode.attribute("spawntime").value()) * 1000;
+				if (interval >= MINSPAWN_INTERVAL && interval <= MAXSPAWN_INTERVAL) {
+					spawn.addMonster(nameAttribute.as_string(), pos, dir, static_cast<uint32_t>(interval));
+				} else {
+					if (interval < MINSPAWN_INTERVAL) {
+						LOG_WARN(fmt::format("[Warning - Spawns::loadFromMonsterNpcXml] {} {} spawntime can not be less than {} seconds.", nameAttribute.as_string(), pos, MINSPAWN_INTERVAL / 1000));
+					} else {
+						LOG_WARN(fmt::format("[Warning - Spawns::loadFromMonsterNpcXml] {} {} spawntime can not be more than {} seconds.", nameAttribute.as_string(), pos, MAXSPAWN_INTERVAL / 1000));
+					}
+				}
+			} else if (caseInsensitiveEqual(childNode.name(), "npc")) {
+				pugi::xml_attribute nameAttribute = childNode.attribute("name");
+				if (!nameAttribute) {
+					continue;
+				}
+
+				auto npc = Npc::createNpc(nameAttribute.as_string());
+				if (!npc) {
+					continue;
+				}
+
+				pugi::xml_attribute directionAttribute = childNode.attribute("direction");
+				if (directionAttribute) {
+					npc->setDirection(static_cast<Direction>(pugi::cast<uint16_t>(directionAttribute.value())));
+				}
+
+				pugi::xml_attribute instanceIdAttribute = childNode.attribute("instanceId");
+				if (instanceIdAttribute) {
+					npc->setInstanceID(pugi::cast<uint32_t>(instanceIdAttribute.value()));
+				}
+
+				npc->setMasterPos(
+				    Position(centerPos.x + pugi::cast<uint16_t>(childNode.attribute("x").value()),
+				             centerPos.y + pugi::cast<uint16_t>(childNode.attribute("y").value()), childZ),
+				    radius);
+				npcList.push_front(std::move(npc));
+			}
+		}
+	};
+
+	if (rootNode.attribute("centerx")) {
+		processSpawnNode(rootNode);
+	}
+
+	for (auto& spawnNode : rootNode.children()) {
+		if (spawnNode.attribute("centerx")) {
+			processSpawnNode(spawnNode);
+		}
+	}
+
+	loaded = true;
+	return true;
+}
+
 void Spawns::startup()
 {
 	if (!loaded || isStarted()) {
