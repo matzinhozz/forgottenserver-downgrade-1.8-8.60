@@ -17,6 +17,21 @@ Scripts::Scripts() : scriptInterface("Scripts Interface") { scriptInterface.init
 
 Scripts::~Scripts() { scriptInterface.reInitState(); }
 
+void Scripts::clearLoadedFiles(const std::string& folderName)
+{
+	namespace fs = std::filesystem;
+
+	const auto dir = fs::current_path() / "data" / folderName;
+	if (!fs::exists(dir) || !fs::is_directory(dir)) {
+		return;
+	}
+
+	const std::string prefix = fs::canonical(dir).string();
+	std::erase_if(loadedFiles, [&prefix](const std::string& loadedFile) {
+		return loadedFile.starts_with(prefix);
+	});
+}
+
 bool Scripts::loadScripts(const std::string& folderName, bool isLib, bool reload)
 {
 	namespace fs = std::filesystem;
@@ -35,7 +50,8 @@ bool Scripts::loadScripts(const std::string& folderName, bool isLib, bool reload
 	static constexpr std::string_view disable = "#";
 	for (fs::recursive_directory_iterator it(dir); it != endit; ++it) {
 		auto fn = it->path().parent_path().filename();
-		if ((fn == "lib" && !isLib) || fn == "events") {
+		if ((fn == "lib" && !isLib) || fn == "events" ||
+		    (fn == "chatchannels" && folderName != "scripts/chatchannels")) {
 			continue;
 		}
 		if (fs::is_regular_file(*it) && it->path().extension() == ".lua") {
