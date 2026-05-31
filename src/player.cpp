@@ -5850,17 +5850,7 @@ void Player::lootCorpse(Container* container)
 		return;
 	}
 
-	std::string moneyConfig = std::string(ConfigManager::getString(ConfigManager::AUTOLOOT_MONEYIDS));
-	std::vector<std::string_view> moneyIdStrings = explodeString(moneyConfig, ";");
-	std::set<uint16_t> moneyIds;
-	for (const auto& str : moneyIdStrings) {
-		if (str.empty()) continue;
-		try {
-			moneyIds.insert(static_cast<uint16_t>(std::stoi(std::string(str))));
-		} catch (...) {
-			continue;
-		}
-	}
+	const auto& moneyIds = ConfigManager::getAutoLootMoneyIds();
 
 	const bool autobankEnabled = ConfigManager::getBoolean(ConfigManager::AUTOLOOT_AUTO_BANK);
 	const bool autolootGoldPouchEnabled = ConfigManager::getBoolean(ConfigManager::AUTOLOOT_GOLD_POUCH);
@@ -5901,19 +5891,18 @@ void Player::lootCorpse(Container* container)
 			primaryDestination = goldPouchDestination;
 			fallbackDestination = storeInboxDestination;
 			usedGoldPouch = true;
-		} else if (autolootGoldPouchEnabled && autobankEnabled) {
-			if (!missingGoldPouchMessageSent) {
+		} else {
+			if (autolootGoldPouchEnabled && !missingGoldPouchMessageSent) {
 				sendTextMessage(MESSAGE_EVENT_ORANGE, "You need a Gold Pouch to use AutoLoot.");
 				missingGoldPouchMessageSent = true;
 			}
-			return false;
-		} else {
 			if (backpackId != 0) {
 				Container* target = findNonEmptyContainer(backpackId);
 				primaryDestination = target ? static_cast<Cylinder*>(target) : static_cast<Cylinder*>(this);
 			} else {
 				primaryDestination = static_cast<Cylinder*>(this);
 			}
+			fallbackDestination = storeInboxDestination;
 		}
 
 		ret = g_game.internalMoveItem(container, primaryDestination, INDEX_WHEREEVER, item,
@@ -5925,22 +5914,27 @@ void Player::lootCorpse(Container* container)
 			sendTextMessage(MESSAGE_STATUS_SMALL, "You do not have enough capacity to autoloot this item.");
 			return false;
 		}
-		if (!usedGoldPouch) {
-			sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item left in corpse.");
-			return false;
-		}
 
-		if (usedGoldPouch && fallbackDestination && fallbackDestination != primaryDestination) {
+		if (fallbackDestination && fallbackDestination != primaryDestination) {
 			ret = g_game.internalMoveItem(container, fallbackDestination, INDEX_WHEREEVER, item,
 			                                          item->getItemCount(), nullptr);
 			if (ret == RETURNVALUE_NOERROR) {
-				sendTextMessage(MESSAGE_STATUS_SMALL, "Your gold pouch is full. Item sent to store inbox.");
+				if (usedGoldPouch) {
+					sendTextMessage(MESSAGE_STATUS_SMALL, "Your gold pouch is full. Item sent to store inbox.");
+				} else {
+					sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item sent to store inbox.");
+				}
 				return true;
 			}
 			if (ret == RETURNVALUE_NOTENOUGHCAPACITY) {
 				sendTextMessage(MESSAGE_STATUS_SMALL, "You do not have enough capacity to autoloot this item.");
 				return false;
 			}
+		}
+
+		if (!usedGoldPouch) {
+			sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item left in corpse.");
+			return false;
 		}
 
 		auto backpackItem = getInventoryItem(CONST_SLOT_BACKPACK);
@@ -5981,7 +5975,7 @@ void Player::lootCorpse(Container* container)
 					continue;
 				}
 			}
-			if (autobankEnabled && autolootConfig.goldEnabled) {
+			if (autobankEnabled) {
 				moneyItemsToDeposit.emplace_back(item, value);
 				continue;
 			}
@@ -6013,7 +6007,7 @@ void Player::lootCorpse(Container* container)
 	}
 
 	uint64_t totalDepositValue = 0;
-	if (autolootConfig.goldEnabled && autobankEnabled) {
+	if (autobankEnabled) {
 		for (const auto& [item, value] : moneyItemsToDeposit) {
 			if (g_game.internalRemoveItem(item, item->getItemCount()) == RETURNVALUE_NOERROR) {
 				totalDepositValue += value;
