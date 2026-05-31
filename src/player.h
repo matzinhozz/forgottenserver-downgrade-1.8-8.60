@@ -686,24 +686,18 @@ public:
 	void getShieldAndWeapon(const Item*& shield, const Item*& weapon) const;
 	bool isDualWielding() const;
 
-	void switchAttackHand() {
-		lastAttackHand = lastAttackHand == HAND_LEFT ? HAND_RIGHT : HAND_LEFT;
-	}
-	slots_t getAttackHand() const {
-		return lastAttackHand == HAND_LEFT ? CONST_SLOT_LEFT : CONST_SLOT_RIGHT;
-	}
-	void switchBlockSkillAdvance() {
-		blockSkillAdvance = !blockSkillAdvance;
-	}
-	bool getBlockSkillAdvance() const {
-		return blockSkillAdvance;
-	}
+	void switchAttackHand() { lastAttackHand = lastAttackHand == HAND_LEFT ? HAND_RIGHT : HAND_LEFT; }
+	slots_t getAttackHand() const { return lastAttackHand == HAND_LEFT ? CONST_SLOT_LEFT : CONST_SLOT_RIGHT; }
+	void switchBlockSkillAdvance() { blockSkillAdvance = !blockSkillAdvance; }
+	bool getBlockSkillAdvance() const { return blockSkillAdvance; }
 	int32_t getDualWieldDamageBoost() const;
 
 	void drainHealth(const std::shared_ptr<Creature>& attacker, int32_t damage) override;
 	void drainMana(const std::shared_ptr<Creature>& attacker, int32_t manaLoss);
+
 	void addManaSpent(uint64_t amount, bool artificial = false);
 	void removeManaSpent(uint64_t amount, bool notify = false);
+
 	void addSkillAdvance(skills_t skill, uint64_t count, bool artificial = false);
 	void removeSkillTries(skills_t skill, uint64_t count, bool notify = false);
 
@@ -712,7 +706,10 @@ public:
 
 	int32_t getArmor() const override;
 	int32_t getDefense() const override;
+
 	float getMitigation() const override;
+	void addMitigation(float modifier) { varMitigation += modifier; }
+
 	float getAttackFactor() const override;
 	float getDefenseFactor() const override;
 
@@ -752,6 +749,7 @@ public:
 	void addAttacked(const Player* attacked);
 	void removeAttacked(const Player* attacked);
 	void clearAttacked();
+
 	void addUnjustifiedDead(const Player* attacked);
 	void sendCreatureSkull(const Creature* creature) const
 	{
@@ -1508,6 +1506,7 @@ private:
 	int32_t varSpecialSkills[SPECIALSKILL_LAST + 1] = {};
 	int32_t varSkills[SKILL_LAST + 1] = {};
 	int32_t varStats[STAT_LAST + 1] = {};
+	float varMitigation = 0.0f;
 	std::array<int16_t, COMBAT_COUNT> specialMagicLevelSkill = {0};
 	std::array<int32_t, static_cast<size_t>(ExperienceRateType::STAMINA) + 1> experienceRate = {0};
 	int32_t purchaseCallback = -1;
