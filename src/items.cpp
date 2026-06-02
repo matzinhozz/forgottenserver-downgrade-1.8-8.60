@@ -921,9 +921,6 @@ void Items::parseItemNode(const pugi::xml_node& itemNode, uint16_t id, bool pars
 	if (!scriptAttributesOnly) {
 		it.name = itemNode.attribute("name").as_string();
 
-	if (!scriptAttributesOnly) {
-		it.name = itemNode.attribute("name").as_string();
-
 		if (!it.name.empty()) {
 			std::string lowerCaseName = asLowerCaseString(it.name);
 			if (!nameToItems.contains(lowerCaseName)) {
