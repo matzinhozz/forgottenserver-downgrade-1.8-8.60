@@ -453,6 +453,45 @@ int luaPlayerGetDropBonus(lua_State* L)
 	return 1;
 }
 
+int luaPlayerSetTemporaryDeathLossReduction(lua_State* L)
+{
+	// player:setTemporaryDeathLossReduction(percent)
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->setTemporaryDeathLossReduction(getInteger<int32_t>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerAddConditionSuppressions(lua_State* L)
+{
+	// player:addConditionSuppressions(conditions)
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->addConditionSuppressions(getInteger<uint32_t>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerRemoveConditionSuppressions(lua_State* L)
+{
+	// player:removeConditionSuppressions(conditions)
+	Player* player = getUserdata<Player>(L, 1);
+	if (player) {
+		player->removeConditionSuppressions(getInteger<uint32_t>(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 int luaPlayerGetExperience(lua_State* L)
 {
 	// player:getExperience()
@@ -823,6 +862,42 @@ int luaPlayerGetMitigation(lua_State* L)
 	const Player* player = getUserdata<const Player>(L, 1);
 	if (player) {
 		lua_pushnumber(L, player->getMitigation());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetArmor(lua_State* L)
+{
+	// player:getArmor()
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (player) {
+		lua_pushinteger(L, player->getArmor());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetDefense(lua_State* L)
+{
+	// player:getDefense()
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (player) {
+		lua_pushinteger(L, player->getDefense());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int luaPlayerGetCombatAbsorbPercent(lua_State* L)
+{
+	// player:getCombatAbsorbPercent(combatType)
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (player) {
+		lua_pushinteger(L, player->getCombatAbsorbPercent(getInteger<CombatType_t>(L, 2)));
 	} else {
 		lua_pushnil(L);
 	}
@@ -1835,6 +1910,79 @@ int luaPlayerGetSlotItem(lua_State* L)
 	} else {
 		lua_pushnil(L);
 	}
+	return 1;
+}
+
+int luaPlayerGetWeaponProficiencyId(lua_State* L)
+{
+	// player:getWeaponProficiencyId()
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	const Item* weapon = player->getWeapon(true);
+	lua_pushinteger(L, weapon ? weapon->getID() : 0);
+	return 1;
+}
+
+int luaPlayerClearProficiencySpellAugments(lua_State* L)
+{
+	// player:clearProficiencySpellAugments()
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	player->clearProficiencySpellAugments();
+	pushBoolean(L, true);
+	return 1;
+}
+
+int luaPlayerAddProficiencySpellAugment(lua_State* L)
+{
+	// player:addProficiencySpellAugment(weaponId, spellId, augmentType, value)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	player->addProficiencySpellAugment(getInteger<uint16_t>(L, 2), getInteger<uint16_t>(L, 3),
+	                                  static_cast<Augment_t>(getInteger<uint8_t>(L, 4)),
+	                                  getNumber<double>(L, 5));
+	pushBoolean(L, true);
+	return 1;
+}
+
+int luaPlayerClearWheelSpellAugments(lua_State* L)
+{
+	// player:clearWheelSpellAugments()
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	player->clearWheelSpellAugments();
+	pushBoolean(L, true);
+	return 1;
+}
+
+int luaPlayerAddWheelSpellAugment(lua_State* L)
+{
+	// player:addWheelSpellAugment(spellName, augmentType, value)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	player->addWheelSpellAugment(getString(L, 2), static_cast<Augment_t>(getInteger<uint8_t>(L, 3)),
+	                             getNumber<double>(L, 4));
+	pushBoolean(L, true);
 	return 1;
 }
 
@@ -3899,6 +4047,9 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "setSkullTime", luaPlayerSetSkullTime);
 	registerMethod("Player", "getDeathPenalty", luaPlayerGetDeathPenalty);
 	registerMethod("Player", "getDropBonus", luaPlayerGetDropBonus);
+	registerMethod("Player", "setTemporaryDeathLossReduction", luaPlayerSetTemporaryDeathLossReduction);
+	registerMethod("Player", "addConditionSuppressions", luaPlayerAddConditionSuppressions);
+	registerMethod("Player", "removeConditionSuppressions", luaPlayerRemoveConditionSuppressions);
 
 	registerMethod("Player", "getExperience", luaPlayerGetExperience);
 	registerMethod("Player", "addExperience", luaPlayerAddExperience);
@@ -3930,6 +4081,9 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "getSpecialMagicLevel", luaPlayerGetSpecialMagicLevel);
 	registerMethod("Player", "addSpecialMagicLevel", luaPlayerAddSpecialMagicLevel);
 	registerMethod("Player", "getMitigation", luaPlayerGetMitigation);
+	registerMethod("Player", "getArmor", luaPlayerGetArmor);
+	registerMethod("Player", "getDefense", luaPlayerGetDefense);
+	registerMethod("Player", "getCombatAbsorbPercent", luaPlayerGetCombatAbsorbPercent);
 	registerMethod("Player", "addMitigation", luaPlayerAddMitigation);
 
 	registerMethod("Player", "getItemCount", luaPlayerGetItemCount);
@@ -3999,6 +4153,11 @@ void LuaScriptInterface::registerPlayer()
 	registerMethod("Player", "closeChannel", luaPlayerCloseChannel);
 
 	registerMethod("Player", "getSlotItem", luaPlayerGetSlotItem);
+	registerMethod("Player", "getWeaponProficiencyId", luaPlayerGetWeaponProficiencyId);
+	registerMethod("Player", "clearProficiencySpellAugments", luaPlayerClearProficiencySpellAugments);
+	registerMethod("Player", "addProficiencySpellAugment", luaPlayerAddProficiencySpellAugment);
+	registerMethod("Player", "clearWheelSpellAugments", luaPlayerClearWheelSpellAugments);
+	registerMethod("Player", "addWheelSpellAugment", luaPlayerAddWheelSpellAugment);
 
 	registerMethod("Player", "getParty", luaPlayerGetParty);
 

@@ -30,7 +30,6 @@ RUN git clone --depth 1 https://github.com/microsoft/vcpkg.git \
 
 WORKDIR /usr/src/forgottenserver-downgrade
 
-# Copy the vcpkg manifest first so dependency installation can be cached.
 COPY vcpkg.json ./
 RUN vcpkg install --triplet ${VCPKG_DEFAULT_TRIPLET}
 

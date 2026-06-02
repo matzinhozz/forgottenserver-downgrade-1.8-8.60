@@ -16,6 +16,7 @@
 
 #include <fmt/format.h>
 #include <fstream>
+#include <charconv>
 
 #if LUA_VERSION_NUM >= 502
 #undef lua_strlen
@@ -38,8 +39,10 @@ ExperienceStages magicLevelStages;
 
 using BlockedTeleportIds = std::vector<uint16_t>;
 using TokenProtectionExceptions = std::vector<uint16_t>;
+using AutoLootMoneyIds = std::set<uint16_t>;
 BlockedTeleportIds blockedTeleportIds;
 TokenProtectionExceptions tokenProtectionExceptions;
+AutoLootMoneyIds autoLootMoneyIds;
 
 bool loaded = false;
 
@@ -297,6 +300,25 @@ TokenProtectionExceptions loadLuaTokenProtectionExceptions(lua_State* L)
 	return ids;
 }
 
+AutoLootMoneyIds parseAutoLootMoneyIds(std::string_view config)
+{
+	AutoLootMoneyIds ids;
+	for (std::string_view str : explodeString(config, ";")) {
+		if (str.empty()) {
+			continue;
+		}
+
+		uint32_t id = 0;
+		const auto* begin = str.data();
+		const auto* end = str.data() + str.size();
+		const auto [ptr, ec] = std::from_chars(begin, end, id);
+		if (ec == std::errc() && ptr == end && id <= std::numeric_limits<uint16_t>::max()) {
+			ids.insert(static_cast<uint16_t>(id));
+		}
+	}
+	return ids;
+}
+
 } // namespace
 
 bool ConfigManager::load()
@@ -428,6 +450,8 @@ bool ConfigManager::load()
 	booleans[Boolean::BESTIARY_SYSTEM_ENABLED] = getGlobalBoolean(L, "bestiarySystemEnabled", false);
 	booleans[Boolean::MARKET_SYSTEM_ENABLED] = getGlobalBoolean(L, "marketSystemEnabled", false);
 	booleans[Boolean::PREY_SYSTEM_ENABLED] = getGlobalBoolean(L, "preySystemEnabled", false);
+	booleans[Boolean::WEAPON_PROFICIENCY_SYSTEM_ENABLED] = getGlobalBoolean(L, "weaponProficiencySystemEnabled", false);
+	booleans[Boolean::AUGMENT_SYSTEM_ENABLED] = getGlobalBoolean(L, "augmentSystemEnabled", false);
 	booleans[Boolean::MONSTER_LEVEL_ENABLED] = getGlobalBoolean(L, "monsterLevelEnabled", false);
 	booleans[Boolean::LOOT_GROUPING_ENABLED] = getGlobalBoolean(L, "lootGroupingEnabled", true);
 	booleans[Boolean::ALLOW_MOUNT_IN_PZ] = getGlobalBoolean(L, "allowMountInPz", false);
@@ -440,6 +464,7 @@ bool ConfigManager::load()
 	booleans[Boolean::RAID_SPAWN_FILE_ENABLED] = getGlobalBoolean(L, "raidSpawnFileEnabled", true);
 	booleans[Boolean::CLEAVE_SYSTEM_ENABLED] = getGlobalBoolean(L, "cleavesystem", true);
 	booleans[Boolean::POWERLAW] = getGlobalBoolean(L, "powerlaw", false);
+	booleans[Boolean::ASTRA_CLIENT_ONLY] = getGlobalBoolean(L, "astraClientOnly", false);
 
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);
@@ -616,8 +641,11 @@ bool ConfigManager::load()
 
 	// AutoLoot Config
 	booleans[Boolean::AUTOLOOT_ENABLED] = getGlobalBoolean(L, "Autoloot_enabled", true);
+	booleans[Boolean::AUTOLOOT_AUTO_BANK] = getGlobalBoolean(L, "AutoBank", true);
+	booleans[Boolean::AUTOLOOT_GOLD_POUCH] = getGlobalBoolean(L, "AutoLootGoldPouch", true);
 	strings[String::AUTOLOOT_BLOCKIDS] = getGlobalString(L, "AutoLoot_BlockIDs", "");
-	strings[String::AUTOLOOT_MONEYIDS] = getGlobalString(L, "AutoLoot_MoneyIDs", "2148;2152;2160");
+	strings[String::AUTOLOOT_MONEYIDS] = getGlobalString(L, "AutoLoot_MoneyIDs", "3031;3035;3043;32724");
+	autoLootMoneyIds = parseAutoLootMoneyIds(strings[String::AUTOLOOT_MONEYIDS]);
 	integers[Integer::AUTOLOOT_MAXITEMS_FREE] = getGlobalInteger(L, "AutoLoot_MaxItemFree", 5);
 	integers[Integer::AUTOLOOT_MAXITEMS_PREMIUM] = getGlobalInteger(L, "AutoLoot_MaxItemPremium", 10);
 
@@ -636,6 +664,9 @@ bool ConfigManager::load()
 	integers[Integer::RAID_SPAWN_FILE_DIRECTION] = getGlobalInteger(L, "raidSpawnFileDirection", 2);
 	integers[Integer::POWER_LAW_SKILL_THRESHOLD] = getGlobalInteger(L, "powerLawSkillThreshold", 0);
 	integers[Integer::POWER_LAW_MAGIC_THRESHOLD] = getGlobalInteger(L, "powerLawMagicThreshold", 0);
+	integers[Integer::AUGMENT_INCREASED_DAMAGE_PERCENT] = getGlobalInteger(L, "augmentIncreasedDamagePercent", 5);
+	integers[Integer::AUGMENT_POWERFUL_IMPACT_PERCENT] = getGlobalInteger(L, "augmentPowerfulImpactPercent", 7);
+	integers[Integer::AUGMENT_STRONG_IMPACT_PERCENT] = getGlobalInteger(L, "augmentStrongImpactPercent", 10);
 
 	strings[String::ADMIN_PASSWORD] = getGlobalString(L, "adminPassword", "");
 	strings[String::ADMIN_ENCRYPTION] = getGlobalString(L, "adminEncryption", "");
@@ -748,6 +779,9 @@ bool ConfigManager::setString(String what, std::string_view value)
 	}
 
 	strings[what] = value;
+	if (what == String::AUTOLOOT_MONEYIDS) {
+		autoLootMoneyIds = parseAutoLootMoneyIds(strings[what]);
+	}
 	return true;
 }
 
@@ -787,3 +821,5 @@ bool ConfigManager::setFloat(float_config_t what, float value)
 const BlockedTeleportIds& ConfigManager::getBlockedTeleportIds() { return blockedTeleportIds; }
 
 const TokenProtectionExceptions& ConfigManager::getTokenProtectionExceptions() { return tokenProtectionExceptions; }
+
+const AutoLootMoneyIds& ConfigManager::getAutoLootMoneyIds() { return autoLootMoneyIds; }

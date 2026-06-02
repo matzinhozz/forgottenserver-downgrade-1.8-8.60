@@ -840,8 +840,9 @@ ReturnValue LuaScriptInterface::callReturnValueFunction(int params)
 
 void Lua::pushVariant(lua_State* L, const LuaVariant& var)
 {
-	lua_createtable(L, 0, 2);
+	lua_createtable(L, 0, 3);
 	setField(L, "type", var.type());
+	setField(L, "instantName", var.instantName);
 	switch (var.type()) {
 		case VARIANT_NUMBER:
 			setField(L, "number", var.getNumber());
@@ -1142,6 +1143,8 @@ Outfit Lua::getOutfitClass(lua_State* L, int32_t arg)
 LuaVariant Lua::getVariant(lua_State* L, int32_t arg)
 {
 	LuaVariant var;
+	var.instantName = getFieldString(L, arg, "instantName");
+	lua_pop(L, 1);
 	switch (getField<LuaVariantType_t>(L, arg, "type")) {
 		case VARIANT_NUMBER: {
 			var.setNumber(getField<uint32_t>(L, arg, "number"));
@@ -1574,6 +1577,8 @@ void LuaScriptInterface::registerFunctions()
 	registerGlobalVariable("BESTIARY_SYSTEM_ENABLED", ConfigManager::BESTIARY_SYSTEM_ENABLED);
 	registerGlobalVariable("MARKET_SYSTEM_ENABLED", ConfigManager::MARKET_SYSTEM_ENABLED);
 	registerGlobalVariable("PREY_SYSTEM_ENABLED", ConfigManager::PREY_SYSTEM_ENABLED);
+	registerGlobalVariable("WEAPON_PROFICIENCY_SYSTEM_ENABLED", ConfigManager::WEAPON_PROFICIENCY_SYSTEM_ENABLED);
+	registerGlobalVariable("AUGMENT_SYSTEM_ENABLED", ConfigManager::AUGMENT_SYSTEM_ENABLED);
 
 	registerGlobalVariable("ACCOUNT_MANAGER_NONE", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NONE));
 	registerGlobalVariable("ACCOUNT_MANAGER_NEW", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NEW));
@@ -2764,6 +2769,8 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::BESTIARY_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::MARKET_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::PREY_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::WEAPON_PROFICIENCY_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::AUGMENT_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::MONSTER_LEVEL_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::LOOT_GROUPING_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::ALLOW_MOUNT_IN_PZ);
@@ -2841,6 +2848,8 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::MAX_ALLOWED_ON_A_DUMMY);
 	registerEnumIn("configKeys", ConfigManager::RATE_EXERCISE_TRAINING_SPEED);
 	registerEnumIn("configKeys", ConfigManager::NPCS_USING_BANK_MONEY);
+	registerEnumIn("configKeys", ConfigManager::AUTOLOOT_AUTO_BANK);
+	registerEnumIn("configKeys", ConfigManager::AUTOLOOT_GOLD_POUCH);
 	registerEnumIn("configKeys", ConfigManager::BOOSTED_EXP_MULTIPLIER);
 	registerEnumIn("configKeys", ConfigManager::BOOSTED_LOOT_MULTIPLIER);
 	registerEnumIn("configKeys", ConfigManager::BOOSTED_SPAWN_MULTIPLIER);
@@ -3766,10 +3775,10 @@ int LuaScriptInterface::luaIsScriptsInterface(lua_State* L)
 
 std::string LuaScriptInterface::escapeString(std::string s)
 {
-	boost::algorithm::replace_all(s, "\\", "\\\\");
-	boost::algorithm::replace_all(s, "\"", "\\\"");
-	boost::algorithm::replace_all(s, "'", "\\'");
-	boost::algorithm::replace_all(s, "[[", "\\[[");
+	replaceString(s, "\\", "\\\\");
+	replaceString(s, "\"", "\\\"");
+	replaceString(s, "'", "\\'");
+	replaceString(s, "[[", "\\[[");
 	return s;
 }
 
@@ -4221,7 +4230,7 @@ void LuaEnvironment::executeTimerEvent(uint32_t eventIndex)
 	lua_rawgeti(luaState, LUA_REGISTRYINDEX, timerEventDesc.function);
 
 	// push parameters
-	for (auto parameter : boost::adaptors::reverse(timerEventDesc.parameters)) {
+	for (auto parameter : std::views::reverse(timerEventDesc.parameters)) {
 		lua_rawgeti(luaState, LUA_REGISTRYINDEX, parameter);
 		if (lua_getmetatable(luaState, -1) == 0) {
 			continue;

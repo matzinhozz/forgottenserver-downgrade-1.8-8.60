@@ -61,6 +61,8 @@ enum Boolean
 	STAMINA_PZ,
 	PUSH_CREATURE_ZONE,
 	AUTOLOOT_ENABLED,
+	AUTOLOOT_AUTO_BANK,
+	AUTOLOOT_GOLD_POUCH,
 	ADMIN_LOCALHOST_ONLY,
 	ADMIN_REQUIRE_LOGIN,
 	ADMIN_LOGS,
@@ -79,6 +81,8 @@ enum Boolean
 	BESTIARY_SYSTEM_ENABLED,
 	MARKET_SYSTEM_ENABLED,
 	PREY_SYSTEM_ENABLED,
+	WEAPON_PROFICIENCY_SYSTEM_ENABLED,
+	AUGMENT_SYSTEM_ENABLED,
 	ALLOW_MOUNT_IN_PZ,
 	CHAIN_SYSTEM_ENABLED,
 	MODIFY_DAMAGE_IN_K,
@@ -90,6 +94,7 @@ enum Boolean
 	RAID_SPAWN_FILE_ENABLED,
 	CLEAVE_SYSTEM_ENABLED,
 	POWERLAW,
+	ASTRA_CLIENT_ONLY,
 
 	LAST_BOOLEAN /* this must be the last one */
 };
@@ -251,6 +256,9 @@ enum Integer
 	RAID_SPAWN_FILE_DIRECTION,
 	POWER_LAW_SKILL_THRESHOLD,
 	POWER_LAW_MAGIC_THRESHOLD,
+	AUGMENT_INCREASED_DAMAGE_PERCENT,
+	AUGMENT_POWERFUL_IMPACT_PERCENT,
+	AUGMENT_STRONG_IMPACT_PERCENT,
 
 	LAST_INTEGER /* this must be the last one */
 };
@@ -306,6 +314,7 @@ float getSkillStage(uint32_t level);
 float getMagicLevelStage(uint32_t level);
 const std::vector<uint16_t>& getBlockedTeleportIds();
 const std::vector<uint16_t>& getTokenProtectionExceptions();
+const std::set<uint16_t>& getAutoLootMoneyIds();
 
 bool setBoolean(Boolean what, bool value);
 bool setString(String what, std::string_view value);

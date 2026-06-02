@@ -77,6 +77,19 @@ struct VIPEntry
 	std::string name;
 };
 
+struct ProficiencySpellAugmentBonus
+{
+	int32_t damagePercent = 0;
+	int32_t healingPercent = 0;
+	int32_t criticalDamage = 0;
+	int32_t criticalChance = 0;
+	int32_t lifeLeech = 0;
+	int32_t manaLeech = 0;
+	int32_t manaCostPercent = 0;
+	int32_t cooldownReduction = 0;
+	int32_t secondaryGroupCooldownReduction = 0;
+};
+
 struct OpenContainer
 {
 	ContainerWeakPtr container;
@@ -501,6 +514,16 @@ public:
 
 	Item* getInventoryItem(slots_t slot) const;
 	Item* getInventoryItem(uint32_t slot) const;
+	std::shared_ptr<Item> getInventoryItemShared(slots_t slot) const;
+	std::vector<std::shared_ptr<Item>> getEquippedItems() const;
+	std::vector<std::shared_ptr<Item>> getEquippedAugmentItems() const;
+	std::vector<std::shared_ptr<Item>> getEquippedAugmentItemsByType(Augment_t augmentType) const;
+	void clearProficiencySpellAugments();
+	void addProficiencySpellAugment(uint16_t weaponId, uint16_t spellId, Augment_t augmentType, double value);
+	ProficiencySpellAugmentBonus getProficiencySpellAugmentBonus(uint16_t spellId) const;
+	void clearWheelSpellAugments();
+	void addWheelSpellAugment(std::string spellName, Augment_t augmentType, double value);
+	ProficiencySpellAugmentBonus getWheelSpellAugmentBonus(std::string_view spellName) const;
 	bool hasInventoryItem(slots_t slot, const std::shared_ptr<const Item>& item) const;
 	bool isInventorySlot(slots_t slot) const;
 
@@ -510,6 +533,8 @@ public:
 	void setVarSkill(skills_t skill, int32_t modifier) { varSkills[skill] += modifier; }
 
 	void setVarSpecialSkill(SpecialSkills_t skill, int32_t modifier) { varSpecialSkills[skill] += modifier; }
+	void setTemporaryDeathLossReduction(int32_t value) { temporaryDeathLossReduction = std::max<int32_t>(0, value); }
+	void clearTemporaryDeathLossReduction() { temporaryDeathLossReduction = 0; }
 
 	void setSpecialMagicLevelSkill(CombatType_t type, int16_t modifier)
 	{
@@ -706,6 +731,7 @@ public:
 
 	int32_t getArmor() const override;
 	int32_t getDefense() const override;
+	int32_t getCombatAbsorbPercent(CombatType_t combatType) const;
 
 	float getMitigation() const override;
 	void addMitigation(float modifier) { varMitigation += modifier; }
@@ -939,7 +965,7 @@ public:
 		}
 	}
 
-	void sendSpellCooldown(uint8_t spellId, uint32_t time)
+	void sendSpellCooldown(uint16_t spellId, uint32_t time)
 	{
 		if (client) {
 			client->sendSpellCooldown(spellId, time);
@@ -1465,6 +1491,8 @@ private:
 	std::shared_ptr<Group> group;
 	std::weak_ptr<Item> tradeItem;
 	std::shared_ptr<Item> inventory[CONST_SLOT_LAST + 1] = {};
+	std::unordered_map<uint16_t, std::unordered_map<uint16_t, ProficiencySpellAugmentBonus>> proficiencySpellAugments;
+	std::unordered_map<std::string, ProficiencySpellAugmentBonus> wheelSpellAugments;
 	std::weak_ptr<Item> writeItem;
 	std::weak_ptr<House> editHouse;
 	std::weak_ptr<Npc> shopOwner;
@@ -1518,6 +1546,7 @@ private:
 	int32_t offlineTrainingTime = 0;
 	int32_t idleTime = 0;
 	int32_t helmetCooldownReduction = 0;
+	int32_t temporaryDeathLossReduction = 0;
 
 	uint16_t lastStatsTrainingTime = 0;
 	uint16_t staminaMinutes = 2520;

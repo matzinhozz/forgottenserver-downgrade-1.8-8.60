@@ -36,8 +36,6 @@ namespace {
 constexpr uint32_t CHAIN_SYSTEM_STORAGE = 40001;
 constexpr uint32_t CLEAVE_SYSTEM_STORAGE = 40002;
 
-void trimString(std::string& str) { boost::algorithm::trim(str); }
-
 std::shared_ptr<Item> getSharedItem(Item* item)
 {
 	return item ? item->weak_from_this().lock() : nullptr;
@@ -64,10 +62,6 @@ std::shared_ptr<Party> getSharedParty(Party* party)
 	return party ? party->weak_from_this().lock() : nullptr;
 }
 
-// std::string asLowerCaseString(const std::string& str) { return boost::algorithm::to_lower_copy<std::string>(str); }
-
-// void toLowerCaseString(std::string& str) { boost::algorithm::to_lower(str); }
-
 bool playerIsMonkVocation(const Vocation* vocation)
 {
 	return vocation && (vocation->getId() == 9 || vocation->getFromVocation() == 9);
@@ -76,6 +70,57 @@ bool playerIsMonkVocation(const Vocation* vocation)
 uint16_t clampPreyDamagePercent(uint16_t value)
 {
 	return std::min<uint16_t>(value, 100);
+}
+
+void addClamped(int32_t& target, int64_t value)
+{
+	target = static_cast<int32_t>(std::clamp<int64_t>(static_cast<int64_t>(target) + value,
+	                                                 std::numeric_limits<int32_t>::min(),
+	                                                 std::numeric_limits<int32_t>::max()));
+}
+
+void addSpellAugmentBonus(ProficiencySpellAugmentBonus& bonus, Augment_t augmentType, double value)
+{
+	switch (augmentType) {
+		case Augment_t::ManaCost:
+			addClamped(bonus.manaCostPercent, std::lround(std::abs(value)));
+			break;
+
+		case Augment_t::BaseDamage:
+			addClamped(bonus.damagePercent, std::lround(value * 100.0));
+			break;
+
+		case Augment_t::BaseHealing:
+			addClamped(bonus.healingPercent, std::lround(value * 100.0));
+			break;
+
+		case Augment_t::Cooldown:
+			addClamped(bonus.cooldownReduction, std::lround(std::abs(value) * 1000.0));
+			break;
+
+		case Augment_t::SecondaryGroupCooldown:
+			addClamped(bonus.secondaryGroupCooldownReduction, std::lround(std::abs(value) * 1000.0));
+			break;
+
+		case Augment_t::LifeLeech:
+			addClamped(bonus.lifeLeech, std::lround(value * 10000.0));
+			break;
+
+		case Augment_t::ManaLeech:
+			addClamped(bonus.manaLeech, std::lround(value * 10000.0));
+			break;
+
+		case Augment_t::CriticalExtraDamage:
+			addClamped(bonus.criticalDamage, std::lround(value * 10000.0));
+			break;
+
+		case Augment_t::CriticalHitChance:
+			addClamped(bonus.criticalChance, std::lround(value * 10000.0));
+			break;
+
+		default:
+			break;
+	}
 }
 
 bool isMantraCombatType(CombatType_t combatType)
@@ -130,17 +175,17 @@ int64_t getCustomAttributeInteger(const ItemAttributes::CustomAttribute* attr)
 		return 0;
 	}
 
-	if (const auto* value = boost::get<int64_t>(&attr->value)) {
+	if (const auto* value = std::get_if<int64_t>(&attr->value)) {
 		return *value;
 	}
-	if (const auto* value = boost::get<double>(&attr->value)) {
+	if (const auto* value = std::get_if<double>(&attr->value)) {
 		return static_cast<int64_t>(*value);
 	}
-	if (const auto* value = boost::get<bool>(&attr->value)) {
+	if (const auto* value = std::get_if<bool>(&attr->value)) {
 		return *value ? 1 : 0;
 	}
-	if (const auto* value = boost::get<std::string>(&attr->value)) {
-		std::string text = boost::algorithm::trim_copy(*value);
+	if (const auto* value = std::get_if<std::string>(&attr->value)) {
+		std::string text = asTrimmedString(*value);
 		if (text.empty()) {
 			return 0;
 		}
@@ -465,6 +510,118 @@ Item* Player::getInventoryItem(uint32_t slot) const
 	return inventory[slot].get();
 }
 
+std::shared_ptr<Item> Player::getInventoryItemShared(slots_t slot) const
+{
+	if (slot < CONST_SLOT_FIRST || slot > CONST_SLOT_LAST) {
+		return nullptr;
+	}
+	return inventory[slot];
+}
+
+std::vector<std::shared_ptr<Item>> Player::getEquippedItems() const
+{
+	static constexpr slots_t slots[] = {
+	    CONST_SLOT_HEAD, CONST_SLOT_NECKLACE, CONST_SLOT_BACKPACK, CONST_SLOT_ARMOR, CONST_SLOT_RIGHT,
+	    CONST_SLOT_LEFT, CONST_SLOT_LEGS,     CONST_SLOT_FEET,     CONST_SLOT_RING,
+	};
+
+	std::vector<std::shared_ptr<Item>> equippedItems;
+	for (const slots_t slot : slots) {
+		if (const auto& item = inventory[slot]) {
+			equippedItems.emplace_back(item);
+		}
+	}
+	return equippedItems;
+}
+
+std::vector<std::shared_ptr<Item>> Player::getEquippedAugmentItems() const
+{
+	std::vector<std::shared_ptr<Item>> equippedAugmentItems;
+	for (const auto& item : getEquippedItems()) {
+		if (!item->getAugments().empty()) {
+			equippedAugmentItems.emplace_back(item);
+		}
+	}
+	return equippedAugmentItems;
+}
+
+std::vector<std::shared_ptr<Item>> Player::getEquippedAugmentItemsByType(Augment_t augmentType) const
+{
+	std::vector<std::shared_ptr<Item>> equippedAugmentItems;
+	for (const auto& item : getEquippedAugmentItems()) {
+		for (const auto& augment : item->getAugments()) {
+			if (augment && augment->type == augmentType) {
+				equippedAugmentItems.emplace_back(item);
+				break;
+			}
+		}
+	}
+	return equippedAugmentItems;
+}
+
+void Player::clearProficiencySpellAugments()
+{
+	proficiencySpellAugments.clear();
+}
+
+void Player::addProficiencySpellAugment(uint16_t weaponId, uint16_t spellId, Augment_t augmentType, double value)
+{
+	if (!ConfigManager::getBoolean(ConfigManager::AUGMENT_SYSTEM_ENABLED) || weaponId == 0 || spellId == 0 ||
+	    !std::isfinite(value)) {
+		return;
+	}
+
+	auto& bonus = proficiencySpellAugments[weaponId][spellId];
+	addSpellAugmentBonus(bonus, augmentType, value);
+}
+
+ProficiencySpellAugmentBonus Player::getProficiencySpellAugmentBonus(uint16_t spellId) const
+{
+	const Item* weapon = getWeapon(true);
+	if (!weapon) {
+		return {};
+	}
+
+	uint16_t weaponId = weapon->getID();
+	auto weaponIt = proficiencySpellAugments.find(weaponId);
+	if (weaponIt == proficiencySpellAugments.end()) {
+		// Lua groups catalog aliases by client id before caching the canonical server id.
+		const uint16_t clientId = Item::items[weaponId].id;
+		for (auto it = proficiencySpellAugments.begin(); it != proficiencySpellAugments.end(); ++it) {
+			if (Item::items[it->first].id == clientId) {
+				weaponIt = it;
+				break;
+			}
+		}
+	}
+	if (weaponIt == proficiencySpellAugments.end()) {
+		return {};
+	}
+
+	const auto spellIt = weaponIt->second.find(spellId);
+	return spellIt != weaponIt->second.end() ? spellIt->second : ProficiencySpellAugmentBonus{};
+}
+
+void Player::clearWheelSpellAugments()
+{
+	wheelSpellAugments.clear();
+}
+
+void Player::addWheelSpellAugment(std::string spellName, Augment_t augmentType, double value)
+{
+	if (!ConfigManager::getBoolean(ConfigManager::WHEEL_SYSTEM_ENABLED) || spellName.empty() || !std::isfinite(value)) {
+		return;
+	}
+
+	addSpellAugmentBonus(wheelSpellAugments[std::move(spellName)], augmentType, value);
+}
+
+ProficiencySpellAugmentBonus Player::getWheelSpellAugmentBonus(std::string_view spellName) const
+{
+	const auto it = wheelSpellAugments.find(std::string(spellName));
+	return it != wheelSpellAugments.end() ? it->second : ProficiencySpellAugmentBonus{};
+}
+
 bool Player::hasInventoryItem(slots_t slot, const std::shared_ptr<const Item>& item) const
 {
 	if (!item || slot < CONST_SLOT_FIRST || slot > CONST_SLOT_LAST) {
@@ -607,6 +764,60 @@ int32_t Player::getArmor() const
 		}
 	}
 	return static_cast<int32_t>(armor * vocation->armorMultiplier);
+}
+
+int32_t Player::getCombatAbsorbPercent(CombatType_t combatType) const
+{
+	int32_t total = 0;
+	for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_AMMO; ++slot) {
+		if (!isItemAbilityEnabled(static_cast<slots_t>(slot))) {
+			continue;
+		}
+
+		const std::shared_ptr<Item>& item = inventory[slot];
+		if (!item) {
+			continue;
+		}
+
+		const ItemType& itemType = Item::items[item->getID()];
+		if (itemType.abilities) {
+			total += itemType.abilities->absorbPercent[combatTypeToIndex(combatType)];
+		}
+
+		for (const auto& imbuement : item->getImbuements()) {
+			if (!imbuement) {
+				continue;
+			}
+
+			switch (imbuement->imbuetype) {
+				case ImbuementType::IMBUEMENT_TYPE_FIRE_RESIST:
+					if (combatType == COMBAT_FIREDAMAGE) total += imbuement->value;
+					break;
+				case ImbuementType::IMBUEMENT_TYPE_EARTH_RESIST:
+					if (combatType == COMBAT_EARTHDAMAGE) total += imbuement->value;
+					break;
+				case ImbuementType::IMBUEMENT_TYPE_ICE_RESIST:
+					if (combatType == COMBAT_ICEDAMAGE) total += imbuement->value;
+					break;
+				case ImbuementType::IMBUEMENT_TYPE_ENERGY_RESIST:
+					if (combatType == COMBAT_ENERGYDAMAGE) total += imbuement->value;
+					break;
+				case ImbuementType::IMBUEMENT_TYPE_DEATH_RESIST:
+					if (combatType == COMBAT_DEATHDAMAGE) total += imbuement->value;
+					break;
+				case ImbuementType::IMBUEMENT_TYPE_HOLY_RESIST:
+					if (combatType == COMBAT_HOLYDAMAGE) total += imbuement->value;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+
+	if (isMantraCombatType(combatType)) {
+		total += getMantraAbsorbPercent(getMantraTotal());
+	}
+	return total;
 }
 
 int32_t Player::getMantraTotal() const
@@ -2935,9 +3146,10 @@ void Player::death(Creature* lastHitCreature)
 			sumMana += vocation->getReqMana(i);
 		}
 
-		totalReduceSkillLoss = storedTotalReduceSkillLoss;
+		totalReduceSkillLoss = storedTotalReduceSkillLoss + temporaryDeathLossReduction;
 
 		double deathLossPercent = getLostPercent();
+		clearTemporaryDeathLossReduction();
 		removeManaSpent(static_cast<uint64_t>((sumMana + manaSpent) * deathLossPercent), false);
 
 		// Skill loss
@@ -3025,6 +3237,7 @@ void Player::death(Creature* lastHitCreature)
 		onIdleStatus();
 		sendStats();
 	}
+	clearTemporaryDeathLossReduction();
 }
 
 bool Player::dropCorpse(Creature* lastHitCreature, Creature* mostDamageCreature, bool lastHitUnjustified,
@@ -6020,16 +6233,15 @@ void Player::lootCorpse(Container* container)
 		return;
 	}
 
-	if (!findGoldPouch()) {
-		sendTextMessage(MESSAGE_EVENT_ORANGE, "You need a Gold Pouch to use AutoLoot.");
-		return;
-	}
+	const auto& moneyIds = ConfigManager::getAutoLootMoneyIds();
 
-	auto goldPouchDestination = findGoldPouch();
+	const bool autobankEnabled = ConfigManager::getBoolean(ConfigManager::AUTOLOOT_AUTO_BANK);
+	const bool autolootGoldPouchEnabled = ConfigManager::getBoolean(ConfigManager::AUTOLOOT_GOLD_POUCH);
+
+	auto goldPouchDestination = autolootGoldPouchEnabled ? findGoldPouch() : nullptr;
 	auto storeInboxDestination = getStoreInbox();
-	if (!storeInboxDestination) {
-		sendTextMessage(MESSAGE_EVENT_ORANGE, "Your store inbox is unavailable.");
-		return;
+	if (goldPouchDestination && !storeInboxDestination) {
+		sendTextMessage(MESSAGE_EVENT_ORANGE, "Your store inbox is unavailable. Items will fall back to backpack.");
 	}
 
 	std::vector<std::pair<Item*, uint16_t>> toMove;
@@ -6047,70 +6259,65 @@ void Player::lootCorpse(Container* container)
 		}
 	}
 
-	std::string moneyConfig = std::string(ConfigManager::getString(ConfigManager::AUTOLOOT_MONEYIDS));
-	std::vector<std::string_view> moneyIdStrings = explodeString(moneyConfig, ";");
-	std::set<uint16_t> moneyIds;
-	for (const auto& str : moneyIdStrings) {
-		if (str.empty()) continue;
-		try {
-			moneyIds.insert(static_cast<uint16_t>(std::stoi(std::string(str))));
-		} catch (...) {
-			continue;
-		}
-	}
+	std::vector<std::pair<Item*, uint64_t>> moneyItemsToDeposit;
+	std::unordered_set<Item*> queuedMoneyItems;
+	bool missingGoldPouchMessageSent = false;
+	bool skipCoinMessageSent = false;
 
-	uint64_t totalDepositValue = 0;
-	std::vector<Item*> itemsToRemove;
-
-	for (const auto& pair : toMove) {
-		Item* item = pair.first;
-		uint16_t itemId = item->getID();
-		uint32_t value = 0;
-
-		if (moneyIds.contains(itemId)) {
-			if (itemId == 2160) {
-				value = item->getItemCount() * 10000;
-			} else if (itemId == 2152) {
-				value = item->getItemCount() * 100;
-			} else if (itemId == 2148) {
-				value = item->getItemCount();
-			} else {
-				value = item->getWorth();
-			}
-		}
-
-		if (value > 0) {
-			totalDepositValue += value;
-			itemsToRemove.push_back(item);
-			continue;
-		}
-
+	auto moveAutolootItem = [&](Item* item, uint16_t backpackId = 0) {
 		ReturnValue ret;
-		Container* primaryDestination = goldPouchDestination ? goldPouchDestination : storeInboxDestination;
-		Container* fallbackDestination = storeInboxDestination;
-		bool usedGoldPouch = (goldPouchDestination != nullptr);
+		Cylinder* primaryDestination = nullptr;
+		Cylinder* fallbackDestination = nullptr;
+		bool usedGoldPouch = false;
+
+		if (autolootGoldPouchEnabled && goldPouchDestination) {
+			primaryDestination = goldPouchDestination;
+			fallbackDestination = storeInboxDestination;
+			usedGoldPouch = true;
+		} else {
+			if (autolootGoldPouchEnabled && !missingGoldPouchMessageSent) {
+				sendTextMessage(MESSAGE_EVENT_ORANGE, "You need a Gold Pouch to use AutoLoot.");
+				missingGoldPouchMessageSent = true;
+			}
+			if (backpackId != 0) {
+				Container* target = findNonEmptyContainer(backpackId);
+				primaryDestination = target ? static_cast<Cylinder*>(target) : static_cast<Cylinder*>(this);
+			} else {
+				primaryDestination = static_cast<Cylinder*>(this);
+			}
+			fallbackDestination = storeInboxDestination;
+		}
 
 		ret = g_game.internalMoveItem(container, primaryDestination, INDEX_WHEREEVER, item,
 		                                          item->getItemCount(), nullptr);
 		if (ret == RETURNVALUE_NOERROR) {
-			continue;
+			return true;
 		}
 		if (ret == RETURNVALUE_NOTENOUGHCAPACITY) {
 			sendTextMessage(MESSAGE_STATUS_SMALL, "You do not have enough capacity to autoloot this item.");
-			continue;
+			return false;
 		}
 
-		if (usedGoldPouch && fallbackDestination != primaryDestination) {
+		if (fallbackDestination && fallbackDestination != primaryDestination) {
 			ret = g_game.internalMoveItem(container, fallbackDestination, INDEX_WHEREEVER, item,
 			                                          item->getItemCount(), nullptr);
 			if (ret == RETURNVALUE_NOERROR) {
-				sendTextMessage(MESSAGE_STATUS_SMALL, "Your gold pouch is full. Item sent to store inbox.");
-				continue;
+				if (usedGoldPouch) {
+					sendTextMessage(MESSAGE_STATUS_SMALL, "Your gold pouch is full. Item sent to store inbox.");
+				} else {
+					sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item sent to store inbox.");
+				}
+				return true;
 			}
 			if (ret == RETURNVALUE_NOTENOUGHCAPACITY) {
 				sendTextMessage(MESSAGE_STATUS_SMALL, "You do not have enough capacity to autoloot this item.");
-				continue;
+				return false;
 			}
+		}
+
+		if (!usedGoldPouch) {
+			sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item left in corpse.");
+			return false;
 		}
 
 		auto backpackItem = getInventoryItem(CONST_SLOT_BACKPACK);
@@ -6119,35 +6326,80 @@ void Player::lootCorpse(Container* container)
 			ret = g_game.internalMoveItem(container, backpack, INDEX_WHEREEVER, item, item->getItemCount(), nullptr);
 			if (ret == RETURNVALUE_NOERROR) {
 				sendTextMessage(MESSAGE_STATUS_SMALL, "Your store inbox is full. Item sent to backpack.");
-				continue;
+				return true;
 			}
 			if (ret == RETURNVALUE_NOTENOUGHCAPACITY) {
 				sendTextMessage(MESSAGE_STATUS_SMALL, "You do not have enough capacity to autoloot this item.");
-				continue;
+				return false;
 			}
 		}
 		
 		sendTextMessage(MESSAGE_STATUS_SMALL, "Your containers are full. Item left in corpse.");
+		return false;
+	};
+
+	for (const auto& pair : toMove) {
+		Item* item = pair.first;
+		const uint16_t itemId = item->getID();
+		const int64_t rawWorth = item->getWorth();
+		const uint64_t value = rawWorth > 0 ? static_cast<uint64_t>(rawWorth) : 0;
+		const bool isMoneyItem = moneyIds.contains(itemId) && value > 0;
+
+		if (isMoneyItem) {
+			queuedMoneyItems.insert(item);
+			if (!autolootConfig.goldEnabled) {
+				bool explicitlyListed = !autolootConfig.lootAnything &&
+				                        autolootConfig.itemList.find(item->getID()) != autolootConfig.itemList.end();
+				if (!explicitlyListed) {
+					if (!skipCoinMessageSent) {
+						sendTextMessage(MESSAGE_STATUS_SMALL, "AutoLoot: Coin collection is disabled. Use !autoloot gold to enable.");
+						skipCoinMessageSent = true;
+					}
+					continue;
+				}
+			}
+			if (autobankEnabled) {
+				moneyItemsToDeposit.emplace_back(item, value);
+				continue;
+			}
+		}
+
+		moveAutolootItem(item, pair.second);
 	}
 
 	if (autolootConfig.goldEnabled) {
-		std::unordered_set<Item*> alreadyQueued(itemsToRemove.begin(), itemsToRemove.end());
+		std::vector<Item*> moneyItemsToMove;
 		for (ContainerIterator it = container->iterator(); it.hasNext(); it.advance()) {
 			Item* goldItem = *it;
-			uint64_t worth = static_cast<uint64_t>(goldItem->getWorth());
-			if (worth > 0 && !alreadyQueued.contains(goldItem)) {
-				totalDepositValue += worth;
-				itemsToRemove.push_back(goldItem);
-				alreadyQueued.insert(goldItem);
+			const uint16_t itemId = goldItem->getID();
+			const int64_t rawWorth = goldItem->getWorth();
+			const uint64_t worth = rawWorth > 0 ? static_cast<uint64_t>(rawWorth) : 0;
+			if (moneyIds.contains(itemId) && worth > 0 && !queuedMoneyItems.contains(goldItem)) {
+				queuedMoneyItems.insert(goldItem);
+				if (autobankEnabled) {
+					moneyItemsToDeposit.emplace_back(goldItem, worth);
+				} else {
+					moneyItemsToMove.push_back(goldItem);
+				}
+			}
+		}
+
+		for (Item* goldItem : moneyItemsToMove) {
+			moveAutolootItem(goldItem);
+		}
+	}
+
+	uint64_t totalDepositValue = 0;
+	if (autobankEnabled) {
+		for (const auto& [item, value] : moneyItemsToDeposit) {
+			if (g_game.internalRemoveItem(item, item->getItemCount()) == RETURNVALUE_NOERROR) {
+				totalDepositValue += value;
 			}
 		}
 	}
 
 	if (totalDepositValue > 0) {
 		setBankBalance(bankBalance + totalDepositValue);
-		for (Item* item : itemsToRemove) {
-			g_game.internalRemoveItem(item, item->getItemCount());
-		}
 		sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, fmt::format("AutoLoot: Deposited {:d} gold to your bank account.", totalDepositValue));
 	}
 }
@@ -7515,8 +7767,8 @@ void Player::clearCooldowns()
 			condition->setTicks(0);
 			if (type == CONDITION_SPELLGROUPCOOLDOWN) {
 				sendSpellGroupCooldown(static_cast<SpellGroup_t>(subId), 0);
-			} else {
-				sendSpellCooldown(static_cast<uint8_t>(subId), 0);
+			} else if (subId <= std::numeric_limits<uint16_t>::max()) {
+				sendSpellCooldown(static_cast<uint16_t>(subId), 0);
 			}
 		}
 	}

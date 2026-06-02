@@ -4,6 +4,7 @@
 #include "otpch.h"
 
 #include "actions.h"
+#include "astraclient.h"
 #include "ban.h"
 #include "configmanager.h"
 #include "creatureevent.h"
@@ -564,10 +565,29 @@ void ProtocolGame::onRecvFirstMessage(NetworkMessage& msg)
 			isOTCv8 = true;
 			msg.get<uint16_t>();
 
-			if (msg.getBufferPosition() + 2 <= msg.getLength()) {
+			while (msg.getBufferPosition() + 2 <= msg.getLength()) {
 				uint16_t markerLength = msg.get<uint16_t>();
-				if (markerLength > 0 && markerLength <= 64 && msg.getBufferPosition() + markerLength <= msg.getLength()) {
-					useItemTierByte = msg.getString(markerLength) == "OTCv8TierByte";
+				if (markerLength == 0) {
+					break;
+				}
+
+				if (markerLength > 64 || msg.getBufferPosition() + markerLength > msg.getLength()) {
+					break;
+				}
+
+				const auto marker = msg.getString(markerLength);
+				if (marker == "OTCv8TierByte") {
+					useItemTierByte = true;
+				} else if (marker == AstraClient::LOGIN_MARKER) {
+					if (msg.getBufferPosition() + sizeof(uint32_t) > msg.getLength()) {
+						break;
+					}
+					isAstraClient =
+					    msg.get<uint32_t>() ==
+					    AstraClient::generateSignature(static_cast<uint16_t>(operatingSystem), version, key,
+					                                   challengeTimestamp, challengeRandom);
+				} else {
+					break;
 				}
 			}
 		}
@@ -579,6 +599,15 @@ void ProtocolGame::onRecvFirstMessage(NetworkMessage& msg)
 	}
 
 	isOTC = isOTCv8 || isMehah || isOtclientOperatingSystem(operatingSystem);
+
+	if (getBoolean(ConfigManager::ASTRA_CLIENT_ONLY)) {
+		if (!isAstraClient) {
+			LOG_INFO("[AstraClient] Client rejected: AstraClient required");
+			disconnectClient(AstraClient::REQUIRED_MESSAGE);
+			return;
+		}
+		LOG_INFO("[AstraClient] Client accepted");
+	}
 
 	if (isOTC) {
 		NetworkMessage opcodeMessage;
@@ -1831,6 +1860,26 @@ void ProtocolGame::sendStats()
 	writeToOutputBuffer(msg);
 }
 
+void ProtocolGame::sendBasicData()
+{
+	NetworkMessage msg;
+	msg.addByte(0x9F);
+
+	// premium
+	msg.addByte(player->isPremium() ? 0x01 : 0x00);
+
+	// vocation
+	msg.addByte(static_cast<uint8_t>(player->getVocationId()));
+
+	// prey - OTC client expects 1 byte for prey status when GamePrey feature is enabled
+	msg.addByte(0x00);
+
+	// spells - send known spells count + ids
+	msg.add<uint16_t>(0); // spell count = 0 (protocol 8.60 doesn't use this packet for spells)
+
+	writeToOutputBuffer(msg);
+}
+
 void ProtocolGame::sendTextMessage(const TextMessage& message)
 {
 	NetworkMessage msg;
@@ -2605,6 +2654,10 @@ void ProtocolGame::sendAddCreature(const Creature* creature, const Position& pos
 	sendStats();
 	sendSkills();
 
+	if (isOTC) {
+		sendBasicData();
+	}
+
 	sendWorldLight(g_game.getWorldLightInfo());
 	sendCreatureLight(creature);
 
@@ -2888,8 +2941,10 @@ void ProtocolGame::sendOutfitWindow()
 	msg.addByte(0xC8);
 
 	const bool monkVocationEnabled = ConfigManager::getBoolean(ConfigManager::MONK_VOCATION_ENABLED);
-	auto isHiddenOutfit = [monkVocationEnabled](const Outfit* outfit) {
-		return !monkVocationEnabled && outfit && outfit->name == "Monk";
+	const bool isAstra860 = isAstraClient && getVersion() == 860;
+	auto isHiddenOutfit = [monkVocationEnabled, isAstra860](const Outfit* outfit) {
+		return outfit && ((!monkVocationEnabled && outfit->name == "Monk") ||
+		                  (isAstra860 && !AstraClient::supports860OutfitLookType(outfit->lookType)));
 	};
 	auto firstVisibleOutfit = [&outfits, &isHiddenOutfit]() -> const Outfit* {
 		for (const Outfit* outfit : outfits) {
@@ -3011,15 +3066,15 @@ void ProtocolGame::sendAnimatedText(std::string_view message, const Position& po
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendSpellCooldown(uint8_t spellId, uint32_t time)
+void ProtocolGame::sendSpellCooldown(uint16_t spellId, uint32_t time)
 {
-	if (!isOTC) {
+	if (!isOTC || spellId > std::numeric_limits<uint8_t>::max()) {
 		return;
 	}
 
 	NetworkMessage msg;
 	msg.addByte(0xA4);
-	msg.addByte(spellId);
+	msg.addByte(static_cast<uint8_t>(spellId));
 	msg.add<uint32_t>(time);
 	writeToOutputBuffer(msg);
 }
@@ -3222,9 +3277,11 @@ void ProtocolGame::AddPlayerSkills(NetworkMessage& msg)
 
 void ProtocolGame::AddOutfit(NetworkMessage& msg, const Outfit_t& outfit)
 {
-	msg.add<uint16_t>(outfit.lookType);
+	const bool sanitize860Outfits = getVersion() == 860 && (isAstraClient || isOTC);
+	const uint16_t lookType = sanitize860Outfits ? AstraClient::sanitize860OutfitLookType(outfit.lookType) : outfit.lookType;
+	msg.add<uint16_t>(lookType);
 
-	if (outfit.lookType != 0) {
+	if (lookType != 0) {
 		msg.addByte(outfit.lookHead);
 		msg.addByte(outfit.lookBody);
 		msg.addByte(outfit.lookLegs);
@@ -3235,7 +3292,7 @@ void ProtocolGame::AddOutfit(NetworkMessage& msg, const Outfit_t& outfit)
 	}
 
 	if (isOTC || getVersion() != 861) {
-		msg.add<uint16_t>(outfit.lookMount);
+		msg.add<uint16_t>(sanitize860Outfits ? AstraClient::sanitize860MountLookType(outfit.lookMount) : outfit.lookMount);
 	}
 }
 

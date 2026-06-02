@@ -52,6 +52,68 @@ void startupErrorMessage(std::string_view errorStr)
 	g_loaderSignal.notify_all();
 }
 
+std::string formatFeatureStatus(std::string_view name, ConfigManager::Boolean key)
+{
+	const bool enabled = ConfigManager::getBoolean(key);
+	const auto color = enabled ? fmt::color::lime_green : fmt::color::yellow;
+	const auto* status = enabled ? "ON" : "OFF";
+
+	return fmt::format("{} [{}]", name, fmt::format(fg(color), "{}", status));
+}
+
+void printFeatureStatus()
+{
+	LOG_INFO(">> Systems: {} | {} | {} | {} | {}", formatFeatureStatus("Forge", ConfigManager::FORGE_SYSTEM_ENABLED),
+	         formatFeatureStatus("Imbuements", ConfigManager::IMBUEMENT_SYSTEM_ENABLED),
+	         formatFeatureStatus("Wheel", ConfigManager::WHEEL_SYSTEM_ENABLED),
+	         formatFeatureStatus("Augments", ConfigManager::AUGMENT_SYSTEM_ENABLED),
+	         formatFeatureStatus("Proficiency", ConfigManager::WEAPON_PROFICIENCY_SYSTEM_ENABLED));
+	LOG_INFO(">> Modules: {} | {} | {} | {} | {} | {}",
+	         formatFeatureStatus("Bestiary", ConfigManager::BESTIARY_SYSTEM_ENABLED),
+	         formatFeatureStatus("Prey", ConfigManager::PREY_SYSTEM_ENABLED),
+	         formatFeatureStatus("Market", ConfigManager::MARKET_SYSTEM_ENABLED),
+	         formatFeatureStatus("Familiar", ConfigManager::FAMILIAR_SYSTEM_ENABLED),
+	         formatFeatureStatus("Monk", ConfigManager::MONK_VOCATION_ENABLED),
+	         formatFeatureStatus("Monster levels", ConfigManager::MONSTER_LEVEL_ENABLED));
+}
+
+constexpr std::string_view getPlatformName()
+{
+#if defined(__amd64__) || defined(_M_X64)
+	return "x64";
+#elif defined(__i386__) || defined(_M_IX86) || defined(_X86_)
+	return "x86";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+	return "ARM64";
+#elif defined(__arm__)
+	return "ARM";
+#else
+	return "unknown";
+#endif
+}
+
+constexpr std::string_view getLuaRuntimeName()
+{
+#if defined(LUAJIT_VERSION)
+	return LUAJIT_VERSION;
+#else
+	return LUA_RELEASE;
+#endif
+}
+
+std::string getCompilerName()
+{
+#if defined(__clang__)
+	return fmt::format("Clang {}", __clang_version__);
+#elif defined(_MSC_VER)
+	return fmt::format("MSVC {}", _MSC_VER);
+#elif defined(__GNUC__)
+	return fmt::format("GCC {}", __VERSION__);
+#else
+	return "unknown";
+#endif
+}
+
 void mainLoader(const std::shared_ptr<ServiceManager>& services)
 {
 	// dispatcher thread
@@ -109,6 +171,7 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 		return;
 	}
 	g_logger().setLevel(parseLogLevel(getString(ConfigManager::LOG_LEVEL)));
+	printFeatureStatus();
 
 	const auto workerThreads = static_cast<uint32_t>(
 		std::clamp<int64_t>(getInteger(ConfigManager::NETWORK_THREADS), 1, 64));
@@ -188,8 +251,6 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 			startupErrorMessage("Unable to load imbuements!");
 			return;
 		}
-	} else {
-		LOG_INFO(">> Imbuements disabled");
 	}
 
 	LOG_INFO(">> Preparing native OTBM zones");
@@ -240,7 +301,7 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 	}
 
 	LOG_INFO(">> Checking world type... ");
-	auto worldType = boost::algorithm::to_lower_copy<std::string>(std::string{getString(ConfigManager::WORLD_TYPE)});
+	auto worldType = asLowerCaseString(std::string{getString(ConfigManager::WORLD_TYPE)});
 	if (worldType == "pvp") {
 		g_game.setWorldType(WORLD_TYPE_PVP);
 	} else if (worldType == "no-pvp") {
@@ -254,7 +315,7 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 		                getString(ConfigManager::WORLD_TYPE)));
 		return;
 	}
-	LOG_INFO(fmt::format(">> {}", boost::algorithm::to_upper_copy(worldType)));
+	LOG_INFO(fmt::format(">> {}", asUpperCaseString(worldType)));
 
 	LOG_INFO(">> Loading map");
 	if (!g_game.loadMainMap(std::string{getString(ConfigManager::MAP_NAME)})) {
@@ -275,9 +336,9 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 
 	RentPeriod_t rentPeriod;
 	auto strRentPeriod =
-		boost::algorithm::to_lower_copy<std::string>(std::string{getString(ConfigManager::HOUSE_RENT_PERIOD)});
+		asLowerCaseString(std::string{getString(ConfigManager::HOUSE_RENT_PERIOD)});
 
-	if (strRentPeriod == "yearly") {
+	if (strRentPeriod == "yearly" || strRentPeriod == "annual") {
 		rentPeriod = RENTPERIOD_YEARLY;
 	} else if (strRentPeriod == "weekly") {
 		rentPeriod = RENTPERIOD_WEEKLY;
@@ -406,35 +467,17 @@ void startServer()
 void printServerVersion()
 {
 #if defined(GIT_RETRIEVED_STATE) && GIT_RETRIEVED_STATE
-	LOG_INFO(fmt::format("{} - Version {}", STATUS_SERVER_NAME, GIT_DESCRIBE));
-	LOG_INFO(fmt::format("Git SHA1 {} dated {}", GIT_SHORT_SHA1, GIT_COMMIT_DATE_ISO8601));
+	LOG_INFO(fmt::format(fg(fmt::color::cyan), "=== {} | {} ===", STATUS_SERVER_NAME, GIT_DESCRIBE));
+	LOG_INFO(fmt::format("Build: {} | Git {} ({})", getCompilerName(), GIT_SHORT_SHA1, GIT_COMMIT_DATE_ISO8601));
 #if GIT_IS_DIRTY
 	LOG_INFO("*** DIRTY - NOT OFFICIAL RELEASE ***");
 #endif
 #else
-	LOG_INFO(fmt::format("{} - Version {}", STATUS_SERVER_NAME, STATUS_SERVER_VERSION));
+	LOG_INFO(fmt::format(fg(fmt::color::cyan), "=== {} | Version {} ===", STATUS_SERVER_NAME, STATUS_SERVER_VERSION));
+	LOG_INFO(fmt::format("Build: {}", getCompilerName()));
 #endif
-	LOG_INFO("");
-	LOG_INFO(fmt::format("Compiled with {}", BOOST_COMPILER));
-	LOG_INFO(fmt::format("Compiled on {} {} for platform ", __DATE__, __TIME__));
-#if defined(__amd64__) || defined(_M_X64)
-	LOG_INFO("x64");
-#elif defined(__i386__) || defined(_M_IX86) || defined(_X86_)
-	LOG_INFO("x86");
-#elif defined(__arm__)
-	LOG_INFO("ARM");
-#else
-	LOG_INFO("unknown");
-#endif
-#if defined(LUAJIT_VERSION)
-	LOG_INFO(fmt::format("Linked with {} for Lua support", LUAJIT_VERSION));
-#else
-	LOG_INFO(fmt::format("Linked with {} for Lua support", LUA_RELEASE));
-#endif
-	LOG_INFO("");
-	LOG_INFO(fmt::format("A server developed by {}", STATUS_SERVER_DEVELOPERS));
-	LOG_INFO(fmt::format(fg(fmt::color::red), "Downgraded and further developed by Nekiro / MillhioreBT"));
-	LOG_INFO("Visit our forum for updates, support, and resources: http://otland.net/.");
+	LOG_INFO(fmt::format("Runtime: {} {} | {} | {}", __DATE__, __TIME__, getPlatformName(), getLuaRuntimeName()));
+	LOG_INFO(fmt::format("Credits: {} | Nekiro / MillhioreBT", STATUS_SERVER_DEVELOPERS));
 	LOG_INFO(fmt::format(fg(fmt::color::yellow), "Repository: https://github.com/Mateuzkl/forgottenserver-downgrade"));
 	LOG_INFO("");
 }

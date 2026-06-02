@@ -133,6 +133,7 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/account.h
 	${CMAKE_CURRENT_LIST_DIR}/actions.h
 	${CMAKE_CURRENT_LIST_DIR}/admin.h
+	${CMAKE_CURRENT_LIST_DIR}/astraclient.h
 	${CMAKE_CURRENT_LIST_DIR}/ban.h
 	${CMAKE_CURRENT_LIST_DIR}/baseevents.h
 	${CMAKE_CURRENT_LIST_DIR}/bed.h
@@ -238,10 +239,10 @@ set(tfs_MAIN ${CMAKE_CURRENT_LIST_DIR}/main.cpp PARENT_SCOPE)
 
 add_library(tfslib STATIC ${tfs_SRC})
 target_include_directories(tfslib PRIVATE ${LUA_INCLUDE_DIR})
-target_link_libraries(tfslib PRIVATE
-	Boost::iostreams
-	Boost::system
+target_link_libraries(tfslib PUBLIC
+	asio::asio
 	fmt::fmt
+	mio::mio
 	spdlog::spdlog
 	pugixml::pugixml
 	absl::flat_hash_map
@@ -251,6 +252,7 @@ target_link_libraries(tfslib PRIVATE
 	${LUA_LIBRARIES}
 	${MYSQL_CLIENT_LIBS}
 	)
+target_compile_definitions(tfslib PUBLIC ASIO_STANDALONE)
 set_target_properties(tfslib PROPERTIES UNITY_BUILD ${ENABLE_UNITY_BUILD})
 
 add_custom_target(format COMMAND /usr/bin/clang-format -style=file -i ${tfs_HDR} ${tfs_SRC} ${tfs_MAIN})

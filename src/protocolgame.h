@@ -171,6 +171,7 @@ private:
 	void sendCancelTarget();
 	void sendCreatureOutfit(const Creature* creature, const Outfit_t& outfit);
 	void sendStats();
+	void sendBasicData();
 	void sendTextMessage(const TextMessage& message);
 	void sendReLoginWindow();
 
@@ -204,7 +205,7 @@ private:
 	void sendWorldLight(LightInfo lightInfo);
 
 	void sendCreatureSquare(const Creature* creature, SquareColor_t color);
-	void sendSpellCooldown(uint8_t spellId, uint32_t time);
+	void sendSpellCooldown(uint16_t spellId, uint32_t time);
 	void sendSpellGroupCooldown(SpellGroup_t groupId, uint32_t time);
 	void sendUseItemCooldown(uint32_t time);
 
@@ -330,6 +331,7 @@ private:
 	bool isOTCv8 = false;
 	bool isMehah = false;
 	bool isOTC = false;
+	bool isAstraClient = false;
 	OperatingSystem_t clientOperatingSystem = CLIENTOS_NONE;
 	bool useItemTierByte = false;
 	bool debugAssertSent = false;

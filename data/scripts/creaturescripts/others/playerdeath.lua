@@ -80,9 +80,15 @@ function playerDeath.onDeath(player, corpse, killer, mostDamageKiller, lastHitUn
     local playerName = player:getName()
     local playerGuild = player:getGuild()
     local playerGuildId = playerGuild and playerGuild:getId() or 0
-    local killerGuild = byPlayer and killer:getGuild() or nil
+    
+    local realKiller = killer
+    if byPlayer and killer and not killer:isPlayer() then
+        realKiller = killer:getMaster()
+    end
+
+    local killerGuild = byPlayer and realKiller and realKiller:getGuild() or nil
     local killerGuildId = killerGuild and killerGuild:getId() or 0
-    local killerId = byPlayer and killer:getId() or 0
+    local killerId = byPlayer and realKiller and realKiller:getId() or 0
 
     db.asyncQuery(string.format(
         playerDeathQuery,
