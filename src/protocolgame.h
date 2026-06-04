@@ -274,6 +274,12 @@ private:
 
 	// otclient
 	void parseExtendedOpcode(NetworkMessage& msg);
+	bool consumeHelperCastOnFoot()
+	{
+		const bool value = helperCastOnFootNextSay;
+		helperCastOnFootNextSay = false;
+		return value;
+	}
 
 	// OTCv8
 	void sendFeatures();
@@ -337,6 +343,7 @@ private:
 	bool isMehah = false;
 	bool isOTC = false;
 	bool isAstraClient = false;
+	bool helperCastOnFootNextSay = false;
 	OperatingSystem_t clientOperatingSystem = CLIENTOS_NONE;
 	bool useItemTierByte = false;
 	bool debugAssertSent = false;
