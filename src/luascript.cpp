@@ -1579,6 +1579,9 @@ void LuaScriptInterface::registerFunctions()
 	registerGlobalVariable("PREY_SYSTEM_ENABLED", ConfigManager::PREY_SYSTEM_ENABLED);
 	registerGlobalVariable("WEAPON_PROFICIENCY_SYSTEM_ENABLED", ConfigManager::WEAPON_PROFICIENCY_SYSTEM_ENABLED);
 	registerGlobalVariable("AUGMENT_SYSTEM_ENABLED", ConfigManager::AUGMENT_SYSTEM_ENABLED);
+	registerGlobalVariable("COLORIZED_LOOT_VALUE", ConfigManager::COLORIZED_LOOT_VALUE);
+	registerGlobalVariable("ITEM_TIER_DISPLAY", ConfigManager::ITEM_TIER_DISPLAY);
+	registerGlobalVariable("ITEM_UPGRADE_CLASSIFICATION", ConfigManager::ITEM_UPGRADE_CLASSIFICATION);
 
 	registerGlobalVariable("ACCOUNT_MANAGER_NONE", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NONE));
 	registerGlobalVariable("ACCOUNT_MANAGER_NEW", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NEW));
@@ -2635,6 +2638,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(RELOAD_TYPE_GLOBALEVENTS);
 	registerEnum(RELOAD_TYPE_ITEMS);
 	registerEnum(RELOAD_TYPE_MONSTERS);
+	registerEnum(RELOAD_TYPE_OUTFITS);
 	registerEnum(RELOAD_TYPE_MOUNTS);
 	registerEnum(RELOAD_TYPE_MOVEMENTS);
 	registerEnum(RELOAD_TYPE_NPCS);
@@ -2773,6 +2777,9 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::AUGMENT_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::MONSTER_LEVEL_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::LOOT_GROUPING_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::COLORIZED_LOOT_VALUE);
+	registerEnumIn("configKeys", ConfigManager::ITEM_TIER_DISPLAY);
+	registerEnumIn("configKeys", ConfigManager::ITEM_UPGRADE_CLASSIFICATION);
 	registerEnumIn("configKeys", ConfigManager::ALLOW_MOUNT_IN_PZ);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_DAMAGE_IN_K);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_EXP_IN_K);

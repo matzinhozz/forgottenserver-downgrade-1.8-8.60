@@ -3269,7 +3269,7 @@ void ProtocolGame::AddPlayerSkills(NetworkMessage& msg)
 		}
 
 		for (uint8_t i = SPECIALSKILL_FIRST; i <= SPECIALSKILL_LAST; ++i) {
-			msg.add<uint16_t>(static_cast<uint16_t>(std::min<int32_t>(10000, player->varSpecialSkills[i])));
+			msg.add<uint16_t>(std::min<uint16_t>(player->getSpecialSkill(i), 10000));
 			msg.add<uint16_t>(0);
 		}
 	}
@@ -3500,7 +3500,7 @@ void ProtocolGame::sendFeatures()
 	features[GameFeature::AdditionalSkills] = true;
 	features[GameFeature::ExtendedClientPing] = true;
 	features[GameFeature::CreatureIcons] = true;
-	if (useItemTierByte) {
+	if (useItemTierByte && getBoolean(ConfigManager::ITEM_TIER_DISPLAY)) {
 		features[GameFeature::ItemTierByte] = true;
 	}
 
