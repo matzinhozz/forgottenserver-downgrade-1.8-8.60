@@ -31,19 +31,21 @@ RUN git clone --depth 1 https://github.com/microsoft/vcpkg.git \
 WORKDIR /usr/src/forgottenserver-downgrade
 
 COPY vcpkg.json ./
-RUN vcpkg install --triplet ${VCPKG_DEFAULT_TRIPLET}
-
-COPY cmake ./cmake
-COPY src ./src
-COPY CMakeLists.txt ./
-
-RUN cmake -S . -B build -G Ninja \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-      -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake \
-      -DVCPKG_TARGET_TRIPLET=${VCPKG_DEFAULT_TRIPLET} \
-      -DENABLE_NATIVE_OPTIMIZATIONS=OFF \
-      -DSKIP_GIT=ON \
-    && cmake --build build --config RelWithDebInfo --target tfs --parallel
+# Pre-seed Lua's distfile to avoid transient vcpkg download timeouts in CI.
+RUN set -eux; \
+    mkdir -p /opt/vcpkg/downloads; \
+    curl -fL --retry 10 --retry-all-errors --retry-delay 5 --connect-timeout 30 --max-time 600 \
+        -o /opt/vcpkg/downloads/lua-5.5.0.tar.gz \
+        https://www.lua.org/ftp/lua-5.5.0.tar.gz; \
+    /opt/vcpkg/vcpkg install --triplet x64-linux
+# Copiar el resto del código
+COPY cmake /usr/src/forgottenserver-downgrade/cmake/
+COPY src /usr/src/forgottenserver-downgrade/src/
+COPY CMakeLists.txt /usr/src/forgottenserver-downgrade/
+WORKDIR /usr/src/forgottenserver-downgrade
+# Usar el flujo clásico de CMake con vcpkg toolchain
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake \
+    && cmake --build build --config RelWithDebInfo
 
 FROM ubuntu:22.04
 
