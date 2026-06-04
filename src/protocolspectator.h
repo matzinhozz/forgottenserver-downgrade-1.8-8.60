@@ -847,6 +847,12 @@ class ProtocolSpectator {
                 spy->sendCloseContainer(cid);
         }
 
+        void sendLootContainers() {
+            auto o = owner.lock();
+            if (o)
+                o->sendLootContainers();
+        }
+
         void sendCreatureEmblem(const Creature* creature) {
             auto o = owner.lock();
             if (o)
@@ -969,6 +975,7 @@ class ProtocolSpectator {
         bool isOTCv8 = false;
         bool isMehah = false;
 	    bool isOTC = false;
+        bool isAstraClient = false;
         std::string cast_password = "";
         std::string cast_description = "";
 

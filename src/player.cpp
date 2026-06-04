@@ -2823,7 +2823,7 @@ void Player::removeExperience(uint64_t exp, bool sendText /* = false*/)
 
 		SpectatorVec spectators;
 		g_game.map.getSpectators(spectators, position, false, true);
-		spectators = InstanceUtils::filterByInstance(spectators, getInstanceID());
+		InstanceUtils::filterByInstanceInPlace(spectators, getInstanceID());
 		g_game.addAnimatedText(spectators, std::to_string(lostExp), position, TEXTCOLOR_RED);
 		spectators.erase(this);
 		if (!spectators.empty()) {
@@ -6374,6 +6374,30 @@ void Player::lootCorpse(Container* container)
 	if (totalDepositValue > 0) {
 		setBankBalance(bankBalance + totalDepositValue);
 		sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, fmt::format("AutoLoot: Deposited {:d} gold to your bank account.", totalDepositValue));
+	}
+}
+
+void Player::sendLootContainers() const
+{
+	if (client) {
+		client->sendLootContainers();
+	}
+}
+
+bool Player::isQuickLootListedItem(const Item* item) const
+{
+	return item && quickLootListItemIds.contains(item->getID());
+}
+
+void Player::setQuickLootBlackWhitelist(QuickLootFilter_t filter, const std::vector<uint16_t>& itemIds)
+{
+	quickLootFilter = filter == QUICKLOOTFILTER_ACCEPTEDLOOT ? QUICKLOOTFILTER_ACCEPTEDLOOT : QUICKLOOTFILTER_SKIPPEDLOOT;
+	quickLootListItemIds.clear();
+	quickLootListItemIds.reserve(itemIds.size());
+	for (uint16_t itemId : itemIds) {
+		if (itemId != 0) {
+			quickLootListItemIds.insert(itemId);
+		}
 	}
 }
 

@@ -23,7 +23,7 @@ local MARKET_DETAIL_NAMES = {
 }
 
 local function supportsCustomNetwork(player)
-	return player and player.isUsingOtClient and player:isUsingOtClient()
+	return player and player.isUsingAstraClient and player:isUsingAstraClient()
 end
 
 local function colorizedLootEnabled()
@@ -227,9 +227,16 @@ local function getDefaultBuyPrice(itemId)
 	return 0
 end
 
-local function sendItemValues(playerId)
+local function sendItemValues(playerId, attempt)
+	attempt = tonumber(attempt) or 1
 	local player = Player(playerId)
-	if not supportsCustomNetwork(player) or not Game.getItemPrices then
+	if not player or not Game.getItemPrices then
+		return
+	end
+	if not supportsCustomNetwork(player) then
+		if attempt < 6 then
+			addEvent(sendItemValues, 1000, playerId, attempt + 1)
+		end
 		return
 	end
 	if not colorizedLootEnabled() then
@@ -303,7 +310,7 @@ end
 local loginEvent = CreatureEvent("ItemValuesLogin")
 
 function loginEvent.onLogin(player)
-	addEvent(sendItemValues, 1000, player:getId())
+	addEvent(sendItemValues, 1000, player:getId(), 1)
 	return true
 end
 
@@ -312,7 +319,16 @@ loginEvent:register()
 local itemDetailsHandler = PacketHandler(OPCODE_ITEM_DETAILS)
 
 function itemDetailsHandler.onReceive(player, msg)
-	return sendItemDetails(player, msg:getU16())
+	if not NetworkGuard.cooldown(player, "item-details", 300) then
+		return false
+	end
+
+	local itemId = NetworkGuard.readU16(msg)
+	if not itemId then
+		return false
+	end
+
+	return sendItemDetails(player, itemId)
 end
 
 itemDetailsHandler:register()
