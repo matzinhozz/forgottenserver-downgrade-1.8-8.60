@@ -9,25 +9,25 @@ local config = {
 
     quest_range = {
         fromPos = Position(934, 980, 9),
-        toPos   = Position(954, 989, 9),
-        exit    = Position(953, 982, 9)
+        toPos   = Position(951, 991, 9),
+        exit    = Position(950, 987, 9)
     }
 }
 
 local player_positions = {
-    [1] = {fromPos = Position(942, 998, 9), toPos = Position(939, 986, 9)},
-    [2] = {fromPos = Position(941, 998, 9), toPos = Position(938, 986, 9)},
-    [3] = {fromPos = Position(940, 998, 9), toPos = Position(937, 986, 9)},
-    [4] = {fromPos = Position(939, 998, 9), toPos = Position(936, 986, 9)},
+    [1] = {fromPos = Position(942, 998, 9), toPos = Position(939, 987, 9)},
+    [2] = {fromPos = Position(941, 998, 9), toPos = Position(938, 987, 9)},
+    [3] = {fromPos = Position(940, 998, 9), toPos = Position(937, 987, 9)},
+    [4] = {fromPos = Position(939, 998, 9), toPos = Position(936, 987, 9)},
 }
 
 local monsters = {
     {pos = Position(936, 984, 9), name = "Demon"},
     {pos = Position(938, 984, 9), name = "Demon"},
-    {pos = Position(937, 988, 9), name = "Demon"},
-    {pos = Position(939, 988, 9), name = "Demon"},
-    {pos = Position(940, 986, 9), name = "Orshabaal"},
-    {pos = Position(941, 986, 9), name = "Orshabaal"},
+    {pos = Position(937, 990, 9), name = "Demon"},
+    {pos = Position(939, 990, 9), name = "Demon"},
+    {pos = Position(940, 987, 9), name = "Orshabaal"},
+    {pos = Position(941, 987, 9), name = "Orshabaal"},
 }
 
 local playersInRoom = {}

@@ -1094,9 +1094,6 @@
 	<spawn centerx="984" centery="962" centerz="8" radius="1">
 		<monster name="Rat" x="-1" y="0" z="8" spawntime="60" />
 	</spawn>
-	<spawn centerx="959" centery="965" centerz="8" radius="1">
-		<npc name="Dark Rodo" x="-1" y="0" z="8" spawntime="60" direction="2" />
-	</spawn>
 	<spawn centerx="997" centery="967" centerz="8" radius="1">
 		<monster name="Rat" x="0" y="0" z="8" spawntime="60" />
 	</spawn>
