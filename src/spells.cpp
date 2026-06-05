@@ -49,7 +49,7 @@ Spells::Spells() { scriptInterface.initState(); }
 
 Spells::~Spells() { clear(false); }
 
-TalkActionResult Spells::playerSaySpell(Player* player, std::string& words)
+TalkActionResult Spells::playerSaySpell(Player* player, std::string& words, bool forceCastOnFoot /* = false */)
 {
 	std::string str_words = words;
 
@@ -112,7 +112,7 @@ TalkActionResult Spells::playerSaySpell(Player* player, std::string& words)
 		}
 	}
 
-	if (instantSpell->playerCastInstant(player, param)) {
+	if (instantSpell->playerCastInstant(player, param, forceCastOnFoot)) {
 		words = instantSpell->getWords();
 
 		if (instantSpell->getHasParam() && !param.empty()) {
@@ -847,7 +847,7 @@ uint32_t Spell::getManaCost(const Player* player) const
 
 std::string_view InstantSpell::getScriptEventName() const { return "onCastSpell"; }
 
-bool InstantSpell::playerCastInstant(Player* player, std::string& param)
+bool InstantSpell::playerCastInstant(Player* player, std::string& param, bool forceCastOnFoot /* = false */)
 {
 	if (!playerSpellCheck(player)) {
 		return false;
@@ -904,6 +904,8 @@ bool InstantSpell::playerCastInstant(Player* player, std::string& param)
 			if (playerTarget) {
 				param = playerTarget->getName();
 			}
+		} else if (forceCastOnFoot && casterTargetOrDirection) {
+			useDirection = true;
 		} else {
 			targetHolder = player->getAttackedCreatureShared();
 			target = targetHolder.get();

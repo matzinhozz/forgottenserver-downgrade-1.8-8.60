@@ -4517,7 +4517,7 @@ void Game::playerChangeOutfit(uint32_t playerId, Outfit_t outfit, bool randomize
 }
 
 void Game::playerSay(uint32_t playerId, uint16_t channelId, SpeakClasses type, std::string_view receiver,
-                     std::string_view text)
+                     std::string_view text, bool forceCastOnFoot /* = false */)
 {
 	auto playerRef = getPlayerByID(playerId);
 	Player* player = playerRef.get();
@@ -4527,7 +4527,7 @@ void Game::playerSay(uint32_t playerId, uint16_t channelId, SpeakClasses type, s
 
 	player->resetIdleTime();
 
-	if (playerSaySpell(player, type, text)) {
+	if (playerSaySpell(player, type, text, forceCastOnFoot)) {
 		return;
 	}
 
@@ -4613,7 +4613,7 @@ void Game::playerSay(uint32_t playerId, uint16_t channelId, SpeakClasses type, s
 	}
 }
 
-bool Game::playerSaySpell(Player* player, SpeakClasses type, std::string_view text)
+bool Game::playerSaySpell(Player* player, SpeakClasses type, std::string_view text, bool forceCastOnFoot /* = false */)
 {
 	TalkActionResult result = g_talkActions->playerSaySpell(player, type, text);
 	if (result == TalkActionResult::BREAK) {
@@ -4622,7 +4622,7 @@ bool Game::playerSaySpell(Player* player, SpeakClasses type, std::string_view te
 
 	std::string words{text};
 
-	result = g_spells->playerSaySpell(player, words);
+	result = g_spells->playerSaySpell(player, words, forceCastOnFoot);
 	if (result == TalkActionResult::BREAK) {
 		if (!getBoolean(ConfigManager::EMOTE_SPELLS)) {
 			return internalCreatureSay(player, TALKTYPE_SAY, words, false);
