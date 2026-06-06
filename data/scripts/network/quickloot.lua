@@ -254,7 +254,7 @@ local function getItemCategory(item)
 		end
 	end
 
-	local itemTypeName = itemType:getType and itemType:getType()
+	local itemTypeName = itemType.getType and itemType:getType()
 	if itemTypeName == ITEM_TYPE_RUNE then
 		return ObjectCategory.OBJECTCATEGORY_RUNES
 	elseif itemTypeName == ITEM_TYPE_CREATUREPRODUCT then
@@ -362,6 +362,29 @@ local function sendLootStats(player, itemId, count)
 	msg:sendToPlayer()
 end
 
+local function findDestinationContainerCached(player, category, cache)
+	local containerId = getManagedContainer(player, category, true)
+
+	if containerId and containerId ~= 0 then
+		if cache[containerId] == nil then
+			cache[containerId] = findContainerInInventory(player, containerId)
+		end
+		if cache[containerId] then
+			return cache[containerId]
+		end
+	end
+
+	local state = getPlayerState(player)
+	if state.fallback then
+		if cache._fallback == nil then
+			cache._fallback = findFallbackContainer(player)
+		end
+		return cache._fallback
+	end
+
+	return nil
+end
+
 local function lootCorpse(player, corpse)
 	if not corpse then
 		return
@@ -375,6 +398,7 @@ local function lootCorpse(player, corpse)
 		return
 	end
 
+	local containerCache = {}
 	local totalLooted = 0
 	local capacityIssue = false
 	local containerFullCategory = nil
@@ -388,7 +412,7 @@ local function lootCorpse(player, corpse)
 		end
 
 		local category = getItemCategory(item)
-		local dest = findDestinationContainer(player, category)
+		local dest = findDestinationContainerCached(player, category, containerCache)
 
 		if not dest then
 			if not containerFullCategory then
@@ -574,7 +598,7 @@ function quickLootHandler.onReceive(player, msg)
 	local stackPos = msg:getByte()
 
 	if pos.x == 0xFFFF then
-		local container = player:getContainerById(itemId)
+		local container = player:getContainerById(pos.y)
 		if container then
 			local item = container:getItem(stackPos - 1)
 			if item and shouldLootItem(player, item) then
@@ -712,7 +736,7 @@ function blackWhitelistHandler.onReceive(player, msg)
 end
 blackWhitelistHandler:register()
 
--- Login handler: send initial loot container state
+-- Login handler: restore state from KV and send loot container state
 local loginEvent = CreatureEvent("QuickLootLogin")
 function loginEvent.onLogin(player)
 	local pid = player:getId()
@@ -722,16 +746,49 @@ function loginEvent.onLogin(player)
 		itemIds = {},
 		fallback = true,
 	}
+
+	local store = player:kv():scoped("quickloot")
+	local savedContainers = store:get("managedContainers")
+	if savedContainers then
+		managedContainers[pid] = savedContainers
+	end
+
+	local state = quickLootState[pid]
+	local savedFilter = store:get("filter")
+	if savedFilter ~= nil then
+		state.filter = savedFilter
+	end
+
+	local savedItemIds = store:get("itemIds")
+	if savedItemIds then
+		state.itemIds = savedItemIds
+	end
+
+	local savedFallback = store:get("fallback")
+	if savedFallback ~= nil then
+		state.fallback = savedFallback
+	end
+
 	player:registerEvent("QuickLootLogout")
 	sendLootContainers(player)
 	return true
 end
 loginEvent:register()
 
--- Logout handler: clean up
+-- Logout handler: persist state to KV and clean up
 local logoutEvent = CreatureEvent("QuickLootLogout")
 function logoutEvent.onLogout(player)
 	local pid = player:getId()
+	local state = quickLootState[pid]
+
+	if state then
+		local store = player:kv():scoped("quickloot")
+		store:set("managedContainers", managedContainers[pid])
+		store:set("filter", state.filter)
+		store:set("itemIds", state.itemIds)
+		store:set("fallback", state.fallback)
+	end
+
 	managedContainers[pid] = nil
 	quickLootState[pid] = nil
 	lastNotification[pid] = nil

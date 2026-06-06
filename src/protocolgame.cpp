@@ -977,21 +977,21 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 		case 0x8E: /* join aggression */
 			break;
 		case 0x8F:
-			if (ConfigManager::getBoolean(ConfigManager::QUICK_LOOT_ENABLED)) {
+			if (shouldSendQuickLootFlags()) {
 				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
 					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
 				});
 			}
 			break;
 		case 0x90:
-			if (ConfigManager::getBoolean(ConfigManager::QUICK_LOOT_ENABLED)) {
+			if (shouldSendQuickLootFlags()) {
 				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
 					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
 				});
 			}
 			break;
 		case 0x91:
-			if (ConfigManager::getBoolean(ConfigManager::QUICK_LOOT_ENABLED)) {
+			if (shouldSendQuickLootFlags()) {
 				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
 					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
 				});
