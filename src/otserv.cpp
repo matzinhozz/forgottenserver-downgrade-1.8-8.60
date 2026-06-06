@@ -34,6 +34,7 @@
 
 DatabaseTasks g_databaseTasks;
 Dispatcher g_dispatcher;
+extern LuaEnvironment g_luaEnvironment;
 Scheduler g_scheduler;
 Stats g_stats;
 

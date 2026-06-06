@@ -348,16 +348,8 @@ void Game::start(const std::shared_ptr<ServiceManager>& manager)
 	g_scheduler.addEvent(createSchedulerTask(1000, [this]() { checkSereneStatus(); }));
 
 	if (ConfigManager::getBoolean(ConfigManager::LUA_GC_STEP_ENABLED)) {
-		auto gcStepTask = [this]() {
-			if (g_luaEnvironment.getLuaState()) {
-				LuaGcMonitor::step(g_luaEnvironment.getLuaState());
-				LuaGcMonitor::logIfNeeded(g_luaEnvironment.getLuaState());
-			}
-			g_scheduler.addEvent(createSchedulerTask(
-			    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), gcStepTask));
-		};
 		g_scheduler.addEvent(createSchedulerTask(
-		    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), gcStepTask));
+		    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), [this]() { checkLuaGc(); }));
 	}
 }
 
@@ -6598,6 +6590,17 @@ void Game::checkLight()
 		for (const auto& player : getPlayers()) {
 			player->sendWorldLight(lightInfo);
 		}
+	}
+}
+
+void Game::checkLuaGc()
+{
+	g_scheduler.addEvent(createSchedulerTask(
+	    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), [this]() { checkLuaGc(); }));
+
+	if (g_luaEnvironment.getLuaState()) {
+		LuaGcMonitor::step(g_luaEnvironment.getLuaState());
+		LuaGcMonitor::logIfNeeded(g_luaEnvironment.getLuaState());
 	}
 }
 
