@@ -1,17 +1,34 @@
 // Copyright 2023 The Forgotten Server Authors. All rights reserved.
 // Use of this source code is governed by the GPL-2.0 License that can be found in the LICENSE file.
-// Modern C++20 Dispatcher with practical improvements
 
 #include "otpch.h"
 
 #include "tasks.h"
 
-#include "game.h"
-#include "logger.h"
 #include "configmanager.h"
+#include "logger.h"
 #include "tools.h"
 
-extern Game g_game;
+Task::Task(TaskFunc&& f, const std::string& description, const std::string& extraDescription) :
+	description(description), extraDescription(extraDescription), func(std::move(f))
+{
+}
+
+Task::Task(uint32_t ms, TaskFunc&& f, const std::string& description, const std::string& extraDescription) :
+	description(description),
+	extraDescription(extraDescription),
+	expiration(std::chrono::steady_clock::now() + std::chrono::milliseconds(ms)),
+	func(std::move(f))
+{
+}
+
+bool Task::hasExpired() const
+{
+	if (expiration == SYSTEM_TIME_ZERO) {
+		return false;
+	}
+	return expiration < std::chrono::steady_clock::now();
+}
 
 std::unique_ptr<Task> createTaskWithStats(TaskFunc&& f, const std::string& description, const std::string& extraDescription)
 {
@@ -29,146 +46,78 @@ std::unique_ptr<Task> createTaskWithStats(uint32_t expiration, TaskFunc&& f, con
 	return std::make_unique<Task>(expiration, std::move(f), "", "");
 }
 
-void Dispatcher::threadMain()
+Dispatcher::Dispatcher()
 {
-    // Capture thread ID for isDispatcherThread() checks
-    threadId = std::this_thread::get_id();
-    UPDATE_OTSYS_TIME();
+	static int id = 0;
+	dispatcherId = id++;
+}
 
-    std::vector<std::unique_ptr<Task>> tmpTaskList;
-    tmpTaskList.reserve(128);
+void Dispatcher::start() noexcept
+{
+	state.store(THREAD_STATE_RUNNING, std::memory_order_relaxed);
+	g_reactor.start();
+}
 
-#ifdef STATS_ENABLED
-    std::chrono::steady_clock::time_point waitStart;
-#endif
+void Dispatcher::stop() noexcept
+{
+	state.store(THREAD_STATE_CLOSING, std::memory_order_relaxed);
+}
 
-    while (getState() != THREAD_STATE_TERMINATED) {
-#ifdef STATS_ENABLED
-        const bool statsEnabled = g_stats.isEnabled();
-        if (statsEnabled) {
-            waitStart = std::chrono::steady_clock::now();
-        }
-        taskSignal.acquire();
-        if (statsEnabled) {
-            const auto waitElapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                std::chrono::steady_clock::now() - waitStart
-            ).count();
-            g_stats.addDispatcherWaitTime(static_cast<std::size_t>(dispatcherId),
-                                          waitElapsed > 0 ? static_cast<uint64_t>(waitElapsed) : 0);
-        }
-#else
-        taskSignal.acquire();
-#endif
-
-        if (getState() == THREAD_STATE_TERMINATED) {
-            break;
-        }
-
-        // Drain all pending signals to coalesce multiple wakeups into one pass
-        while (taskSignal.try_acquire()) {
-            // consume extra signals
-        }
-
-        UPDATE_OTSYS_TIME();
-
-        // Critical section: move tasks to the temporary list
-        {
-            std::scoped_lock lockGuard(taskLock);
-            if (!taskList.empty()) {
-                tmpTaskList.swap(taskList);
-            }
-        }
-
-        // Process all available tasks
-        for (auto& task : tmpTaskList) {
-            UPDATE_OTSYS_TIME();
-#if defined(STATS_ENABLED) || defined(SLOW_TASK_DETECTION)
-            auto taskStart = std::chrono::steady_clock::now();
-#endif
-#ifdef STATS_ENABLED
-            bool executed = false;
-#endif
-            if (!task->hasExpired()) {
-                ++dispatcherCycle;
-                ++totalTasksProcessed;
-                (*task)();
-#ifdef STATS_ENABLED
-                executed = true;
-#endif
-
-#ifdef SLOW_TASK_DETECTION
-                // Slow task detection (disabled in production with -DENABLE_SLOW_TASK_DETECTION=OFF)
-                const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now() - taskStart
-                ).count();
-                const uint64_t elapsedNs = elapsed > 0 ? static_cast<uint64_t>(elapsed) : 0;
-
-                if (elapsedNs > SLOW_TASK_THRESHOLD_NS && !task->skipSlowDetection) {
-                    ++slowTaskCount;
-                    if (getBoolean(ConfigManager::SLOW_TASK_WARNING)) {
-                        auto elapsedMs = elapsedNs / 1'000'000;
-                        // Log slow task warning (optional, can be disabled)
-                        if (!task->description.empty()) {
-                            LOG_WARN(">> Slow task detected: {}ms [{}] {}", elapsedMs, task->description, task->extraDescription);
-                        } else {
-                            LOG_WARN(">> Slow task detected: {}ms [unknown]", elapsedMs);
-                        }
-                    }
-                }
-#endif
-            }
-
-#ifdef STATS_ENABLED
-            if (executed && g_stats.isEnabled() && task->trackInStats) {
-                const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                    std::chrono::steady_clock::now() - taskStart
-                ).count();
-                const uint64_t executionTime = elapsed > 0 ? static_cast<uint64_t>(elapsed) : 0;
-                g_stats.addDispatcherStat(static_cast<std::size_t>(dispatcherId),
-                                          std::make_unique<Stat>(executionTime, task->description, task->extraDescription));
-            }
-#endif
-            task.reset();
-        }
-        tmpTaskList.clear();
-    }
-
-    tmpTaskList.clear();
-
-    {
-        std::scoped_lock lockGuard(taskLock);
-        taskList.clear();
-    }
+void Dispatcher::shutdown() noexcept
+{
+	state.store(THREAD_STATE_TERMINATED, std::memory_order_relaxed);
+	g_reactor.shutdown();
 }
 
 void Dispatcher::addTask(std::unique_ptr<Task> task)
 {
-	bool do_signal = false;
-
-	{
-		std::scoped_lock lockGuard(taskLock);
-
-		if (getState() == THREAD_STATE_RUNNING) {
-			do_signal = taskList.empty();
-			taskList.push_back(std::move(task));
-		}
+	if (!task || state.load(std::memory_order_relaxed) == THREAD_STATE_TERMINATED) {
+		return;
 	}
 
-	if (do_signal) {
-		taskSignal.release();
-	}
+	g_reactor.send([this, task = std::move(task)]() mutable { executeTask(std::move(task)); });
 }
 
-void Dispatcher::shutdown()
+void Dispatcher::executeTask(std::unique_ptr<Task> task)
 {
-	auto task = createTaskWithStats([this]() { setState(THREAD_STATE_TERMINATED); }, "Dispatcher::shutdown", "");
-
-    task->trackInStats = false; // sentinel must always be freed by threadMain
-
-	{
-		std::scoped_lock lockGuard(taskLock);
-		taskList.push_back(std::move(task));
+	if (!task || task->hasExpired()) {
+		return;
 	}
 
-	taskSignal.release();
+	UPDATE_OTSYS_TIME();
+
+#if defined(STATS_ENABLED) || defined(SLOW_TASK_DETECTION)
+	const auto taskStart = std::chrono::steady_clock::now();
+#endif
+
+	dispatcherCycle.fetch_add(1, std::memory_order_relaxed);
+	totalTasksProcessed.fetch_add(1, std::memory_order_relaxed);
+	(*task)();
+
+#ifdef SLOW_TASK_DETECTION
+	const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+	    std::chrono::steady_clock::now() - taskStart).count();
+	const uint64_t elapsedNs = elapsed > 0 ? static_cast<uint64_t>(elapsed) : 0;
+
+	if (elapsedNs > SLOW_TASK_THRESHOLD_NS && !task->skipSlowDetection) {
+		slowTaskCount.fetch_add(1, std::memory_order_relaxed);
+		if (getBoolean(ConfigManager::SLOW_TASK_WARNING)) {
+			const auto elapsedMs = elapsedNs / 1'000'000;
+			if (!task->description.empty()) {
+				LOG_WARN(">> Slow task detected: {}ms [{}] {}", elapsedMs, task->description, task->extraDescription);
+			} else {
+				LOG_WARN(">> Slow task detected: {}ms [unknown]", elapsedMs);
+			}
+		}
+	}
+#endif
+
+#ifdef STATS_ENABLED
+	if (g_stats.isEnabled() && g_stats.isRunning() && task->trackInStats) {
+		const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+		    std::chrono::steady_clock::now() - taskStart).count();
+		const uint64_t executionTime = elapsed > 0 ? static_cast<uint64_t>(elapsed) : 0;
+		g_stats.addDispatcherStat(0, std::make_unique<Stat>(executionTime, task->description, task->extraDescription));
+	}
+#endif
 }

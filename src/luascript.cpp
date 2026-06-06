@@ -1582,6 +1582,7 @@ void LuaScriptInterface::registerFunctions()
 	registerGlobalVariable("COLORIZED_LOOT_VALUE", ConfigManager::COLORIZED_LOOT_VALUE);
 	registerGlobalVariable("ITEM_TIER_DISPLAY", ConfigManager::ITEM_TIER_DISPLAY);
 	registerGlobalVariable("ITEM_UPGRADE_CLASSIFICATION", ConfigManager::ITEM_UPGRADE_CLASSIFICATION);
+	registerGlobalVariable("MIN_TASK_INTERVAL", MIN_TASK_INTERVAL);
 
 	registerGlobalVariable("ACCOUNT_MANAGER_NONE", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NONE));
 	registerGlobalVariable("ACCOUNT_MANAGER_NEW", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NEW));
@@ -3642,7 +3643,7 @@ int LuaScriptInterface::luaAddEvent(lua_State* L)
 		eventDesc.parameters.push_back(luaL_ref(L, LUA_REGISTRYINDEX));
 	}
 
-	uint32_t delay = std::max<uint32_t>(100, Lua::getInteger<uint32_t>(L, 2));
+	uint32_t delay = std::max<uint32_t>(MIN_TASK_INTERVAL, Lua::getInteger<uint32_t>(L, 2));
 	lua_pop(L, 1);
 
 	eventDesc.function = luaL_ref(L, LUA_REGISTRYINDEX);

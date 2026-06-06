@@ -1378,7 +1378,7 @@ void Game::playerMoveItem(Player* player, const Position& fromPos, uint16_t spri
                           const Position& toPos, uint8_t count, Item* item, Cylinder* toCylinder)
 {
 	if (player->hasCondition(CONDITION_EXHAUST_WEAPON, EXHAUST_MOVEITEM)) {
-		uint32_t delay = SCHEDULER_MINTICKS;
+		uint32_t delay = MIN_TASK_INTERVAL;
 		if (Condition* cond = player->getCondition(CONDITION_EXHAUST_WEAPON, CONDITIONID_DEFAULT, EXHAUST_MOVEITEM)) {
 			int64_t remaining = cond->getEndTime() - OTSYS_TIME();
 			if (remaining > 0) {

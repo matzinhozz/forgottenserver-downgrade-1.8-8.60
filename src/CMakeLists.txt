@@ -98,6 +98,7 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/protocoladmin.cpp
 	${CMAKE_CURRENT_LIST_DIR}/protocolspectator.cpp
 	${CMAKE_CURRENT_LIST_DIR}/protocolstatus.cpp
+	${CMAKE_CURRENT_LIST_DIR}/reactor.cpp
 	${CMAKE_CURRENT_LIST_DIR}/raids.cpp
 	${CMAKE_CURRENT_LIST_DIR}/rewardchest.cpp
 	${CMAKE_CURRENT_LIST_DIR}/rsa.cpp
@@ -203,6 +204,7 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/protocolspectator.h
 	${CMAKE_CURRENT_LIST_DIR}/protocolstatus.h
 	${CMAKE_CURRENT_LIST_DIR}/pugicast.h
+	${CMAKE_CURRENT_LIST_DIR}/reactor.h
 	${CMAKE_CURRENT_LIST_DIR}/raids.h
 	${CMAKE_CURRENT_LIST_DIR}/rewardchest.h
 	${CMAKE_CURRENT_LIST_DIR}/rsa.h
