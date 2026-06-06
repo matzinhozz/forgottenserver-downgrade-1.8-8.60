@@ -45,6 +45,10 @@ local ObjectCategory = {
 local QUICKLOOTFILTER_SKIPPEDLOOT = 0
 local QUICKLOOTFILTER_ACCEPTEDLOOT = 1
 
+local function supportsCustomNetwork(player)
+	return player and player.isUsingAstraClient and player:isUsingAstraClient()
+end
+
 local function getObjectCategoryName(category)
 	local names = {
 		[ObjectCategory.OBJECTCATEGORY_ARMORS] = "Armors",
@@ -76,7 +80,7 @@ local function getObjectCategoryName(category)
 		[ObjectCategory.OBJECTCATEGORY_GOLD] = "Gold",
 		[ObjectCategory.OBJECTCATEGORY_DEFAULT] = "Unassigned Loot",
 	}
-	return names[category] or ""
+	return names[category] or "Unknown"
 end
 
 local managedContainers = {}
@@ -146,24 +150,45 @@ local function clearManagedContainer(player, category, isLootContainer)
 	end
 end
 
+local function findContainerInInventoryRecursive(item, containerId)
+	if not item then
+		return nil
+	end
+
+	if item:getId() == containerId then
+		local container = item:getContainer()
+		if container then
+			return container
+		end
+	end
+
+	local parentContainer = item:getContainer()
+	if parentContainer then
+		local items = parentContainer:getItems(true)
+		for _, subItem in ipairs(items) do
+			if subItem:getId() == containerId then
+				local subContainer = subItem:getContainer()
+				if subContainer then
+					return subContainer
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
 local function findContainerInInventory(player, containerId)
+	if containerId == 0 then
+		return nil
+	end
+
 	for slot = CONST_SLOT_HEAD, CONST_SLOT_AMMO do
 		local item = player:getSlotItem(slot)
 		if item then
-			if item:getId() == containerId then
-				local container = item:getContainer()
-				if container then
-					return container
-				end
-			end
-			local parentContainer = item:getContainer()
-			if parentContainer then
-				local items = parentContainer:getItems(true)
-				for _, subItem in ipairs(items) do
-					if subItem:getId() == containerId then
-						return subItem
-					end
-				end
+			local found = findContainerInInventoryRecursive(item, containerId)
+			if found then
+				return found
 			end
 		end
 	end
@@ -308,18 +333,20 @@ local function sendLootContainers(player)
 		return
 	end
 
-	local activeCategories = {}
+	local containerCount = 0
 	for category, containers in pairs(managedContainers[pid]) do
 		if (containers.loot and containers.loot ~= 0) or (containers.obtain and containers.obtain ~= 0) then
-			activeCategories[category] = containers
+			containerCount = containerCount + 1
 		end
 	end
 
-	msg:addByte(#activeCategories)
-	for category, containers in pairs(activeCategories) do
-		msg:addByte(category)
-		msg:addU16(containers.loot or 0)
-		msg:addU16(containers.obtain or 0)
+	msg:addByte(containerCount)
+	for category, containers in pairs(managedContainers[pid]) do
+		if (containers.loot and containers.loot ~= 0) or (containers.obtain and containers.obtain ~= 0) then
+			msg:addByte(category)
+			msg:addU16(containers.loot or 0)
+			msg:addU16(containers.obtain or 0)
+		end
 	end
 
 	msg:sendToPlayer()
@@ -395,7 +422,6 @@ local function lootCorpse(player, corpse)
 		else
 			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Attention! The loot you are trying to pick up is too heavy for you to carry.")
 		end
-		lastNotification[pid] = now
 	elseif containerFullCategory then
 		local pid = player:getId()
 		local now = os.mtime()
@@ -406,12 +432,9 @@ local function lootCorpse(player, corpse)
 		else
 			player:sendTextMessage(MESSAGE_EVENT_ADVANCE, "Attention! The container assigned to category " .. catName .. " is full.")
 		end
-		lastNotification[pid] = now
 	end
 
-	if totalLooted > 0 then
-		sendLootContainers(player)
-	end
+	sendLootContainers(player)
 end
 
 local function findCorpsesOnTile(tile)
@@ -477,6 +500,9 @@ end
 -- PacketHandler: 0x8F - QuickLoot action
 local quickLootHandler = PacketHandler(OPCODE_QUICK_LOOT)
 function quickLootHandler.onReceive(player, msg)
+	if not supportsCustomNetwork(player) then
+		return
+	end
 	local variant = msg:getByte()
 	local pos = msg:getPosition()
 
@@ -489,10 +515,13 @@ function quickLootHandler.onReceive(player, msg)
 		-- Loot nearby (3x3 area)
 		local playerPos = player:getPosition()
 		local totalLooted = 0
+		local done = false
 
 		for dx = -1, 1 do
+			if done then break end
 			for dy = -1, 1 do
 				if totalLooted >= maxCorpses then
+					done = true
 					break
 				end
 				local tile = Tile(Position(playerPos.x + dx, playerPos.y + dy, playerPos.z))
@@ -604,6 +633,9 @@ quickLootHandler:register()
 -- PacketHandler: 0x90 - Loot Container management
 local lootContainerHandler = PacketHandler(OPCODE_LOOT_CONTAINER)
 function lootContainerHandler.onReceive(player, msg)
+	if not supportsCustomNetwork(player) then
+		return
+	end
 	local action = msg:getByte()
 
 	if action == 0 or action == 4 then
@@ -652,6 +684,9 @@ lootContainerHandler:register()
 -- PacketHandler: 0x91 - QuickLoot Black/Whitelist
 local blackWhitelistHandler = PacketHandler(OPCODE_BLACK_WHITELIST)
 function blackWhitelistHandler.onReceive(player, msg)
+	if not supportsCustomNetwork(player) then
+		return
+	end
 	local filterByte = msg:getByte()
 
 	if filterByte ~= QUICKLOOTFILTER_SKIPPEDLOOT and filterByte ~= QUICKLOOTFILTER_ACCEPTEDLOOT then
@@ -687,6 +722,7 @@ function loginEvent.onLogin(player)
 		itemIds = {},
 		fallback = true,
 	}
+	player:registerEvent("QuickLootLogout")
 	sendLootContainers(player)
 	return true
 end
