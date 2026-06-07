@@ -67,15 +67,15 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/lua_gc_monitor.cpp
 	${CMAKE_CURRENT_LIST_DIR}/logger.cpp
 	${CMAKE_CURRENT_LIST_DIR}/luascript.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luaspells.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luatalkaction.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luateleport.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luatile.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luatown.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luavariant.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luavocation.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luaweapons.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/luaxml.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luaspells.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luatalkaction.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luateleport.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luatile.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luatown.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luavariant.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luavocation.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luaweapons.cpp
+	${CMAKE_CURRENT_LIST_DIR}/luaxml.cpp
 	${CMAKE_CURRENT_LIST_DIR}/familiar.cpp
 	${CMAKE_CURRENT_LIST_DIR}/mailbox.cpp
 	${CMAKE_CURRENT_LIST_DIR}/map.cpp

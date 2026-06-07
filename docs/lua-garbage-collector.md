@@ -1,20 +1,20 @@
-# Lua 5.5 Garbage Collector - TFS Guide
+# Lua 5.4 Garbage Collector - TFS Guide
 
 ## What is Lua GC?
 
-Lua 5.5 uses an automatic garbage collector that frees memory no longer referenced.
+Lua 5.4 uses an automatic garbage collector that frees memory no longer referenced.
 Unlike C++, Lua tracks all objects (tables, strings, functions, userdata) and reclaims
 them when no references remain.
 
 ## GC Modes
 
-Lua 5.5 supports three GC modes, configured via `luaGcMode` in `config.lua`:
+Lua 5.4 supports three GC modes, configured via `luaGcMode` in `config.lua`:
 
 | Mode          | Description                                        | Best For               |
 |---------------|----------------------------------------------------|------------------------|
 | `generational`| Minor GCs collect short-lived objects fast. Major GCs run less often. | Long-running servers   |
 | `incremental` | GC runs in small steps spread over time, reducing lag spikes. | Balanced performance   |
-| `default`     | GC is stopped; only manual collections run.        | Debug/testing only     |
+| `stopped`     | GC is stopped; only manual collections run.        | Debug/testing only     |
 
 **TFS default: `generational`** - optimal for servers with many temporary Lua objects.
 
@@ -30,7 +30,7 @@ Lua 5.5 supports three GC modes, configured via `luaGcMode` in `config.lua`:
 All GC settings are in `config.lua`:
 
 ```lua
-luaGcMode = "generational"       -- "generational", "incremental", or "default"
+luaGcMode = "generational"       -- "generational", "incremental", or "stopped"
 luaGcAutoTune = true             -- auto-configure GC parameters on startup
 luaGcLogEnabled = false          -- periodic memory logs
 luaGcLogInterval = 60000         -- log interval in ms (60s)

@@ -22,7 +22,7 @@ void LuaGcMonitor::configure(lua_State* L)
 	int gcMode = LUA_GCGEN;
 	if (mode == "incremental") {
 		gcMode = LUA_GCINC;
-	} else if (mode == "default") {
+	} else if (mode == "stopped") {
 		gcMode = LUA_GCSTOP;
 		lua_gc(L, LUA_GCSTOP, 0);
 		return;
@@ -32,15 +32,11 @@ void LuaGcMonitor::configure(lua_State* L)
 
 	if (ConfigManager::getBoolean(ConfigManager::LUA_GC_AUTO_TUNE)) {
 		if (gcMode == LUA_GCGEN) {
-			lua_gc(L, LUA_GCPARAM, LUA_GCPMINORMUL);
-			lua_gc(L, 200, 0);
-			lua_gc(L, LUA_GCPARAM, LUA_GCPMAJORMINOR);
-			lua_gc(L, 100, 0);
+			lua_gc(L, LUA_GCPARAM, LUA_GCPMINORMUL, 200);
+			lua_gc(L, LUA_GCPARAM, LUA_GCPMAJORMINOR, 100);
 		} else if (gcMode == LUA_GCINC) {
-			lua_gc(L, LUA_GCPARAM, LUA_GCPPAUSE);
-			lua_gc(L, 100, 0);
-			lua_gc(L, LUA_GCPARAM, LUA_GCPSTEPMUL);
-			lua_gc(L, 200, 0);
+			lua_gc(L, LUA_GCPARAM, LUA_GCPPAUSE, 100);
+			lua_gc(L, LUA_GCPARAM, LUA_GCPSTEPMUL, 200);
 		}
 	}
 }
@@ -77,8 +73,7 @@ size_t LuaGcMonitor::getMemoryKb(lua_State* L)
 		return 0;
 	}
 
-	return static_cast<size_t>(lua_gc(L, LUA_GCCOUNT, 0)) * 1024 +
-	       static_cast<size_t>(lua_gc(L, LUA_GCCOUNTB, 0)) / 1024;
+	return static_cast<size_t>(lua_gc(L, LUA_GCCOUNT, 0));
 }
 
 double LuaGcMonitor::getMemoryMb(lua_State* L)
@@ -105,20 +100,29 @@ void LuaGcMonitor::logIfNeeded(lua_State* L)
 	const auto warnKb = static_cast<size_t>(ConfigManager::getInteger(ConfigManager::LUA_GC_WARN_MEMORY_KB));
 	const auto critKb = static_cast<size_t>(ConfigManager::getInteger(ConfigManager::LUA_GC_CRITICAL_MEMORY_KB));
 
-	if (critKb > 0 && memoryKb > critKb) {
+	const bool underCritical = (critKb == 0 || memoryKb <= critKb);
+	const bool overWarn = (warnKb > 0 && memoryKb > warnKb);
+
+	if (!underCritical) {
 		if (!criticalWarnedMemory) {
 			LOG_WARN(fmt::format("Lua GC: CRITICAL memory usage {:.2f} MB (threshold: {} KB)", memoryMb, critKb));
 			criticalWarnedMemory = true;
 		}
-	} else if (warnKb > 0 && memoryKb > warnKb) {
+	} else {
+		criticalWarnedMemory = false;
+	}
+
+	if (underCritical && overWarn) {
 		if (!warnedMemory) {
 			LOG_WARN(fmt::format("Lua GC: high memory usage {:.2f} MB (threshold: {} KB)", memoryMb, warnKb));
 			warnedMemory = true;
 		}
 	} else {
-		LOG_INFO(fmt::format("Lua GC: memory {:.2f} MB ({} KB)", memoryMb, memoryKb));
 		warnedMemory = false;
-		criticalWarnedMemory = false;
+	}
+
+	if (underCritical && !overWarn) {
+		LOG_INFO(fmt::format("Lua GC: memory {:.2f} MB ({} KB)", memoryMb, memoryKb));
 	}
 }
 

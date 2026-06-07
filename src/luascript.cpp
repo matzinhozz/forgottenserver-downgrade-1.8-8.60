@@ -493,12 +493,6 @@ bool LuaScriptInterface::reInitState()
 
 void LuaEnvironment::shutdown()
 {
-    if (g_luaEnvironment.luaState) {
-		if (ConfigManager::getBoolean(ConfigManager::LUA_GC_FULL_COLLECT_ON_SHUTDOWN)) {
-			LuaGcMonitor::fullCollect(g_luaEnvironment.luaState, "shutdown");
-		}
-    }
-
 	// Close the main Lua state
     g_luaEnvironment.closeState();
 }

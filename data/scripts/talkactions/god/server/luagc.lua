@@ -39,18 +39,18 @@ function talkaction.onSay(player, words, param)
 	end
 
 	if subCommand == "mode" then
-		player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, ">> Lua GC mode: " .. luaGcMode)
+		player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, ">> Lua GC mode: " .. (luaGcMode or "unknown"))
 		return false
 	end
 
 	local mem = Game.getLuaMemoryUsage()
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, ">> Lua GC Status:")
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Memory: " .. formatMemory(mem))
-	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Mode: " .. luaGcMode)
-	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Step: " .. (luaGcStepEnabled and "ON" or "OFF") ..
-		" (interval: " .. luaGcStepInterval .. "ms, size: " .. luaGcStepSize .. ")")
-	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Log: " .. (luaGcLogEnabled and "ON" or "OFF") ..
-		" (interval: " .. luaGcLogInterval .. "ms)")
+	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Mode: " .. (luaGcMode or "unknown"))
+	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Step: " .. (luaGcStepEnabled ~= false and "ON" or "OFF") ..
+		" (interval: " .. (luaGcStepInterval or "?") .. "ms, size: " .. (luaGcStepSize or "?") .. ")")
+	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Log: " .. (luaGcLogEnabled ~= false and "ON" or "OFF") ..
+		" (interval: " .. (luaGcLogInterval or "?") .. "ms)")
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Subcommands: collect, step, memory, mode")
 	return false
 end
