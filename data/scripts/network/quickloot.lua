@@ -322,7 +322,6 @@ end
 
 local function sendLootContainers(player)
 	local pid = player:getId()
-	print("[QuickLoot] sendLootContainers: player=" .. player:getName())
 
 	local msg = NetworkMessage(player)
 	msg:addByte(OPCODE_SEND_LOOT_CONTAINERS)
@@ -330,7 +329,6 @@ local function sendLootContainers(player)
 	msg:addByte(state.fallback and 1 or 0)
 
 	if not managedContainers[pid] then
-		print("[QuickLoot] sendLootContainers: no managedContainers, sending empty")
 		msg:addByte(0)
 		msg:sendToPlayer(player)
 		return
@@ -368,7 +366,6 @@ local function sendLootContainers(player)
 		end
 	end
 
-	print("[QuickLoot] sendLootContainers: lootCount=" .. lootCount .. " obtainCount=" .. obtainCount)
 	msg:sendToPlayer(player)
 end
 
@@ -552,11 +549,9 @@ local function lootCorpseAuto(filterPlayer, destPlayer, corpse)
 
 	local items = corpse:getItems(true)
 	if not items or #items == 0 then
-		print("[QuickLoot] lootCorpseAuto: no items in corpse")
 		return 0
 	end
 
-	print("[QuickLoot] lootCorpseAuto: " .. #items .. " items in corpse, filterPlayer=" .. filterPlayer:getName() .. " destPlayer=" .. destPlayer:getName())
 
 	local containerCache = {}
 	local totalLooted = 0
@@ -596,7 +591,6 @@ end
 -- CreatureEvent: auto-loot on kill
 local killEvent = CreatureEvent("QuickLootKill")
 function killEvent.onKill(player, target)
-	print("[QuickLoot] onKill fired: player=" .. player:getName() .. " target=" .. (target and target:getName() or "nil"))
 
 	local killerId = player:getId()
 	local targetPos = target:getPosition()
@@ -605,19 +599,16 @@ function killEvent.onKill(player, target)
 	addEvent(function()
 		local killer = Player(killerId)
 		if not killer then
-			print("[QuickLoot] onKill delayed: killer offline, skipping")
 			return
 		end
 
 		local settings = killer:kv():scoped("settings")
 		if not settings:get("quickLoot") then
-			print("[QuickLoot] onKill delayed: auto-loot disabled, skipping")
 			return
 		end
 
 		local tile = Tile(targetPos)
 		if not tile then
-			print("[QuickLoot] onKill delayed: no tile at " .. tostring(targetPos))
 			return
 		end
 
@@ -634,21 +625,18 @@ function killEvent.onKill(player, target)
 		end
 
 		local corpses = findCorpsesOnTile(tile)
-		print("[QuickLoot] onKill delayed: found " .. #corpses .. " corpses, recipient=" .. recipient:getName())
 		local totalLooted = 0
 
 		for _, corpse in ipairs(corpses) do
 			if canPlayerLootCorpse(killer, corpse) then
 				local looted = lootCorpseAuto(killer, recipient, corpse)
 				totalLooted = totalLooted + looted
-				print("[QuickLoot] onKill delayed: looted " .. looted .. " items from corpse")
 			end
 		end
 
 		if totalLooted > 0 then
 			recipient:sendTextMessage(MESSAGE_STATUS_DEFAULT, "You looted " .. totalLooted .. " items via QuickLoot.")
 		end
-		print("[QuickLoot] onKill delayed: total looted=" .. totalLooted)
 	end, 500)
 
 	return true
@@ -658,13 +646,10 @@ killEvent:register()
 -- PacketHandler: 0x8F - QuickLoot action
 local quickLootHandler = PacketHandler(OPCODE_QUICK_LOOT)
 function quickLootHandler.onReceive(player, msg)
-	print("[QuickLoot] 0x8F handler: player=" .. player:getName())
 	if not supportsCustomNetwork(player) then
-		print("[QuickLoot] 0x8F handler: custom network not supported, returning")
 		return
 	end
 	local variant = msg:getByte()
-	print("[QuickLoot] 0x8F handler: variant=" .. variant)
 	local pos = msg:getPosition()
 
 	local maxCorpses = configManager.getNumber(configKeys.QUICK_LOOT_MAX_CORPSES)
@@ -794,13 +779,10 @@ quickLootHandler:register()
 -- PacketHandler: 0x90 - Loot Container management
 local lootContainerHandler = PacketHandler(OPCODE_LOOT_CONTAINER)
 function lootContainerHandler.onReceive(player, msg)
-	print("[QuickLoot] 0x90 handler: player=" .. player:getName())
 	if not supportsCustomNetwork(player) then
-		print("[QuickLoot] 0x90 handler: custom network not supported, returning")
 		return
 	end
 	local action = msg:getByte()
-	print("[QuickLoot] 0x90 handler: action=" .. action)
 
 	if action == 0 or action == 4 then
 		local msgLen = msg:len()
@@ -815,7 +797,6 @@ function lootContainerHandler.onReceive(player, msg)
 		local stackPos = msg:getByte()
 
 		local isLootContainer = (action == 0)
-		print("[QuickLoot] 0x90 handler: setting category=" .. category .. " itemId=" .. itemId .. " isLoot=" .. tostring(isLootContainer))
 		setManagedContainer(player, category, itemId, isLootContainer)
 		sendLootContainers(player)
 
@@ -849,13 +830,10 @@ lootContainerHandler:register()
 -- PacketHandler: 0x91 - QuickLoot Black/Whitelist
 local blackWhitelistHandler = PacketHandler(OPCODE_BLACK_WHITELIST)
 function blackWhitelistHandler.onReceive(player, msg)
-	print("[QuickLoot] 0x91 handler: player=" .. player:getName())
 	if not supportsCustomNetwork(player) then
-		print("[QuickLoot] 0x91 handler: custom network not supported, returning")
 		return
 	end
 	local filterByte = msg:getByte()
-	print("[QuickLoot] 0x91 handler: filterByte=" .. filterByte)
 
 	if filterByte ~= QUICKLOOTFILTER_SKIPPEDLOOT and filterByte ~= QUICKLOOTFILTER_ACCEPTEDLOOT then
 		return
@@ -906,13 +884,11 @@ function loginEvent.onLogin(player)
 	local savedFilter = store:get("filter")
 	if savedFilter ~= nil then
 		state.filter = savedFilter
-		print("[QuickLoot] Login: restored filter=" .. state.filter .. " for player " .. player:getName())
 	end
 
 	local savedItemIds = store:get("itemIds")
 	if savedItemIds then
 		state.itemIds = savedItemIds
-		print("[QuickLoot] Login: restored itemIds count=" .. #state.itemIds .. " for player " .. player:getName())
 	end
 
 	local savedFallback = store:get("fallback")
@@ -921,20 +897,16 @@ function loginEvent.onLogin(player)
 	end
 
 	player:registerEvent("QuickLootLogout")
-	print("[QuickLoot] Login: registered QuickLootLogout for " .. player:getName())
 
 	local settings = player:kv():scoped("settings")
 	local autoLootEnabled = settings:get("quickLoot")
 	if autoLootEnabled then
 		player:registerEvent("QuickLootKill")
-		print("[QuickLoot] Login: auto-loot ENABLED for " .. player:getName() .. ", registered QuickLootKill")
 	else
-		print("[QuickLoot] Login: auto-loot disabled for " .. player:getName() .. " (settings.quickLoot=" .. tostring(autoLootEnabled) .. ")")
 	end
 
 	local mcCount = 0
 	for _ in pairs(managedContainers[pid] or {}) do mcCount = mcCount + 1 end
-	print("[QuickLoot] Login: managedContainers restored, categories=" .. mcCount)
 	sendLootContainers(player)
 	return true
 end
@@ -947,7 +919,6 @@ function logoutEvent.onLogout(player)
 	local state = quickLootState[pid]
 
 	if state then
-		local pid = player:getId()
 		local store = player:kv():scoped("quickloot")
 		local serializedContainers = {}
 		local mcCount = 0
@@ -955,7 +926,6 @@ function logoutEvent.onLogout(player)
 			serializedContainers[tostring(category)] = containers
 			mcCount = mcCount + 1
 		end
-		print("[QuickLoot] Logout: saving " .. mcCount .. " containers, filter=" .. state.filter .. ", itemIds=" .. #state.itemIds .. " for " .. player:getName())
 		store:set("managedContainers", serializedContainers)
 		store:set("filter", state.filter)
 		store:set("itemIds", state.itemIds)
