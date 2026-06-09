@@ -480,6 +480,9 @@ function loginEvent.onLogin(player)
     if configManager.getBoolean(configKeys.WEEKLY_TASKS_ENABLED) then
         TaskBoard.sendWeeklyTaskData(player)
     end
+    if configManager.getBoolean(configKeys.SOULSEALS_SYSTEM_ENABLED) then
+        Soulseals.sendWindow(player)
+    end
 
     player:registerEvent("TaskBoardLogout")
     return true
