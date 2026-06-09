@@ -26,7 +26,8 @@ void Scripts::clearLoadedFiles(const std::string& folderName)
 		return;
 	}
 
-	const std::string prefix = fs::canonical(dir).string();
+	const std::string canonicalDir = fs::canonical(dir).string();
+	const std::string prefix = canonicalDir + std::string(1, fs::path::preferred_separator);
 	std::erase_if(loadedFiles, [&prefix](const std::string& loadedFile) {
 		return loadedFile.starts_with(prefix);
 	});
@@ -49,9 +50,10 @@ bool Scripts::loadScripts(const std::string& folderName, bool isLib, bool reload
 	std::vector<std::pair<fs::path, std::string>> v;
 	static constexpr std::string_view disable = "#";
 	for (fs::recursive_directory_iterator it(dir); it != endit; ++it) {
-		auto fn = it->path().parent_path().filename();
-		if ((fn == "lib" && !isLib) || fn == "events" ||
-		    (fn == "chatchannels" && folderName != "scripts/chatchannels")) {
+		const fs::path relative = fs::relative(it->path(), dir);
+		const std::string topLevel = (relative.begin() != relative.end()) ? (*relative.begin()).string() : "";
+		if ((topLevel == "lib" && !isLib) || topLevel == "events" ||
+		    (topLevel == "chatchannels" && folderName != "scripts/chatchannels")) {
 			continue;
 		}
 		if (fs::is_regular_file(*it) && it->path().extension() == ".lua") {

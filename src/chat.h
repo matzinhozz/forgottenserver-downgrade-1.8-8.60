@@ -51,6 +51,11 @@ public:
 	void setOnSpeakEvent(int32_t event) { onSpeakEvent = event; }
 	void setPublicChannel(bool value) { publicChannel = value; }
 
+	int32_t getCanJoinEvent() const { return canJoinEvent; }
+	int32_t getOnJoinEvent() const { return onJoinEvent; }
+	int32_t getOnLeaveEvent() const { return onLeaveEvent; }
+	int32_t getOnSpeakEvent() const { return onSpeakEvent; }
+
 protected:
 	UsersMap users;
 

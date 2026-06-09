@@ -29,6 +29,10 @@ TEST_CASE(chat_channel_event_setters)
 	channel.setOnJoinEvent(200);
 	channel.setOnLeaveEvent(300);
 	channel.setOnSpeakEvent(400);
+	CHECK(channel.getCanJoinEvent() == 100);
+	CHECK(channel.getOnJoinEvent() == 200);
+	CHECK(channel.getOnLeaveEvent() == 300);
+	CHECK(channel.getOnSpeakEvent() == 400);
 }
 
 TFS_TEST_MAIN()

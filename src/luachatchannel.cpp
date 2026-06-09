@@ -112,6 +112,12 @@ int luaChatChannelNewIndex(lua_State* L)
 		return 0;
 	}
 
+	const std::string_view callback = getStringView(L, 2);
+	if (callback != "canJoin" && callback != "onJoin" && callback != "onLeave" && callback != "onSpeak") {
+		reportErrorFunc(L, "Invalid ChatChannel callback name.");
+		return 0;
+	}
+
 	LuaScriptInterface* scriptInterface = LuaScriptInterface::getScriptEnv()->getScriptInterface();
 	lua_pushvalue(L, 3);
 	const int32_t event = scriptInterface->getEvent();
@@ -119,7 +125,6 @@ int luaChatChannelNewIndex(lua_State* L)
 		return 0;
 	}
 
-	const std::string_view callback = getStringView(L, 2);
 	if (callback == "canJoin") {
 		channel->setCanJoinEvent(event);
 	} else if (callback == "onJoin") {

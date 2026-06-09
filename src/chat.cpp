@@ -291,7 +291,7 @@ bool Chat::registerLuaChannel(std::unique_ptr<ChatChannel> channel)
 				restoredPlayer = g_game.getCreatureSharedRef<Player>(pair.first);
 			}
 			if (restoredPlayer) {
-				it->second.addUser(restoredPlayer);
+				it->second.users[restoredPlayer->getID()] = restoredPlayer;
 			}
 		}
 		usersToRestore.erase(restoreIt);
