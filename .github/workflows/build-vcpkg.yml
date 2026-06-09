@@ -1,0 +1,87 @@
+name: Build with vcpkg
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - 'fix/**'
+      - 'feat/**'
+
+    paths:
+      - .github/workflows/build-vcpkg.yml
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - CMakePresets.json
+      - vcpkg.json
+
+  pull_request:
+    paths:
+      - .github/workflows/build-vcpkg.yml
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - CMakePresets.json
+      - vcpkg.json
+
+jobs:
+  build-windows:
+    name: Windows
+    runs-on: windows-2022
+
+    env:
+      VCPKG_BUILD_TYPE: release
+      VCPKG_INSTALLED_DIR: ${{ github.workspace }}/vcpkg_installed/x64-windows-static-release
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg_cache,readwrite
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir -p "${{ github.workspace }}/vcpkg_cache"
+        shell: bash
+
+      - name: Get latest CMake
+        uses: lukka/get-cmake@v4.3.2
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json', 'CMakeLists.txt', '**/CMakeLists.txt', 'CMakePresets.json') }}
+          restore-keys: |
+            vcpkg-windows-
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Build with CMake
+        uses: lukka/run-cmake@v10.9
+        with:
+          configurePreset: vcpkg
+          buildPreset: vcpkg
+          cmakeArgs: '-DCMAKE_BUILD_TYPE=Release'
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-windows-${{ github.sha }}
+          path: ${{ github.workspace }}/vcpkg/buildtrees/**/*.log
+        if: ${{ failure() }}
+
+      - name: Upload artifact binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfs-windows-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/build/tfs.exe
+            ${{ github.workspace }}/build/*.dll

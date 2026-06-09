@@ -383,7 +383,7 @@ bool Condition::isPersistent() const
 	return true;
 }
 
-uint32_t Condition::getIcons() const { return isBuff ? ICON_PARTY_BUFF : 0; }
+uint64_t Condition::getIcons() const { return isBuff ? ICON_PARTY_BUFF : 0; }
 
 bool Condition::updateCondition(const Condition* addCondition)
 {
@@ -421,9 +421,9 @@ void ConditionGeneric::addCondition(Creature*, const Condition* condition)
 	}
 }
 
-uint32_t ConditionGeneric::getIcons() const
+uint64_t ConditionGeneric::getIcons() const
 {
-	uint32_t icons = Condition::getIcons();
+	uint64_t icons = Condition::getIcons();
 
 	switch (conditionType) {
 		case CONDITION_MANASHIELD:
@@ -1644,9 +1644,9 @@ int32_t ConditionDamage::getTotalDamage() const
 	return std::abs(result);
 }
 
-uint32_t ConditionDamage::getIcons() const
+uint64_t ConditionDamage::getIcons() const
 {
-	uint32_t icons = Condition::getIcons();
+	uint64_t icons = Condition::getIcons();
 	switch (conditionType) {
 		case CONDITION_FIRE:
 			icons |= ICON_BURN;
@@ -1678,6 +1678,10 @@ uint32_t ConditionDamage::getIcons() const
 
 		case CONDITION_BLEEDING:
 			icons |= ICON_BLEEDING;
+			break;
+
+		case CONDITION_AGONY:
+			icons |= PlayerIcon_Agony;
 			break;
 
 		default:
@@ -1841,9 +1845,9 @@ void ConditionSpeed::addCondition(Creature* creature, const Condition* condition
 	}
 }
 
-uint32_t ConditionSpeed::getIcons() const
+uint64_t ConditionSpeed::getIcons() const
 {
-	uint32_t icons = Condition::getIcons();
+	uint64_t icons = Condition::getIcons();
 	switch (conditionType) {
 		case CONDITION_HASTE:
 			icons |= ICON_HASTE;
@@ -1888,6 +1892,13 @@ void ConditionRooted::endCondition(Creature* creature)
 	if (Player* player = creature->getPlayer()) {
 		player->setRootImmunity();
 	}
+}
+
+uint64_t ConditionRooted::getIcons() const
+{
+	uint64_t icons = Condition::getIcons();
+	icons |= PlayerIcon_Rooted;
+	return icons;
 }
 
 bool ConditionFeared::startCondition(Creature* creature)
@@ -1938,6 +1949,13 @@ void ConditionFeared::addCondition(Creature*, const Condition* condition)
 	if (updateCondition(condition)) {
 		setTicks(condition->getTicks());
 	}
+}
+
+uint64_t ConditionFeared::getIcons() const
+{
+	uint64_t icons = Condition::getIcons();
+	icons |= PlayerIcon_Feared;
+	return icons;
 }
 
 bool ConditionFeared::setPositionParam(ConditionParam_t param, const Position& pos)
@@ -2316,7 +2334,7 @@ void ConditionDrunk::addCondition(Creature* creature, const Condition* condition
 
 void ConditionDrunk::endCondition(Creature* creature) { creature->setDrunkenness(0); }
 
-uint32_t ConditionDrunk::getIcons() const { return ICON_DRUNK; }
+uint64_t ConditionDrunk::getIcons() const { return ICON_DRUNK; }
 
 bool ConditionDrunk::setParam(ConditionParam_t param, int32_t value)
 {
