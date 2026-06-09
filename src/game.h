@@ -448,6 +448,26 @@ public:
 	void parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, std::string_view buffer);
 	void parsePlayerNetworkMessage(uint32_t playerId, uint8_t recvByte, NetworkMessage_ptr msg);
 
+	// Task Board / Bounty / Weekly / Soulseals
+	void playerOpenBountyTask(uint32_t playerId);
+	void playerOpenWeeklyTask(uint32_t playerId);
+	void playerOpenHuntingTaskShop(uint32_t playerId);
+	void playerBountyTaskChangeDifficulty(uint32_t playerId, uint8_t difficulty);
+	void playerBountyTaskReroll(uint32_t playerId);
+	void playerBountyTaskClaimDaily(uint32_t playerId);
+	void playerBountyTaskSelect(uint32_t playerId, uint8_t taskIndex);
+	void playerBountyTaskClaimReward(uint32_t playerId);
+	void playerBountyTalismanUpgrade(uint32_t playerId, uint8_t pathIndex);
+	void playerWeeklyTaskDeliver(uint32_t playerId, uint8_t taskIndex);
+	void playerWeeklyTaskSelectDifficulty(uint32_t playerId, uint8_t difficulty);
+	void playerHuntingTaskShopBuy(uint32_t playerId, uint8_t offerIndex);
+	void playerBountyPreferredUnlock(uint32_t playerId, uint16_t slot);
+	void playerBountyPreferredClear(uint32_t playerId, uint16_t slot);
+	void playerBountyUnwantedClear(uint32_t playerId, uint16_t slot);
+	void playerBountyPreferredAssign(uint32_t playerId, uint16_t slot, uint16_t raceId);
+	void playerBountyUnwantedAssign(uint32_t playerId, uint16_t slot, uint16_t raceId);
+	void playerSoulsealFight(uint32_t playerId, uint16_t raceId);
+
 	// Spy system
 	bool playerStartSpy(uint32_t godPlayerId, const std::string& targetName);
 	bool playerStopSpy(uint32_t godPlayerId);

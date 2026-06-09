@@ -7227,6 +7227,206 @@ void Game::parsePlayerNetworkMessage(uint32_t playerId, uint8_t recvByte, Networ
 	g_events->eventPlayerOnNetworkMessage(player, recvByte, msg);
 }
 
+// ============================================================================
+// Task Board / Bounty / Weekly / Soulseals Game Logic
+// ============================================================================
+
+void Game::playerOpenBountyTask(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	player->sendBountyTaskData();
+}
+
+void Game::playerOpenWeeklyTask(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	player->sendWeeklyTaskData();
+}
+
+void Game::playerOpenHuntingTaskShop(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	player->sendHuntingTaskShopData();
+}
+
+void Game::playerBountyTaskChangeDifficulty(uint32_t playerId, uint8_t difficulty)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement difficulty change logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyTaskReroll(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement reroll logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyTaskClaimDaily(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement daily claim logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyTaskSelect(uint32_t playerId, uint8_t taskIndex)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement task selection logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyTaskClaimReward(uint32_t playerId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement claim reward logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyTalismanUpgrade(uint32_t playerId, uint8_t pathIndex)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client || pathIndex > 3) {
+		return;
+	}
+	// TODO: Implement talisman upgrade logic
+	player->sendBountyTaskData();
+}
+
+void Game::playerWeeklyTaskDeliver(uint32_t playerId, uint8_t taskIndex)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement weekly delivery logic
+	player->sendWeeklyTaskData();
+}
+
+void Game::playerWeeklyTaskSelectDifficulty(uint32_t playerId, uint8_t difficulty)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement weekly difficulty selection and task generation
+	player->sendWeeklyTaskData();
+}
+
+void Game::playerHuntingTaskShopBuy(uint32_t playerId, uint8_t offerIndex)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement shop purchase logic
+	player->sendHuntingTaskShopData();
+}
+
+void Game::playerBountyPreferredUnlock(uint32_t playerId, uint16_t slot)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement preferred slot unlock
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyPreferredClear(uint32_t playerId, uint16_t slot)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement preferred clear
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyUnwantedClear(uint32_t playerId, uint16_t slot)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement unwanted clear
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyPreferredAssign(uint32_t playerId, uint16_t slot, uint16_t raceId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement preferred assign
+	player->sendBountyTaskData();
+}
+
+void Game::playerBountyUnwantedAssign(uint32_t playerId, uint16_t slot, uint16_t raceId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement unwanted assign
+	player->sendBountyTaskData();
+}
+
+void Game::playerSoulsealFight(uint32_t playerId, uint16_t raceId)
+{
+	auto playerRef = getPlayerByID(playerId);
+	Player* player = playerRef.get();
+	if (!player || !player->client) {
+		return;
+	}
+	// TODO: Implement soulseal fight logic
+	// Cost formula: (bestiaryStars + 1) * 10
+	// Requires player to be near soulpit obelisk
+}
+
 void Game::parsePlayerExtendedOpcode(uint32_t playerId, uint8_t opcode, std::string_view buffer)
 {
 	auto playerRef = getPlayerByID(playerId);

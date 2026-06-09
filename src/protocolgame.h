@@ -291,6 +291,14 @@ private:
 	void sendNewPing(uint32_t pingId);
 	void parseNewPing(NetworkMessage& msg);
 
+	// Task Board / Bounty / Weekly / Soulseals
+	void parseTaskBoardAction(NetworkMessage& msg);
+	void sendTaskBoardBountyData();
+	void sendTaskBoardWeeklyData();
+	void sendTaskBoardShopData();
+	void sendResourceBalance(uint8_t resourceType, uint64_t value);
+	void sendTaskBoardResourceBalance();
+
 	friend class Player;
 	friend class ProtocolSpectator;
 	friend class SpySystem;

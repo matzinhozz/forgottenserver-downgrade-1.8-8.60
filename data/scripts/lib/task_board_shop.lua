@@ -1,0 +1,46 @@
+-- Task Board Shop offers
+-- This file defines the hunting task shop offers.
+-- Offers are loaded at startup and sent to clients when they open the shop.
+
+HUNT_TASK_SHOP_OFFERS = HUNT_TASK_SHOP_OFFERS or {}
+
+-- Offer types:
+-- 0 = ITEM
+-- 1 = MOUNT
+-- 2 = OUTFIT
+-- 3 = ITEM_DOUBLE
+-- 4 = BONUS_PROMOTION
+-- 5 = WEEKLY_EXPANSION
+
+-- Example offers (uncomment and customize):
+-- table.insert(HUNT_TASK_SHOP_OFFERS, {
+--     offerType = 0,  -- ITEM
+--     name = "Backpack of Holding",
+--     description = "A magical backpack with extra capacity.",
+--     itemId = 1988,
+--     price = 100,
+-- })
+--
+-- table.insert(HUNT_TASK_SHOP_OFFERS, {
+--     offerType = 1,  -- MOUNT
+--     name = "Shadow Charger",
+--     description = "A swift dark mount.",
+--     lookType = 387,
+--     price = 500,
+-- })
+--
+-- table.insert(HUNT_TASK_SHOP_OFFERS, {
+--     offerType = 2,  -- OUTFIT
+--     name = "Demon Hunter",
+--     description = "An outfit for the brave.",
+--     lookType = 1205,
+--     addon = 0,
+--     price = 300,
+-- })
+--
+-- table.insert(HUNT_TASK_SHOP_OFFERS, {
+--     offerType = 5,  -- WEEKLY_EXPANSION
+--     name = "Weekly Task Expansion",
+--     description = "Unlock additional weekly task slots.",
+--     price = 1000,
+-- })
