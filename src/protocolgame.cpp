@@ -1,4 +1,4 @@
-// Copyright 2023 The Forgotten Server Authors. All rights reserved.
+﻿// Copyright 2023 The Forgotten Server Authors. All rights reserved.
 // Use of this source code is governed by the GPL-2.0 License that can be found in the LICENSE file.
 
 #include "otpch.h"
@@ -836,7 +836,7 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			case 0x1E: // ping
 			case 0x40: // extended ping (OTC)
 			case 0x96: // say (allows /unspy)
-				break; // allowed — fall through to normal processing
+				break; // allowed â€” fall through to normal processing
 			default:
 				sendCancelWalk();
 				return; // block all other actions
@@ -1085,6 +1085,16 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			break;
 		case 0xAC:
 			parseChannelExclude(msg);
+			break;
+		case 0xBA: // Soulseal Fight Action (AstraClient)
+			if (isOTC && ConfigManager::getBoolean(ConfigManager::SOULPIT_SYSTEM_ENABLED)) {
+				const uint16_t raceId = msg.getU16();
+				if (raceId > 0) {
+					g_dispatcher.addTask([playerID = player->getID(), raceId]() {
+						g_game.playerSoulsealFight(playerID, raceId);
+					});
+				}
+			}
 			break;
 		case 0xBE:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerCancelAttackAndFollow(playerID); });

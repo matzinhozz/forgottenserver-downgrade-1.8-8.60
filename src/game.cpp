@@ -1,4 +1,4 @@
-// Copyright 2023 The Forgotten Server Authors. All rights reserved.
+﻿// Copyright 2023 The Forgotten Server Authors. All rights reserved.
 // Use of this source code is governed by the GPL-2.0 License that can be found in the LICENSE file.
 
 #include "otpch.h"
@@ -487,7 +487,7 @@ void Game::saveGameState(bool crash /* = false */)
 	}
 
 	if (crash) {
-		LOG_WARN("[Anti-Rollback] Server crash detected — emergency save initiated.");
+		LOG_WARN("[Anti-Rollback] Server crash detected â€” emergency save initiated.");
 	}
 
 	uint32_t savedCount = 0;
@@ -509,7 +509,7 @@ void Game::saveGameState(bool crash /* = false */)
 	g_databaseTasks.flush();
 
 	if (crash && savedCount > 0) {
-		LOG_WARN(fmt::format("[Anti-Rollback] Emergency save completed — {} player(s) saved at temple.", savedCount));
+		LOG_WARN(fmt::format("[Anti-Rollback] Emergency save completed â€” {} player(s) saved at temple.", savedCount));
 	}
 
 	if (gameState == GAME_STATE_MAINTAIN) {
@@ -2426,7 +2426,7 @@ Item* Game::transformItem(Item* item, uint16_t newId, int32_t newCount /*= -1*/)
 					cylinder->postRemoveNotification(item, cylinder, itemIndex);
 					item->stopDecaying();
 					ReleaseItem(item);
-					// replaceThing may not accept newItem — guard before startDecaying
+					// replaceThing may not accept newItem â€” guard before startDecaying
 					// and release the orphaned allocation if it was not added.
 					if (cylinder->getThingIndex(newItem.get()) != -1) {
 						if (!newItem->isRemoved()) {
@@ -2496,7 +2496,7 @@ Item* Game::transformItem(Item* item, uint16_t newId, int32_t newCount /*= -1*/)
 	// replaceThing() may reject newItem (e.g. the cylinder is full or the
 	// tile rejects the item type).  When that happens getThingIndex() returns
 	// -1, meaning newItem was never adopted by the cylinder and has no owner.
-	// Without this guard the allocation leaks — Valgrid loss record 2,117.
+	// Without this guard the allocation leaks â€” Valgrid loss record 2,117.
 	if (cylinder->getThingIndex(newItem.get()) != -1) {
 		if (!newItem->isRemoved()) {
 			if (newItem->getContainer()) {
@@ -2508,7 +2508,7 @@ Item* Game::transformItem(Item* item, uint16_t newId, int32_t newCount /*= -1*/)
 		return newItem.get();
 	}
 
-	// newItem was not accepted — release it to avoid a definite memory leak.
+	// newItem was not accepted â€” release it to avoid a definite memory leak.
 	ReleaseItem(newItem.get());
 	return nullptr;
 }
@@ -4970,7 +4970,7 @@ void Game::checkCreatures(size_t index)
 				creature->onAttacking(EVENT_CREATURE_THINK_INTERVAL);
 				creature->executeConditions(EVENT_CREATURE_THINK_INTERVAL);
 			} else {
-				// Dead/removed creatures sitting idle — mark for removal next cycle
+				// Dead/removed creatures sitting idle â€” mark for removal next cycle
 				creature->creatureCheck = false;
 			}
 			++i;
@@ -5257,7 +5257,7 @@ void Game::combatGetTypeInfo(CombatType_t combatType, Creature* target, TextColo
 	switch (combatType) {
 		case COMBAT_PHYSICALDAMAGE: {
 			std::shared_ptr<Item> splash;
-			// Capture tile once — target may be removed between two getTile()
+			// Capture tile once â€” target may be removed between two getTile()
 			// calls, leaving a created splash with nowhere to go (definite leak).
 			Tile* targetTile = target->getTile();
 			switch (target->getRace()) {
@@ -5304,7 +5304,7 @@ void Game::combatGetTypeInfo(CombatType_t combatType, Creature* target, TextColo
 
 			if (splash) {
 				splash->setInstanceID(target->getInstanceID());
-				// targetTile is captured once and reused — same tile where the
+				// targetTile is captured once and reused â€” same tile where the
 				// PZ check was made; splash is only created when tile != nullptr.
 				if (internalAddItem(targetTile, splash.get(), INDEX_WHEREEVER, FLAG_NOLIMIT) == RETURNVALUE_NOERROR) {
 					splash->startDecaying();
@@ -6512,7 +6512,7 @@ void Game::checkLootHighlight(std::shared_ptr<Item> corpseItem, uint32_t ownerPl
 	const Position& pos = corpse->getPosition();
 
 	if (ownerTicksLeft > 0) {
-		// Phase 1 — Owner and Party
+		// Phase 1 â€” Owner and Party
 		auto ownerRef = getPlayerByID(ownerPlayerId);
 		Player* owner = ownerRef.get();
 		if (owner && InstanceUtils::isPlayerInSameInstance(owner, corpse->getInstanceID())) {
@@ -6533,7 +6533,7 @@ void Game::checkLootHighlight(std::shared_ptr<Item> corpseItem, uint32_t ownerPl
 			}
 		}
 	} else {
-		// Phase 2 — Public
+		// Phase 2 â€” Public
 		SpectatorVec spectators;
 		map.getSpectators(spectators, pos, false, true);
 		for (const auto& spec : spectators) {

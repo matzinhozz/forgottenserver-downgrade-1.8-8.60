@@ -204,6 +204,21 @@ public:
 	uint64_t getBankBalance() const { return bankBalance; }
 	void setBankBalance(uint64_t balance) { bankBalance = balance; }
 
+	uint64_t getTaskHuntingPoints() const { return taskHuntingPoints; }
+	void addTaskHuntingPoints(uint64_t amount) { taskHuntingPoints += amount; }
+	void setTaskHuntingPoints(uint64_t amount) { taskHuntingPoints = amount; }
+
+	uint64_t getBountyPoints() const { return bountyPoints; }
+	void addBountyPoints(uint64_t amount) { bountyPoints += amount; }
+	void setBountyPoints(uint64_t amount) { bountyPoints = amount; }
+
+	uint64_t getSoulsealsPoints() const { return soulsealsPoints; }
+	void addSoulsealsPoints(uint64_t amount) { soulsealsPoints += amount; }
+	void removeSoulsealsPoints(uint64_t amount) {
+		if (soulsealsPoints >= amount) soulsealsPoints -= amount;
+	}
+	void setSoulsealsPoints(uint64_t amount) { soulsealsPoints = amount; }
+
 	// Offline Training
 	static constexpr int32_t SKILL_OFFLINE_AUTO = 255;
 	bool addOfflineTrainingTries(skills_t skill, uint64_t tries);
@@ -1681,6 +1696,11 @@ private:
 		uint32_t flushEventId = 0;
 	};
 	std::unordered_map<std::string, std::shared_ptr<LootGroup>> m_pendingLootGroups;
+
+	// Task Board / Bounty / Weekly / Soulseals
+	uint64_t taskHuntingPoints = 0;
+	uint64_t bountyPoints = 0;
+	uint64_t soulsealsPoints = 0;
 
 	friend class Game;
 	friend class Npc;
