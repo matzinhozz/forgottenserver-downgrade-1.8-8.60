@@ -6447,34 +6447,6 @@ void Player::sendLootContainers() const
 	}
 }
 
-void Player::sendTaskBoardResourceBalance()
-{
-	if (client) {
-		client->sendTaskBoardResourceBalance();
-	}
-}
-
-void Player::sendBountyTaskData()
-{
-	if (client) {
-		client->sendTaskBoardBountyData();
-	}
-}
-
-void Player::sendWeeklyTaskData()
-{
-	if (client) {
-		client->sendTaskBoardWeeklyData();
-	}
-}
-
-void Player::sendHuntingTaskShopData()
-{
-	if (client) {
-		client->sendTaskBoardShopData();
-	}
-}
-
 bool Player::isQuickLootListedItem(const Item* item) const
 {
 	return item && quickLootListItemIds.contains(item->getID());

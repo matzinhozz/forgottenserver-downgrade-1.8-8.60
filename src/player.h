@@ -219,11 +219,6 @@ public:
 	}
 	void setSoulsealsPoints(uint64_t amount) { soulsealsPoints = amount; }
 
-	void sendTaskBoardResourceBalance();
-	void sendBountyTaskData();
-	void sendWeeklyTaskData();
-	void sendHuntingTaskShopData();
-
 	// Offline Training
 	static constexpr int32_t SKILL_OFFLINE_AUTO = 255;
 	bool addOfflineTrainingTries(skills_t skill, uint64_t tries);

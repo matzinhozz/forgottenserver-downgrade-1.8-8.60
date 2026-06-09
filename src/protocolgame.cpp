@@ -1,4 +1,4 @@
-// Copyright 2023 The Forgotten Server Authors. All rights reserved.
+﻿// Copyright 2023 The Forgotten Server Authors. All rights reserved.
 // Use of this source code is governed by the GPL-2.0 License that can be found in the LICENSE file.
 
 #include "otpch.h"
@@ -434,17 +434,6 @@ void ProtocolGame::finishLogin(uint32_t reservedGuid, uint32_t accountId, bool l
 	sendDllCheck();
 	sendLootContainers();
 
-	// Task Board / Bounty / Weekly / Soulseals - send initial data on login
-	if (isOTC && ConfigManager::getBoolean(ConfigManager::TASK_HUNTING_SYSTEM_ENABLED)) {
-		sendTaskBoardResourceBalance();
-		if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-			sendTaskBoardBountyData();
-		}
-		if (ConfigManager::getBoolean(ConfigManager::WEEKLY_TASKS_ENABLED)) {
-			sendTaskBoardWeeklyData();
-		}
-	}
-
 	if (isOTC) {
 		player->registerCreatureEvent("ExtendedOpcode");
 	}
@@ -847,7 +836,7 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			case 0x1E: // ping
 			case 0x40: // extended ping (OTC)
 			case 0x96: // say (allows /unspy)
-				break; // allowed — fall through to normal processing
+				break; // allowed â€” fall through to normal processing
 			default:
 				sendCancelWalk();
 				return; // block all other actions
@@ -1096,11 +1085,6 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			break;
 		case 0xAC:
 			parseChannelExclude(msg);
-			break;
-		case 0x5F: // Task Board Action (OTC/AstraClient)
-			if (isOTC) {
-				parseTaskBoardAction(msg);
-			}
 			break;
 		case 0xBA: // Soulseal Fight Action (AstraClient)
 			if (isOTC && ConfigManager::getBoolean(ConfigManager::SOULPIT_SYSTEM_ENABLED)) {
@@ -4175,250 +4159,6 @@ void ProtocolGame::sendImbuementDurations(slots_t updatedSlot, const Item* updat
 			}
 		}
 	}
-
-	writeToOutputBuffer(msg);
-}
-
-// ============================================================================
-// Task Board / Bounty / Weekly / Soulseals Protocol
-// ============================================================================
-
-enum TaskBoardOption_t : uint8_t {
-	TASK_BOARD_OPEN_BOUNTY = 0,
-	TASK_BOARD_OPEN_WEEKLY = 1,
-	TASK_BOARD_BOUNTY_CHANGE_DIFFICULTY = 2,
-	TASK_BOARD_BOUNTY_REROLL = 3,
-	TASK_BOARD_BOUNTY_CLAIM_DAILY = 4,
-	TASK_BOARD_BOUNTY_SELECT_TASK = 5,
-	TASK_BOARD_BOUNTY_CLAIM_REWARD = 6,
-	TASK_BOARD_BOUNTY_TALISMAN_UPGRADE = 7,
-	TASK_BOARD_WEEKLY_DELIVER = 8,
-	TASK_BOARD_WEEKLY_SELECT_DIFFICULTY = 9,
-	TASK_BOARD_OPEN_HUNTING_SHOP = 10,
-	TASK_BOARD_HUNTING_SHOP_BUY = 11,
-	TASK_BOARD_PREFERRED_UNLOCK = 12,
-	TASK_BOARD_PREFERRED_CLEAR = 13,
-	TASK_BOARD_UNWANTED_CLEAR = 14,
-	TASK_BOARD_PREFERRED_ASSIGN = 15,
-	TASK_BOARD_UNWANTED_ASSIGN = 16,
-};
-
-enum ResourceBalance_t : uint8_t {
-	RESOURCE_TASK_HUNTING = 0x32,
-	RESOURCE_BOUNTY_POINTS = 0x5E,
-	RESOURCE_SOULSEAL_POINTS = 0x60,
-};
-
-void ProtocolGame::parseTaskBoardAction(NetworkMessage& msg)
-{
-	if (!player || !ConfigManager::getBoolean(ConfigManager::TASK_HUNTING_SYSTEM_ENABLED)) {
-		return;
-	}
-
-	const uint8_t option = msg.getByte();
-	const auto playerID = player->getID();
-
-	switch (option) {
-		case TASK_BOARD_OPEN_BOUNTY:
-			if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerOpenBountyTask(playerID); });
-			}
-			break;
-		case TASK_BOARD_OPEN_WEEKLY:
-			if (ConfigManager::getBoolean(ConfigManager::WEEKLY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerOpenWeeklyTask(playerID); });
-			}
-			break;
-		case TASK_BOARD_BOUNTY_CHANGE_DIFFICULTY: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint8_t difficulty = msg.getByte();
-			g_dispatcher.addTask([playerID, difficulty]() { g_game.playerBountyTaskChangeDifficulty(playerID, difficulty); });
-			break;
-		}
-		case TASK_BOARD_BOUNTY_REROLL:
-			if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerBountyTaskReroll(playerID); });
-			}
-			break;
-		case TASK_BOARD_BOUNTY_CLAIM_DAILY:
-			if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerBountyTaskClaimDaily(playerID); });
-			}
-			break;
-		case TASK_BOARD_BOUNTY_SELECT_TASK: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint8_t taskIndex = msg.getByte();
-			g_dispatcher.addTask([playerID, taskIndex]() { g_game.playerBountyTaskSelect(playerID, taskIndex); });
-			break;
-		}
-		case TASK_BOARD_BOUNTY_CLAIM_REWARD:
-			if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerBountyTaskClaimReward(playerID); });
-			}
-			break;
-		case TASK_BOARD_BOUNTY_TALISMAN_UPGRADE: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint8_t pathIndex = msg.getByte();
-			g_dispatcher.addTask([playerID, pathIndex]() { g_game.playerBountyTalismanUpgrade(playerID, pathIndex); });
-			break;
-		}
-		case TASK_BOARD_WEEKLY_DELIVER: {
-			if (!ConfigManager::getBoolean(ConfigManager::WEEKLY_TASKS_ENABLED)) break;
-			const uint8_t taskIndex = msg.getByte();
-			g_dispatcher.addTask([playerID, taskIndex]() { g_game.playerWeeklyTaskDeliver(playerID, taskIndex); });
-			break;
-		}
-		case TASK_BOARD_WEEKLY_SELECT_DIFFICULTY: {
-			if (!ConfigManager::getBoolean(ConfigManager::WEEKLY_TASKS_ENABLED)) break;
-			const uint8_t difficulty = msg.getByte();
-			g_dispatcher.addTask([playerID, difficulty]() { g_game.playerWeeklyTaskSelectDifficulty(playerID, difficulty); });
-			break;
-		}
-		case TASK_BOARD_OPEN_HUNTING_SHOP:
-			if (ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) {
-				g_dispatcher.addTask([playerID]() { g_game.playerOpenHuntingTaskShop(playerID); });
-			}
-			break;
-		case TASK_BOARD_HUNTING_SHOP_BUY: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint8_t offerIndex = msg.getByte();
-			g_dispatcher.addTask([playerID, offerIndex]() { g_game.playerHuntingTaskShopBuy(playerID, offerIndex); });
-			break;
-		}
-		case TASK_BOARD_PREFERRED_UNLOCK: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint16_t slot = msg.getU16();
-			g_dispatcher.addTask([playerID, slot]() { g_game.playerBountyPreferredUnlock(playerID, slot); });
-			break;
-		}
-		case TASK_BOARD_PREFERRED_CLEAR: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint16_t slot = msg.getU16();
-			g_dispatcher.addTask([playerID, slot]() { g_game.playerBountyPreferredClear(playerID, slot); });
-			break;
-		}
-		case TASK_BOARD_UNWANTED_CLEAR: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint16_t slot = msg.getU16();
-			g_dispatcher.addTask([playerID, slot]() { g_game.playerBountyUnwantedClear(playerID, slot); });
-			break;
-		}
-		case TASK_BOARD_PREFERRED_ASSIGN: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint16_t slot = msg.getU16();
-			const uint16_t raceId = msg.getU16();
-			g_dispatcher.addTask([playerID, slot, raceId]() { g_game.playerBountyPreferredAssign(playerID, slot, raceId); });
-			break;
-		}
-		case TASK_BOARD_UNWANTED_ASSIGN: {
-			if (!ConfigManager::getBoolean(ConfigManager::BOUNTY_TASKS_ENABLED)) break;
-			const uint16_t slot = msg.getU16();
-			const uint16_t raceId = msg.getU16();
-			g_dispatcher.addTask([playerID, slot, raceId]() { g_game.playerBountyUnwantedAssign(playerID, slot, raceId); });
-			break;
-		}
-		default:
-			break;
-	}
-}
-
-void ProtocolGame::sendResourceBalance(uint8_t resourceType, uint64_t value)
-{
-	if (!isOTC) {
-		return;
-	}
-
-	NetworkMessage msg;
-	msg.addByte(0xEE);
-	msg.addByte(resourceType);
-	msg.add<uint64_t>(value);
-	writeToOutputBuffer(msg);
-}
-
-void ProtocolGame::sendTaskBoardResourceBalance()
-{
-	if (!player) {
-		return;
-	}
-	sendResourceBalance(RESOURCE_TASK_HUNTING, player->getTaskHuntingPoints());
-	sendResourceBalance(RESOURCE_BOUNTY_POINTS, player->getBountyPoints());
-	sendResourceBalance(RESOURCE_SOULSEAL_POINTS, player->getSoulsealsPoints());
-}
-
-void ProtocolGame::sendTaskBoardBountyData()
-{
-	if (!player) {
-		return;
-	}
-
-	NetworkMessage msg;
-	msg.addByte(0x53); // GameServerTaskBoard
-	msg.addByte(0x00); // subtype: BOUNTY
-
-	// Creature count (0 = no creatures to select, will show empty state)
-	msg.addByte(0);
-
-	// Trailer
-	msg.addByte(0); // rerollPoints
-	msg.addByte(0); // rerollMode (0 = daily claimable)
-	msg.addByte(0); // selectedDifficulty
-
-	// 4 talisman paths
-	for (uint8_t i = 0; i < 4; ++i) {
-		msg.addByte(0);   // level
-		msg.addByte(0);   // multiplier2
-		msg.addByte(1);   // isActiveUpgrade
-		msg.add<uint16_t>(5); // upgradeCost
-	}
-
-	// Preferred slots
-	msg.addByte(0); // preferredSlotCount
-
-	writeToOutputBuffer(msg);
-}
-
-void ProtocolGame::sendTaskBoardWeeklyData()
-{
-	if (!player) {
-		return;
-	}
-
-	NetworkMessage msg;
-	msg.addByte(0x53); // GameServerTaskBoard
-	msg.addByte(0x01); // subtype: WEEKLY
-
-	msg.add<uint16_t>(0); // anyCreatureTotalKills
-	msg.add<uint16_t>(0); // anyCreatureCurrentKills
-
-	msg.addByte(0); // killTaskCount
-	msg.addByte(0); // deliveryTaskCount
-
-	msg.addByte(0); // difficultyMultiplier
-	msg.add<uint32_t>(0); // killTaskRewardExp
-	msg.add<uint32_t>(0); // deliveryTaskRewardExp
-	msg.addByte(0); // completedKillTasks
-	msg.addByte(0); // completedDeliveryTasks
-	msg.addByte(1); // weeklyProgressFinished (show difficulty selection)
-	msg.addByte(0); // unlockedDifficulty
-	msg.add<uint32_t>(0); // resetTimestamp
-	msg.addByte(0); // hasExpansion
-	msg.add<uint32_t>(0); // rewardHuntingTasksPoints
-	msg.add<uint32_t>(0); // rewardSoulseals
-
-	writeToOutputBuffer(msg);
-}
-
-void ProtocolGame::sendTaskBoardShopData()
-{
-	if (!player) {
-		return;
-	}
-
-	NetworkMessage msg;
-	msg.addByte(0x53); // GameServerTaskBoard
-	msg.addByte(0x02); // subtype: HUNT_SHOP
-
-	msg.addByte(0); // offerCount (empty shop for now)
 
 	writeToOutputBuffer(msg);
 }
