@@ -22,6 +22,7 @@
 #include "server.h"
 #include "signals.h"
 #include "luascript.h"
+#include "lua.hpp"
 #include "thread_pool.h"
 #include "zones.h"
 
@@ -45,6 +46,43 @@ std::condition_variable g_loaderSignal;
 std::unique_lock<std::mutex> g_loaderUniqueLock(g_loaderLock);
 
 namespace {
+
+bool getLogToFileFromConfig(const std::string& configFile)
+{
+	lua_State* L = luaL_newstate();
+	if (!L) {
+		return true;
+	}
+	luaL_openlibs(L);
+
+	lua_pushinteger(L, 1);
+	lua_setglobal(L, "TEXTCOLOR_WHITE");
+	lua_pushinteger(L, 2);
+	lua_setglobal(L, "TEXTCOLOR_RED");
+	lua_pushinteger(L, 3);
+	lua_setglobal(L, "TEXTCOLOR_ORANGE");
+
+	bool logToFile = true;
+	if (luaL_dofile(L, configFile.c_str()) == 0) {
+		lua_getglobal(L, "logToFile");
+		if (lua_isboolean(L, -1)) {
+			logToFile = lua_toboolean(L, -1) != 0;
+		}
+	}
+
+	constexpr const char* serverConfigFile = "data/server_config.lua";
+	if (std::ifstream customConfig(serverConfigFile); customConfig.good()) {
+		if (luaL_dofile(L, serverConfigFile) == 0) {
+			lua_getglobal(L, "logToFile");
+			if (lua_isboolean(L, -1)) {
+				logToFile = lua_toboolean(L, -1) != 0;
+			}
+		}
+	}
+
+	lua_close(L);
+	return logToFile;
+}
 
 void startupErrorMessage(std::string_view errorStr)
 {
@@ -123,7 +161,30 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 	g_stats.setEnabled(false);
 #endif
 
-	if (!initLogger(LogLevel::INFO)) {
+	// check if config.lua or config.lua.dist exist
+	auto configFile = getString(ConfigManager::CONFIG_FILE);
+	if (configFile.empty()) {
+		configFile = "config.lua";
+		ConfigManager::setString(ConfigManager::CONFIG_FILE, configFile);
+	}
+	std::ifstream c_test(fmt::format("./{}", configFile));
+	bool copiedConfig = false;
+	if (!c_test.is_open()) {
+		std::ifstream config_lua_dist("./config.lua.dist");
+		if (config_lua_dist.is_open()) {
+			std::ofstream config_lua(std::string{configFile});
+			config_lua << config_lua_dist.rdbuf();
+			config_lua.close();
+			config_lua_dist.close();
+			copiedConfig = true;
+		}
+	} else {
+		c_test.close();
+	}
+
+	bool logToFile = getLogToFileFromConfig(std::string{configFile});
+
+	if (!initLogger(LogLevel::INFO, "data/logs/server.log", 5 * 1024 * 1024, 3, logToFile)) {
 		startupErrorMessage("Failed to initialize logger!");
 		return;
 	}
@@ -144,24 +205,8 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 
 	printServerVersion();
 
-	// check if config.lua or config.lua.dist exist
-	auto configFile = getString(ConfigManager::CONFIG_FILE);
-	if (configFile.empty()) {
-		configFile = "config.lua";
-		ConfigManager::setString(ConfigManager::CONFIG_FILE, configFile);
-	}
-	std::ifstream c_test(fmt::format("./{}", configFile));
-	if (!c_test.is_open()) {
-		std::ifstream config_lua_dist("./config.lua.dist");
-		if (config_lua_dist.is_open()) {
-			LOG_INFO(fmt::format(">> copying config.lua.dist to {}", configFile));
-			std::ofstream config_lua(std::string{configFile});
-			config_lua << config_lua_dist.rdbuf();
-			config_lua.close();
-			config_lua_dist.close();
-		}
-	} else {
-		c_test.close();
+	if (copiedConfig) {
+		LOG_INFO(fmt::format(">> copying config.lua.dist to {}", configFile));
 	}
 
 	// read global config
