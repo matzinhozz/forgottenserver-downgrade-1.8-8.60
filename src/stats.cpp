@@ -363,7 +363,7 @@ void Stats::writeStats(const std::string& file, const statsMap& stats, const std
 		if (!infoCopy.empty() && infoCopy.back() == '\n') {
 			infoCopy.pop_back();
 		}
-		LOG_STATS("{}", infoCopy); 
+		LOG_STATS("{}", infoCopy);
 	}
 
 	if (!ConfigManager::getBoolean(ConfigManager::LOG_TO_FILE)) {

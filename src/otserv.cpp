@@ -53,8 +53,6 @@ bool getLogToFileFromConfig(const std::string& configFile)
 	if (!L) {
 		return true;
 	}
-	luaL_openlibs(L);
-
 	lua_pushinteger(L, 1);
 	lua_setglobal(L, "TEXTCOLOR_WHITE");
 	lua_pushinteger(L, 2);
@@ -62,12 +60,14 @@ bool getLogToFileFromConfig(const std::string& configFile)
 	lua_pushinteger(L, 3);
 	lua_setglobal(L, "TEXTCOLOR_ORANGE");
 
-	bool logToFile = true;
+	bool logToFile = false;
 	if (luaL_dofile(L, configFile.c_str()) == 0) {
 		lua_getglobal(L, "logToFile");
 		if (lua_isboolean(L, -1)) {
 			logToFile = lua_toboolean(L, -1) != 0;
 		}
+	} else {
+		fmt::print(stderr, "Warning: Failed to parse config file '{}': {}\n", configFile, lua_tostring(L, -1));
 	}
 
 	constexpr const char* serverConfigFile = "data/server_config.lua";
@@ -77,6 +77,8 @@ bool getLogToFileFromConfig(const std::string& configFile)
 			if (lua_isboolean(L, -1)) {
 				logToFile = lua_toboolean(L, -1) != 0;
 			}
+		} else {
+			fmt::print(stderr, "Warning: Failed to parse server config '{}': {}\n", serverConfigFile, lua_tostring(L, -1));
 		}
 	}
 
