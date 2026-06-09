@@ -51,8 +51,10 @@ bool getLogToFileFromConfig(const std::string& configFile)
 {
 	lua_State* L = luaL_newstate();
 	if (!L) {
-		return true;
+		return false;
 	}
+	luaL_openlibs(L);
+
 	lua_pushinteger(L, 1);
 	lua_setglobal(L, "TEXTCOLOR_WHITE");
 	lua_pushinteger(L, 2);
@@ -187,6 +189,7 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 	bool logToFile = getLogToFileFromConfig(std::string{configFile});
 
 	if (!initLogger(LogLevel::INFO, "data/logs/server.log", 5 * 1024 * 1024, 3, logToFile)) {
+		fmt::print(stderr, "Failed to initialize logger!\n");
 		startupErrorMessage("Failed to initialize logger!");
 		return;
 	}
