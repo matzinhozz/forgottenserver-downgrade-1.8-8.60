@@ -1,0 +1,93 @@
+name: Build with vcpkg
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+      - 'fix/**'
+      - 'feat/**'
+
+    paths:
+      - .github/workflows/build-vcpkg.yml
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - CMakePresets.json
+      - vcpkg.json
+
+  pull_request:
+    paths:
+      - .github/workflows/build-vcpkg.yml
+      - cmake/**
+      - src/**
+      - CMakeLists.txt
+      - CMakePresets.json
+      - vcpkg.json
+
+jobs:
+  build-windows:
+    name: Windows
+    runs-on: windows-2022
+
+    env:
+      VCPKG_BUILD_TYPE: release
+      VCPKG_INSTALLED_DIR: ${{ github.workspace }}/vcpkg_installed/x64-windows-static-release
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/vcpkg_cache,readwrite
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Forca o toolchain MSVC: o runner tem MinGW no PATH e o CMake o escolhia,
+      # mas as deps do vcpkg sao MSVC (.lib) -> mistura GCC+MSVC quebrava o link
+      # (ex.: flag MSVC -ignore:4221 chegando no g++). cl casa com as libs do vcpkg.
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        with:
+          arch: x64
+
+      - name: Create vcpkg binary cache directory
+        run: mkdir -p "${{ github.workspace }}/vcpkg_cache"
+        shell: bash
+
+      - name: Get latest CMake
+        uses: lukka/get-cmake@v4.3.2
+
+      - name: Cache vcpkg binary packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json', 'CMakeLists.txt', '**/CMakeLists.txt', 'CMakePresets.json') }}
+          restore-keys: |
+            vcpkg-windows-
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgJsonGlob: 'vcpkg.json'
+
+      - name: Build with CMake
+        uses: lukka/run-cmake@v10.9
+        with:
+          configurePreset: vcpkg
+          buildPreset: vcpkg
+          configurePresetAdditionalArgs: "['-GNinja', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_C_COMPILER=cl', '-DCMAKE_CXX_COMPILER=cl', '-DVCPKG_TARGET_TRIPLET=x64-windows-static', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded']"
+
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-windows-${{ github.sha }}
+          path: ${{ github.workspace }}/vcpkg/buildtrees/**/*.log
+        if: ${{ failure() }}
+
+      - name: Upload artifact binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfs-windows-${{ github.sha }}
+          path: ${{ github.workspace }}/build/tfs.exe

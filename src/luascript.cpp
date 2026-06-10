@@ -59,22 +59,35 @@ template const Container* getItemUserdata<const Container>(lua_State*, int32_t);
 
 extern Game g_game;
 extern Vocations g_vocations;
+extern LuaEnvironment g_luaEnvironment;
 
 namespace {
 constexpr int32_t KV_MAX_LUA_RECURSION = 32;
 
-std::shared_ptr<Npc> makeScriptNpcHandle(Npc* npc)
+static int pushAsyncTransactionError(lua_State* L, std::string_view syncApiName)
 {
-	if (!npc) {
+	lua_pushnil(L);
+	lua_pushfstring(L, "Cannot use async queries inside a database transaction. Use synchronous %s instead.", std::string(syncApiName).c_str());
+	return 2;
+}
+
+static void finishAsyncDatabaseCallback(lua_State* luaState, int32_t ref, uint32_t scriptId, int32_t nargs)
+{
+	auto env = LuaScriptInterface::getScriptEnv();
+	env->setScriptId(scriptId, &g_luaEnvironment);
+	g_luaEnvironment.callFunction(nargs);
+	luaL_unref(luaState, LUA_REGISTRYINDEX, ref);
+}
+
+static Player* getRequiredPlayerOrPushFalse(lua_State* L, int32_t index)
+{
+	Player* player = Lua::getPlayer(L, index);
+	if (!player) {
+		reportErrorFunc(L, LuaScriptInterface::getErrorDesc(LuaErrorCode::PLAYER_NOT_FOUND));
+		Lua::pushBoolean(L, false);
 		return nullptr;
 	}
-
-	if (auto creatureRef = g_game.getCreatureSharedRef(npc)) {
-		return std::static_pointer_cast<Npc>(creatureRef);
-	}
-
-	// XML NPC scripts may execute before the NPC is registered in g_game.
-	return std::shared_ptr<Npc>(npc, [](Npc*) {});
+	return player;
 }
 
 int luaSetMonsterLevelSkullRange(lua_State* L)
@@ -246,6 +259,7 @@ void ScriptEnvironment::resetEnv()
 	scriptId = 0;
 	callbackId = 0;
 	timerEvent = false;
+	hasOpenTransaction = false;
 	interface = nullptr;
 	curNpc = nullptr;
 	localMap.clear();
@@ -515,7 +529,7 @@ int LuaScriptInterface::protectedCall(lua_State* L, int nargs, int nresults)
 
 int32_t LuaScriptInterface::loadFile(std::string_view file, Npc* npc /* = nullptr*/)
 {
-	return loadFile(file, makeScriptNpcHandle(npc));
+	return loadFile(file, Npcs::makeScriptHandle(npc));
 }
 
 int32_t LuaScriptInterface::loadFile(std::string_view file, const std::shared_ptr<Npc>& npc)
@@ -1275,10 +1289,10 @@ LuaDataType Lua::getUserdataType(lua_State* L, int32_t arg)
 
 std::optional<uint8_t> Lua::getBlessingId(lua_State* L, int32_t arg)
 {
-	int8_t blessing = getInteger<int8_t>(L, arg) - 1;
-	if (blessing < 0 || blessing >= PLAYER_MAX_BLESSINGS) {
+	uint8_t blessing = getInteger<uint8_t>(L, arg);
+	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS) {
 		reportErrorFunc(
-		    L, fmt::format("Invalid blessing id: {} (must be between 1 and {})", blessing + 1, PLAYER_MAX_BLESSINGS));
+		    L, fmt::format("Invalid blessing id: {} (must be between 1 and {})", blessing, PLAYER_MAX_BLESSINGS));
 		return std::nullopt;
 	}
 
@@ -1698,6 +1712,9 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(CONDITION_FREEZING);
 	registerEnum(CONDITION_DAZZLED);
 	registerEnum(CONDITION_CURSED);
+	registerEnum(CONDITION_ROOTED);
+	registerEnum(CONDITION_FEARED);
+	registerEnum(CONDITION_AGONY);
 	registerEnum(CONDITION_EXHAUST_COMBAT);
 	registerEnum(CONDITION_EXHAUST_HEAL);
 	registerEnum(CONDITION_PACIFIED);
@@ -1707,6 +1724,44 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(CONDITION_ROOTED);
 	registerEnum(CONDITION_FEARED);
 	registerEnum(CONDITION_AGONY);
+
+	registerEnum(CreatureIconCategory_Quests);
+	registerEnum(CreatureIconCategory_Modifications);
+
+	registerEnum(CreatureIconModifications_None);
+	registerEnum(CreatureIconModifications_HigherDamageReceived);
+	registerEnum(CreatureIconModifications_LowerDamageDealt);
+	registerEnum(CreatureIconModifications_TurnedMelee);
+	registerEnum(CreatureIconModifications_Influenced);
+	registerEnum(CreatureIconModifications_Fiendish);
+	registerEnum(CreatureIconModifications_ReducedHealth);
+	registerEnum(CreatureIconModifications_ReducedHealthExclamation);
+
+	registerEnum(CreatureIconQuests_None);
+	registerEnum(CreatureIconQuests_WhiteCross);
+	registerEnum(CreatureIconQuests_RedCross);
+	registerEnum(CreatureIconQuests_RedBall);
+	registerEnum(CreatureIconQuests_GreenBall);
+	registerEnum(CreatureIconQuests_RedGreenBall);
+	registerEnum(CreatureIconQuests_GreenShield);
+	registerEnum(CreatureIconQuests_YellowShield);
+	registerEnum(CreatureIconQuests_BlueShield);
+	registerEnum(CreatureIconQuests_PurpleShield);
+	registerEnum(CreatureIconQuests_RedShield);
+	registerEnum(CreatureIconQuests_Dove);
+	registerEnum(CreatureIconQuests_Energy);
+	registerEnum(CreatureIconQuests_Earth);
+	registerEnum(CreatureIconQuests_Water);
+	registerEnum(CreatureIconQuests_Fire);
+	registerEnum(CreatureIconQuests_Ice);
+	registerEnum(CreatureIconQuests_ArrowUp);
+	registerEnum(CreatureIconQuests_ArrowDown);
+	registerEnum(CreatureIconQuests_ExclamationMark);
+	registerEnum(CreatureIconQuests_QuestionMark);
+	registerEnum(CreatureIconQuests_CancelMark);
+	registerEnum(CreatureIconQuests_Hazard);
+	registerEnum(CreatureIconQuests_BrownSkull);
+	registerEnum(CreatureIconQuests_BloodDrop);
 
 	registerEnum(CONDITIONID_DEFAULT);
 	registerEnum(CONDITIONID_COMBAT);
@@ -3089,10 +3144,8 @@ int LuaScriptInterface::luaDoPlayerAddItem(lua_State* L)
 	// doPlayerAddItem(cid, itemid, <optional: default: 1> count/subtype, <optional: default: 1> canDropOnMap)
 	// doPlayerAddItem(cid, itemid, <optional: default: 1> count, <optional: default: 1> canDropOnMap, <optional:
 	// default: 1>subtype)
-	Player* player = Lua::getPlayer(L, 1);
+	Player* player = getRequiredPlayerOrPushFalse(L, 1);
 	if (!player) {
-		reportErrorFunc(L, getErrorDesc(LuaErrorCode::PLAYER_NOT_FOUND));
-		Lua::pushBoolean(L, false);
 		return 1;
 	}
 
@@ -3703,17 +3756,13 @@ int LuaScriptInterface::luaCleanMap(lua_State* L)
 int LuaScriptInterface::luaIsInWar(lua_State* L)
 {
 	// isInWar(cid, target)
-	Player* player = Lua::getPlayer(L, 1);
+	Player* player = getRequiredPlayerOrPushFalse(L, 1);
 	if (!player) {
-		reportErrorFunc(L, getErrorDesc(LuaErrorCode::PLAYER_NOT_FOUND));
-		Lua::pushBoolean(L, false);
 		return 1;
 	}
 
-	Player* targetPlayer = Lua::getPlayer(L, 2);
+	Player* targetPlayer = getRequiredPlayerOrPushFalse(L, 2);
 	if (!targetPlayer) {
-		reportErrorFunc(L, getErrorDesc(LuaErrorCode::PLAYER_NOT_FOUND));
-		Lua::pushBoolean(L, false);
 		return 1;
 	}
 
@@ -3830,6 +3879,11 @@ const luaL_Reg LuaScriptInterface::luaDatabaseTable[] = {
     {"escapeBlob", LuaScriptInterface::luaDatabaseEscapeBlob},
     {"lastInsertId", LuaScriptInterface::luaDatabaseLastInsertId},
     {"tableExists", LuaScriptInterface::luaDatabaseTableExists},
+    {"beginTransaction", LuaScriptInterface::luaDatabaseBeginTransaction},
+    {"commit", LuaScriptInterface::luaDatabaseCommit},
+    {"rollback", LuaScriptInterface::luaDatabaseRollback},
+    {"affectedRows", LuaScriptInterface::luaDatabaseAffectedRows},
+    {"transaction", LuaScriptInterface::luaDatabaseTransaction},
     {nullptr, nullptr}};
 
 int LuaScriptInterface::luaDatabaseExecute(lua_State* L)
@@ -3840,11 +3894,14 @@ int LuaScriptInterface::luaDatabaseExecute(lua_State* L)
 
 int LuaScriptInterface::luaDatabaseAsyncExecute(lua_State* L)
 {
-	std::function<void(DBResult_ptr, bool)> callback;
+	if (Database::getInstance().isInTransaction()) {
+		return pushAsyncTransactionError(L, "db.query()");
+	}
+	std::function<void(DBResult_ptr, bool, uint64_t)> callback;
 	if (lua_gettop(L) > 1) {
 		int32_t ref = luaL_ref(L, LUA_REGISTRYINDEX);
 		auto scriptId = getScriptEnv()->getScriptId();
-		callback = [ref, scriptId](DBResult_ptr, bool success) {
+		callback = [ref, scriptId](DBResult_ptr, bool success, uint64_t affectedRows) {
 			lua_State* luaState = g_luaEnvironment.getLuaState();
 			if (!luaState) {
 				return;
@@ -3857,11 +3914,8 @@ int LuaScriptInterface::luaDatabaseAsyncExecute(lua_State* L)
 
 			lua_rawgeti(luaState, LUA_REGISTRYINDEX, ref);
 			Lua::pushBoolean(luaState, success);
-			auto env = getScriptEnv();
-			env->setScriptId(scriptId, &g_luaEnvironment);
-			g_luaEnvironment.callFunction(1);
-
-			luaL_unref(luaState, LUA_REGISTRYINDEX, ref);
+			lua_pushinteger(luaState, affectedRows);
+			finishAsyncDatabaseCallback(luaState, ref, scriptId, 2);
 		};
 	}
 	g_databaseTasks.addTask(Lua::getString(L, -1), callback);
@@ -3880,11 +3934,14 @@ int LuaScriptInterface::luaDatabaseStoreQuery(lua_State* L)
 
 int LuaScriptInterface::luaDatabaseAsyncStoreQuery(lua_State* L)
 {
-	std::function<void(DBResult_ptr, bool)> callback;
+	if (Database::getInstance().isInTransaction()) {
+		return pushAsyncTransactionError(L, "db.storeQuery()");
+	}
+	std::function<void(DBResult_ptr, bool, uint64_t)> callback;
 	if (lua_gettop(L) > 1) {
 		int32_t ref = luaL_ref(L, LUA_REGISTRYINDEX);
 		auto scriptId = getScriptEnv()->getScriptId();
-		callback = [ref, scriptId](DBResult_ptr result, bool) {
+		callback = [ref, scriptId](DBResult_ptr result, bool, uint64_t affectedRows) {
 			lua_State* luaState = g_luaEnvironment.getLuaState();
 			if (!luaState) {
 				return;
@@ -3898,14 +3955,12 @@ int LuaScriptInterface::luaDatabaseAsyncStoreQuery(lua_State* L)
 			lua_rawgeti(luaState, LUA_REGISTRYINDEX, ref);
 			if (result) {
 				lua_pushinteger(luaState, ScriptEnvironment::addResult(result));
+				lua_pushinteger(luaState, affectedRows);
 			} else {
 				Lua::pushBoolean(luaState, false);
+				lua_pushinteger(luaState, 0);
 			}
-			auto env = getScriptEnv();
-			env->setScriptId(scriptId, &g_luaEnvironment);
-			g_luaEnvironment.callFunction(1);
-
-			luaL_unref(luaState, LUA_REGISTRYINDEX, ref);
+			finishAsyncDatabaseCallback(luaState, ref, scriptId, 2);
 		};
 	}
 	g_databaseTasks.addTask(Lua::getString(L, -1), callback, true);
@@ -3934,6 +3989,73 @@ int LuaScriptInterface::luaDatabaseLastInsertId(lua_State* L)
 int LuaScriptInterface::luaDatabaseTableExists(lua_State* L)
 {
 	Lua::pushBoolean(L, DatabaseManager::tableExists(Lua::getString(L, -1)));
+	return 1;
+}
+
+int LuaScriptInterface::luaDatabaseBeginTransaction(lua_State* L)
+{
+	bool success = Database::getInstance().beginTransaction();
+	if (success) {
+		getScriptEnv()->hasOpenTransaction = true;
+	}
+	Lua::pushBoolean(L, success);
+	return 1;
+}
+
+int LuaScriptInterface::luaDatabaseCommit(lua_State* L)
+{
+	bool success = Database::getInstance().commit();
+	if (success) {
+		getScriptEnv()->hasOpenTransaction = false;
+	}
+	Lua::pushBoolean(L, success);
+	return 1;
+}
+
+int LuaScriptInterface::luaDatabaseRollback(lua_State* L)
+{
+	bool success = Database::getInstance().rollback();
+	if (success) {
+		getScriptEnv()->hasOpenTransaction = false;
+	}
+	Lua::pushBoolean(L, success);
+	return 1;
+}
+
+int LuaScriptInterface::luaDatabaseAffectedRows(lua_State* L)
+{
+	lua_pushinteger(L, Database::getInstance().getAffectedRows());
+	return 1;
+}
+
+int LuaScriptInterface::luaDatabaseTransaction(lua_State* L)
+{
+	if (!Lua::isFunction(L, 1)) {
+		reportErrorFunc(L, "db.transaction expects a function argument");
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	auto* env = getScriptEnv();
+	if (!Database::getInstance().beginTransaction()) {
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+	env->hasOpenTransaction = true;
+
+	lua_pushvalue(L, 1);
+	int32_t ret = protectedCall(L, 0, 0);
+	if (ret != 0) {
+		Database::getInstance().rollback();
+		env->hasOpenTransaction = false;
+		reportError(nullptr, Lua::popString(L));
+		Lua::pushBoolean(L, false);
+		return 1;
+	}
+
+	bool success = Database::getInstance().commit();
+	env->hasOpenTransaction = false;
+	Lua::pushBoolean(L, success);
 	return 1;
 }
 

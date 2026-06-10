@@ -17,6 +17,7 @@
 #include "protocolstatus.h"
 #include "reactor.h"
 #include "rsa.h"
+#include "save_manager.h"
 #include "scheduler.h"
 #include "script.h"
 #include "scriptmanager.h"
@@ -214,6 +215,9 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 
 	DatabaseManager::updateDatabase();
 
+	// Recover any pending async saves from a previous crash
+	g_saveManager.recoverPendingFlushes();
+
 	if (getBoolean(ConfigManager::OPTIMIZE_DATABASE) && !DatabaseManager::optimizeTables()) {
 		LOG_INFO(">> No tables were optimized.");
 	}
@@ -409,7 +413,7 @@ void startServer()
 			fmt::format(fg(fmt::color::lime_green), "{}", getInteger(ConfigManager::GAME_PORT)),
 			fmt::format(fg(fmt::color::lime_green), "{}", getString(ConfigManager::IP)));
 		if (networkThreads > 1) {
-			LOG_NETWORK(">> I/O threads: {}", networkThreads);
+			LOG_THREADPOOL(">> I/O thread pool ready: {} workers", networkThreads);
 		}
 		LOG_INFO("");
 		LOG_INFO(">> {} Server Online!", getString(ConfigManager::SERVER_NAME));
