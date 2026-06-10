@@ -85,6 +85,7 @@
     <ClCompile Include="..\src\inbox.cpp" />
     <ClCompile Include="..\src\mapcache.cpp" />
     <ClCompile Include="..\src\stats.cpp" />
+    <ClCompile Include="..\src\stress_test.cpp" />
     <ClInclude Include="..\src\instance_utils.h" />
     <ClCompile Include="..\src\protocolspectator.cpp" />
     <ClCompile Include="..\src\save_manager.cpp" />
@@ -308,6 +309,7 @@
     <ClInclude Include="..\src\imbuement.h" />
     <ClInclude Include="..\src\familiar.h" />
     <ClInclude Include="..\src\spy.h" />
+    <ClInclude Include="..\src\stress_test.h" />
     <ClInclude Include="..\src\zones.h" />
     <ClInclude Include="..\src\storeinbox.h" />
     <ClInclude Include="..\src\weapon_proficiency.h" />

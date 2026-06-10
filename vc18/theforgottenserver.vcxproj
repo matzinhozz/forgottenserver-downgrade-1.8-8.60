@@ -298,6 +298,7 @@
     <ClCompile Include="..\src\spy.cpp" />
     <ClCompile Include="..\src\spells.cpp" />
     <ClCompile Include="..\src\stats.cpp" />
+    <ClCompile Include="..\src\stress_test.cpp" />
     <ClCompile Include="..\src\storeinbox.cpp" />
     <ClCompile Include="..\src\protocolstatus.cpp" />
     <ClCompile Include="..\src\talkaction.cpp" />
@@ -399,6 +400,7 @@
     <ClInclude Include="..\src\scriptmanager.h" />
     <ClInclude Include="..\src\server.h" />
     <ClInclude Include="..\src\signals.h" />
+    <ClInclude Include="..\src\stress_test.h" />
     <ClInclude Include="..\src\spawn.h" />
     <ClInclude Include="..\src\spy.h" />
     <ClInclude Include="..\src\spectators.h" />
