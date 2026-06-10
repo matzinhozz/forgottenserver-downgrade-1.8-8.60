@@ -9,6 +9,6 @@ function onUpdateDatabase()
 			`created_at` BIGINT NOT NULL,
 			PRIMARY KEY (`guid`, `query_index`),
 			FOREIGN KEY (`guid`) REFERENCES `players`(`id`) ON DELETE CASCADE
-		) ENGINE=InnoDB]]
+		) ENGINE=InnoDB
 	]])
 end
