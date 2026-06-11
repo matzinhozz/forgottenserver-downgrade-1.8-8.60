@@ -15,6 +15,7 @@
 #include "protocollogin.h"
 #include "protocoladmin.h"
 #include "protocolstatus.h"
+#include "reactor.h"
 #include "rsa.h"
 #include "save_manager.h"
 #include "scheduler.h"
@@ -41,16 +42,11 @@ Game g_game;
 Monsters g_monsters;
 Vocations g_vocations;
 
-std::mutex g_loaderLock;
-std::condition_variable g_loaderSignal;
-std::unique_lock<std::mutex> g_loaderUniqueLock(g_loaderLock);
-
 namespace {
 
 void startupErrorMessage(std::string_view errorStr)
 {
 	LOG_ERROR(errorStr);
-	g_loaderSignal.notify_all();
 }
 
 std::string formatFeatureStatus(std::string_view name, ConfigManager::Boolean key)
@@ -117,7 +113,8 @@ std::string getCompilerName()
 
 void mainLoader(const std::shared_ptr<ServiceManager>& services)
 {
-	// dispatcher thread
+	// reactor thread
+	UPDATE_OTSYS_TIME();
 	g_game.setGameState(GAME_STATE_STARTUP);
 
 #ifdef STATS_ENABLED
@@ -373,8 +370,6 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 
 	// Pre-warm the OutputMessage pool to avoid operator new() on first connections
 	OutputMessagePool::prewarmPool(128);
-
-	g_loaderSignal.notify_all();
 }
 
 [[noreturn]] void badAllocationHandler()
@@ -400,13 +395,14 @@ void startServer()
 	g_dispatcher.start();
 	g_scheduler.start();
 
-	{
-		auto loaderTask = createTaskWithStats([services = serviceManager]() { mainLoader(services); }, "MainLoader", "");
-		loaderTask->skipSlowDetection = true;
-		g_dispatcher.addTask(std::move(loaderTask));
-	}
+	// Configure reactor production limits: fairness, time budget, and backpressure
+	g_reactor.setMaxTasksPerCycle(500);
+	g_reactor.setTimeBudget(std::chrono::milliseconds(5));
+	g_reactor.setMaxInboxSize(100000);
 
-	g_loaderSignal.wait(g_loaderUniqueLock);
+	mainLoader(serviceManager);
+
+	std::jthread serviceThread;
 
 	if (serviceManager->is_running()) {
 		const auto networkThreads = std::clamp<int64_t>(getInteger(ConfigManager::NETWORK_THREADS), 1, 64);
@@ -426,7 +422,8 @@ void startServer()
 		}
 		LOG_INFO("");
 		LOG_INFO(">> {} Server Online!", getString(ConfigManager::SERVER_NAME));
-		serviceManager->run();
+		serviceThread = std::jthread([serviceManager]() { serviceManager->run(); });
+		g_reactor.runLoop();
 	} else {
 		LOG_INFO(">> No services running. The server is NOT online.");
 		g_threadPool.shutdown();
@@ -450,12 +447,18 @@ void startServer()
 		}
 	});
 
-	// Shutdown ThreadPool first - async map saves need DB connection alive
+	serviceManager->stop();
+	if (serviceThread.joinable()) {
+		serviceThread.join();
+	}
+
+	// Shutdown ThreadPool before the database connection goes away.
 	g_threadPool.shutdown();
 
-	// Wait for all dispatcher/scheduler tasks to finish (including Game::shutdown)
-	// before closing the Lua environment. NPCs and their NpcScriptInterface
+	// Wait for all background tasks to finish before closing the Lua environment.
+	// NPCs and their NpcScriptInterface
 	g_scheduler.join();
+	g_databaseTasks.shutdown();
 	g_databaseTasks.join();
 	g_dispatcher.join();
 #ifdef STATS_ENABLED

@@ -26,6 +26,7 @@
 #include "scriptmanager.h"
 #include "spectators.h"
 #include "spells.h"
+#include "stress_test.h"
 #include "teleport.h"
 #include "logger.h"
 #include <fmt/format.h>
@@ -1596,6 +1597,7 @@ void LuaScriptInterface::registerFunctions()
 	registerGlobalVariable("COLORIZED_LOOT_VALUE", ConfigManager::COLORIZED_LOOT_VALUE);
 	registerGlobalVariable("ITEM_TIER_DISPLAY", ConfigManager::ITEM_TIER_DISPLAY);
 	registerGlobalVariable("ITEM_UPGRADE_CLASSIFICATION", ConfigManager::ITEM_UPGRADE_CLASSIFICATION);
+	registerGlobalVariable("MIN_TASK_INTERVAL", MIN_TASK_INTERVAL);
 
 	registerGlobalVariable("ACCOUNT_MANAGER_NONE", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NONE));
 	registerGlobalVariable("ACCOUNT_MANAGER_NEW", static_cast<uint8_t>(AccountManagerMode::ACCOUNT_MANAGER_NEW));
@@ -1720,10 +1722,6 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(CONDITION_CLIPORT);
 	registerEnum(CONDITION_SPELLCOOLDOWN);
 	registerEnum(CONDITION_SPELLGROUPCOOLDOWN);
-	registerEnum(CONDITION_ROOTED);
-	registerEnum(CONDITION_FEARED);
-	registerEnum(CONDITION_AGONY);
-
 	registerEnum(CreatureIconCategory_Quests);
 	registerEnum(CreatureIconCategory_Modifications);
 
@@ -2963,6 +2961,7 @@ void LuaScriptInterface::registerFunctions()
 	registerWeapons();
 	registerXML();
 	registerKV();
+	registerStressReactor();
 }
 
 #undef registerEnum
@@ -3695,7 +3694,7 @@ int LuaScriptInterface::luaAddEvent(lua_State* L)
 		eventDesc.parameters.push_back(luaL_ref(L, LUA_REGISTRYINDEX));
 	}
 
-	uint32_t delay = std::max<uint32_t>(100, Lua::getInteger<uint32_t>(L, 2));
+	uint32_t delay = std::max<uint32_t>(MIN_TASK_INTERVAL, Lua::getInteger<uint32_t>(L, 2));
 	lua_pop(L, 1);
 
 	eventDesc.function = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -4465,6 +4464,66 @@ void LuaScriptInterface::registerKV() {
 	registerMethod("KV", "get", LuaScriptInterface::luaKVGet);
 	registerMethod("KV", "keys", LuaScriptInterface::luaKVKeys);
 	registerMethod("KV", "remove", LuaScriptInterface::luaKVRemove);
+}
+
+void LuaScriptInterface::registerStressReactor()
+{
+	lua_register(luaState, "stressReactor", [](lua_State*) {
+		runStressTests();
+		return 0;
+	});
+
+	// Boolean config keys
+	registerVariable("configKeys", "STRESS_TEST", static_cast<int64_t>(ConfigManager::STRESS_TEST));
+	registerVariable("configKeys", "STRESS_TEST_SEND", static_cast<int64_t>(ConfigManager::STRESS_TEST_SEND));
+	registerVariable("configKeys", "STRESS_TEST_SCHEDULE", static_cast<int64_t>(ConfigManager::STRESS_TEST_SCHEDULE));
+	registerVariable("configKeys", "STRESS_TEST_STAGGERED", static_cast<int64_t>(ConfigManager::STRESS_TEST_STAGGERED));
+	registerVariable("configKeys", "STRESS_TEST_MIXED", static_cast<int64_t>(ConfigManager::STRESS_TEST_MIXED));
+	registerVariable("configKeys", "STRESS_TEST_CANCEL", static_cast<int64_t>(ConfigManager::STRESS_TEST_CANCEL));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_PUSH", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_PUSH));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_SCHEDULE", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_SCHEDULE));
+	registerVariable("configKeys", "STRESS_TEST_HEAP_ORDER", static_cast<int64_t>(ConfigManager::STRESS_TEST_HEAP_ORDER));
+	registerVariable("configKeys", "STRESS_TEST_UNIQUE_IDS", static_cast<int64_t>(ConfigManager::STRESS_TEST_UNIQUE_IDS));
+	registerVariable("configKeys", "STRESS_TEST_MOVE_ONLY", static_cast<int64_t>(ConfigManager::STRESS_TEST_MOVE_ONLY));
+	registerVariable("configKeys", "STRESS_TEST_EXPIRATION", static_cast<int64_t>(ConfigManager::STRESS_TEST_EXPIRATION));
+	registerVariable("configKeys", "STRESS_TEST_BURST", static_cast<int64_t>(ConfigManager::STRESS_TEST_BURST));
+	registerVariable("configKeys", "STRESS_TEST_REENTRANCY", static_cast<int64_t>(ConfigManager::STRESS_TEST_REENTRANCY));
+	registerVariable("configKeys", "STRESS_TEST_SHUTDOWN_PENDING", static_cast<int64_t>(ConfigManager::STRESS_TEST_SHUTDOWN_PENDING));
+	registerVariable("configKeys", "STRESS_TEST_CANCEL_EXTERNAL", static_cast<int64_t>(ConfigManager::STRESS_TEST_CANCEL_EXTERNAL));
+	registerVariable("configKeys", "STRESS_TEST_EXCEPTION", static_cast<int64_t>(ConfigManager::STRESS_TEST_EXCEPTION));
+	registerVariable("configKeys", "STRESS_TEST_BENCHMARK", static_cast<int64_t>(ConfigManager::STRESS_TEST_BENCHMARK));
+	registerVariable("configKeys", "STRESS_TEST_INSPECTION", static_cast<int64_t>(ConfigManager::STRESS_TEST_INSPECTION));
+	registerVariable("configKeys", "STRESS_TEST_MIXED_DELAYS", static_cast<int64_t>(ConfigManager::STRESS_TEST_MIXED_DELAYS));
+	registerVariable("configKeys", "STRESS_TEST_LEAK", static_cast<int64_t>(ConfigManager::STRESS_TEST_LEAK));
+	registerVariable("configKeys", "STRESS_TEST_SHUTDOWN_SEND", static_cast<int64_t>(ConfigManager::STRESS_TEST_SHUTDOWN_SEND));
+
+	// Integer config keys
+	registerVariable("configKeys", "STRESS_TEST_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_THREADS", static_cast<int64_t>(ConfigManager::STRESS_TEST_THREADS));
+	registerVariable("configKeys", "STRESS_TEST_SEND_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_SEND_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_SCHEDULE_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_SCHEDULE_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_STAGGERED_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_STAGGERED_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_MIXED_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_MIXED_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CANCEL_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_CANCEL_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_PUSH_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_PUSH_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_SCHEDULE_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_SCHEDULE_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_HEAP_ORDER_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_HEAP_ORDER_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_UNIQUE_IDS_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_UNIQUE_IDS_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_MOVE_ONLY_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_MOVE_ONLY_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_EXPIRATION_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_EXPIRATION_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_BURST_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_BURST_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_PUSH_THREADS", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_PUSH_THREADS));
+	registerVariable("configKeys", "STRESS_TEST_CONCURRENT_SCHEDULE_THREADS", static_cast<int64_t>(ConfigManager::STRESS_TEST_CONCURRENT_SCHEDULE_THREADS));
+	registerVariable("configKeys", "STRESS_TEST_UNIQUE_IDS_THREADS", static_cast<int64_t>(ConfigManager::STRESS_TEST_UNIQUE_IDS_THREADS));
+	registerVariable("configKeys", "STRESS_TEST_REENTRANCY_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_REENTRANCY_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_SHUTDOWN_PENDING_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_SHUTDOWN_PENDING_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CANCEL_EXTERNAL_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_CANCEL_EXTERNAL_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_CANCEL_EXTERNAL_THREADS", static_cast<int64_t>(ConfigManager::STRESS_TEST_CANCEL_EXTERNAL_THREADS));
+	registerVariable("configKeys", "STRESS_TEST_EXCEPTION_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_EXCEPTION_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_INSPECTION_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_INSPECTION_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_MIXED_DELAYS_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_MIXED_DELAYS_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_LEAK_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_LEAK_COUNT));
+	registerVariable("configKeys", "STRESS_TEST_SHUTDOWN_SEND_COUNT", static_cast<int64_t>(ConfigManager::STRESS_TEST_SHUTDOWN_SEND_COUNT));
 }
 
 int LuaScriptInterface::luaKVScoped(lua_State* L) {

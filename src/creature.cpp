@@ -1513,8 +1513,8 @@ int64_t Creature::getStepDuration() const
 
 	int64_t stepDuration = (1000 * static_cast<int64_t>(groundSpeed)) / stepSpeed;
 
-	if (stepDuration < SCHEDULER_MINTICKS) {
-		stepDuration = SCHEDULER_MINTICKS;
+	if (stepDuration < MIN_TASK_INTERVAL) {
+		stepDuration = MIN_TASK_INTERVAL;
 	}
 
 	return stepDuration * lastStepCost;

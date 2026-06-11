@@ -28,7 +28,7 @@ Decay g_decay;
 
 constexpr int32_t Decay::clampSchedulerDuration(int32_t duration) noexcept
 {
-	return std::max(SCHEDULER_MINTICKS, duration);
+	return std::max(MIN_TASK_INTERVAL, duration);
 }
 
 void Decay::scheduleNextCheck(DecayTimestamp nextTimestamp) noexcept
