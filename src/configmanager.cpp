@@ -476,6 +476,11 @@ bool ConfigManager::load()
 	if (!booleans[Boolean::TASK_HUNTING_SYSTEM_ENABLED]) {
 		booleans[Boolean::BOUNTY_TASKS_ENABLED] = false;
 		booleans[Boolean::WEEKLY_TASKS_ENABLED] = false;
+		booleans[Boolean::SOULSEALS_SYSTEM_ENABLED] = false;
+	}
+	// Soulseals depends on weekly tasks
+	if (!booleans[Boolean::WEEKLY_TASKS_ENABLED]) {
+		booleans[Boolean::SOULSEALS_SYSTEM_ENABLED] = false;
 	}
 
 	// Stress Reactor

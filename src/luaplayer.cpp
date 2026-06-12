@@ -1523,7 +1523,13 @@ int luaPlayerSetTaskHuntingPoints(lua_State* L)
 		return 1;
 	}
 
-	player->setTaskHuntingPoints(getInteger<uint64_t>(L, 2));
+	int64_t points = getInteger<int64_t>(L, 2);
+	if (points < 0) {
+		reportErrorFunc(L, "Task hunting points value must be non-negative.");
+		lua_pushnil(L);
+		return 1;
+	}
+	player->setTaskHuntingPoints(static_cast<uint64_t>(points));
 	pushBoolean(L, true);
 	return 1;
 }
@@ -1577,7 +1583,13 @@ int luaPlayerSetBountyPoints(lua_State* L)
 		return 1;
 	}
 
-	player->setBountyTaskPoints(getInteger<uint64_t>(L, 2));
+	int64_t bountyPoints = getInteger<int64_t>(L, 2);
+	if (bountyPoints < 0) {
+		reportErrorFunc(L, "Bounty points value must be non-negative.");
+		lua_pushnil(L);
+		return 1;
+	}
+	player->setBountyTaskPoints(static_cast<uint64_t>(bountyPoints));
 	pushBoolean(L, true);
 	return 1;
 }
@@ -1631,7 +1643,13 @@ int luaPlayerSetSoulsealsPoints(lua_State* L)
 		return 1;
 	}
 
-	player->setSoulsealsPoints(getInteger<uint64_t>(L, 2));
+	int64_t soulsealsPoints = getInteger<int64_t>(L, 2);
+	if (soulsealsPoints < 0) {
+		reportErrorFunc(L, "Soulseals points value must be non-negative.");
+		lua_pushnil(L);
+		return 1;
+	}
+	player->setSoulsealsPoints(static_cast<uint64_t>(soulsealsPoints));
 	pushBoolean(L, true);
 	return 1;
 }

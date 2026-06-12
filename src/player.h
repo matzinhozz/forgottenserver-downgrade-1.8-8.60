@@ -287,17 +287,17 @@ public:
 	uint64_t getTaskHuntingPoints() const { return taskHuntingPoints; }
 	void setTaskHuntingPoints(uint64_t points) { taskHuntingPoints = points; }
 	void addTaskHuntingPoints(uint64_t points);
-	bool removeTaskHuntingPoints(uint64_t points);
+	[[nodiscard]] bool removeTaskHuntingPoints(uint64_t points);
 
 	uint64_t getBountyTaskPoints() const { return bountyTaskPoints; }
 	void setBountyTaskPoints(uint64_t points) { bountyTaskPoints = points; }
 	void addBountyTaskPoints(uint64_t points);
-	bool removeBountyTaskPoints(uint64_t points);
+	[[nodiscard]] bool removeBountyTaskPoints(uint64_t points);
 
 	uint64_t getSoulsealsPoints() const { return soulsealsPoints; }
 	void setSoulsealsPoints(uint64_t points) { soulsealsPoints = points; }
 	void addSoulsealsPoints(uint64_t points);
-	bool removeSoulsealsPoints(uint64_t points);
+	[[nodiscard]] bool removeSoulsealsPoints(uint64_t points);
 
 	bool hasWeeklyExpansion() const { return m_hasWeeklyExpansion; }
 	void setWeeklyExpansion(bool has) { m_hasWeeklyExpansion = has; }
