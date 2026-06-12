@@ -44,7 +44,7 @@ int luaChatChannelPublic(lua_State* L)
 int luaChatChannelRegister(lua_State* L)
 {
 	// chatChannel:register()
-	if (ChatChannel* channel = getUserdata<ChatChannel>(L, 1)) {
+	if (getUserdata<ChatChannel>(L, 1)) {
 		pushBoolean(L, g_chat->registerLuaChannel(releaseOwnedUserdataPtr<ChatChannel>(L, 1)));
 	} else {
 		lua_pushnil(L);
