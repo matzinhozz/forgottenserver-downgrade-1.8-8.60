@@ -6,6 +6,7 @@
 #include "configmanager.h"
 #include "events.h"
 #include "game.h"
+#include "iologindata.h"
 #include "luascript.h"
 #include "monster.h"
 #include "monsters.h"
@@ -1262,6 +1263,7 @@ void LuaScriptInterface::registerGame()
 	registerMethod("Game", "createContainer", luaGameCreateContainer);
 	registerMethod("Game", "createMonster", luaGameCreateMonster);
 	registerMethod("Game", "createNpc", luaGameCreateNpc);
+	registerMethod("Game", "getOfflinePlayer", luaGameGetOfflinePlayer);
 	registerMethod("Game", "createTile", luaGameCreateTile);
 	registerMethod("Game", "createMonsterType", luaGameCreateMonsterType);
 	registerMethod("Game", "createNpcType", luaGameCreateNpcType);

@@ -117,6 +117,40 @@ int luaNpcSetSpeechBubble(lua_State* L)
 	pushBoolean(L, true);
 	return 1;
 }
+
+int luaNpcSetName(lua_State* L)
+{
+	// npc:setName(name)
+	Npc* npc = getUserdata<Npc>(L, 1);
+	if (!npc) {
+		lua_pushnil(L);
+		return 1;
+	}
+	npc->setName(getString(L, 2));
+	pushBoolean(L, true);
+	return 1;
+}
+
+int luaNpcPlace(lua_State* L)
+{
+	// npc:place(position[, extended = false[, force = true]])
+	Npc* npc = getUserdata<Npc>(L, 1);
+	if (!npc) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	const Position& position = getPosition(L, 2);
+	bool extended = getBoolean(L, 3, false);
+	bool force = getBoolean(L, 4, true);
+	if (g_game.placeCreature(npc, position, extended, force)) {
+		pushUserdata<Npc>(L, npc);
+		setCreatureMetatable(L, -1, npc);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
 } // namespace
 
 void LuaScriptInterface::registerNpc()
@@ -134,6 +168,9 @@ void LuaScriptInterface::registerNpc()
 
 	registerMethod("Npc", "getSpeechBubble", luaNpcGetSpeechBubble);
 	registerMethod("Npc", "setSpeechBubble", luaNpcSetSpeechBubble);
+
+	registerMethod("Npc", "setName", luaNpcSetName);
+	registerMethod("Npc", "place", luaNpcPlace);
 }
 
 // ─── NpcType ─────────────────────────────────────────────────────────────────

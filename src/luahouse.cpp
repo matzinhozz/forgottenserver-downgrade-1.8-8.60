@@ -561,6 +561,25 @@ int luaHouseKickPlayer(lua_State* L)
 	return 1;
 }
 
+int luaHouseIsInvited(lua_State* L)
+{
+	// house:isInvited(player)
+	const House* house = getUserdata<const House>(L, 1);
+	if (!house) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	const Player* player = getPlayer(L, 2);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	pushBoolean(L, house->isInvited(player));
+	return 1;
+}
+
 int luaHouseSave(lua_State* L)
 {
 	// house:save()
@@ -736,6 +755,7 @@ void LuaScriptInterface::registerHouse()
 	registerMethod("House", "setAccessList", luaHouseSetAccessList);
 
 	registerMethod("House", "kickPlayer", luaHouseKickPlayer);
+	registerMethod("House", "isInvited", luaHouseIsInvited);
 
 	registerMethod("House", "save", luaHouseSave);
 

@@ -17,9 +17,12 @@
 #include "player.h"
 #include "protocolgame.h"
 #include "imbuement.h"
+#include "luascript.h"
 #include "scheduler.h"
 #include "scriptmanager.h"
 #include "thread_pool.h"
+
+extern LuaEnvironment g_luaEnvironment;
 
 uint32_t ProtocolGame::spectatorId = 1;
 std::set<std::string> ProtocolGame::spectatorNames;
@@ -1614,6 +1617,52 @@ void ProtocolGame::parseSetOutfit(NetworkMessage& msg)
 	} else {
 		newOutfit.lookMount = 0;
 	}
+
+	// Check if player is changing a hireling outfit via Lua global table
+	bool isHirelingChange = false;
+	{
+		lua_State* L = g_luaEnvironment.getLuaState();
+		if (L) {
+			lua_getglobal(L, "HIRELING_OUTFIT_CHANGING");
+			if (lua_istable(L, -1)) {
+				lua_pushinteger(L, player->getGUID());
+				lua_gettable(L, -2);
+				if (lua_isinteger(L, -1) && lua_tointeger(L, -1) > 0) {
+					isHirelingChange = true;
+				}
+				lua_pop(L, 1);
+			}
+			lua_pop(L, 1);
+		}
+	}
+
+	if (isHirelingChange) {
+		uint32_t playerID = player->getID();
+		g_dispatcher.addTask([=, outfit = newOutfit]() {
+			lua_State* L = g_luaEnvironment.getLuaState();
+			if (!L) return;
+			lua_getglobal(L, "onHirelingOutfitChange");
+			if (!lua_isfunction(L, -1)) {
+				lua_pop(L, 1);
+				return;
+			}
+			lua_pushinteger(L, playerID);
+			lua_createtable(L, 0, 7);
+			lua_pushinteger(L, outfit.lookType); lua_setfield(L, -2, "lookType");
+			lua_pushinteger(L, outfit.lookHead); lua_setfield(L, -2, "lookHead");
+			lua_pushinteger(L, outfit.lookBody); lua_setfield(L, -2, "lookBody");
+			lua_pushinteger(L, outfit.lookLegs); lua_setfield(L, -2, "lookLegs");
+			lua_pushinteger(L, outfit.lookFeet); lua_setfield(L, -2, "lookFeet");
+			lua_pushinteger(L, outfit.lookAddons); lua_setfield(L, -2, "lookAddons");
+			lua_pushinteger(L, outfit.lookMount); lua_setfield(L, -2, "lookMount");
+			if (lua_pcall(L, 2, 0, 0) != 0) {
+				g_logger().error("onHirelingOutfitChange: {}", lua_tostring(L, -1));
+				lua_pop(L, 1);
+			}
+		});
+		return;
+	}
+
 	g_dispatcher.addTask([=, playerID = player->getID()]() { g_game.playerChangeOutfit(playerID, newOutfit); });
 }
 
@@ -2927,6 +2976,8 @@ void ProtocolGame::sendCreatureHealth(const Creature* creature)
 
 	if (creature->isHealthHidden()) {
 		msg.addByte(0x00);
+		writeToOutputBuffer(msg);
+		return;
 	} else {
 		msg.addByte(std::ceil(
 		    (static_cast<double>(creature->getHealth()) / std::max<int32_t>(creature->getMaxHealth(), 1)) * 100));

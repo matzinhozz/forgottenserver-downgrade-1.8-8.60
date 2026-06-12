@@ -3122,6 +3122,18 @@ int luaPlayerIsUsingAstraClient(lua_State* L)
 	return 1;
 }
 
+int luaPlayerIsOffline(lua_State* L)
+{
+	// player:isOffline()
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (!player) {
+		pushBoolean(L, true);
+		return 1;
+	}
+	pushBoolean(L, player->isOffline());
+	return 1;
+}
+
 int luaPlayerIsUsingOtc(lua_State* L)
 {
 	// player:isUsingOtc()
@@ -4472,6 +4484,7 @@ void LuaScriptInterface::registerPlayer()
 
 	registerMethod("Player", "isUsingOtcV8", luaPlayerIsUsingOtcV8);
 	registerMethod("Player", "isUsingAstraClient", luaPlayerIsUsingAstraClient);
+	registerMethod("Player", "isOffline", luaPlayerIsOffline);
 	registerMethod("Player", "isUsingOtc", luaPlayerIsUsingOtc);
 	registerMethod("Player", "getLastIp", luaPlayerGetLastIp);
 

@@ -13,6 +13,7 @@
 #include "familiar.h"
 #include "game.h"
 #include "house.h"
+#include "housetile.h"
 #include "iologindata.h"
 #include "instance_utils.h"
 #include "inbox.h"
@@ -1616,6 +1617,14 @@ bool Player::canWalkthrough(const Creature* creature) const
 	if (player && (isAccountManager() || player->isAccountManager())) {
 		return true;
 	}
+
+	const Npc* npc = creature->getNpc();
+	if (npc) {
+		const Tile* tile = npc->getTile();
+		const HouseTile* houseTile = dynamic_cast<const HouseTile*>(tile);
+		return houseTile != nullptr;
+	}
+
 	if (!player || !getBoolean(ConfigManager::ALLOW_WALKTHROUGH)) {
 		return false;
 	}
@@ -1646,6 +1655,13 @@ bool Player::canWalkthroughEx(const Creature* creature) const
 
 	if (!compareInstance(creature->getInstanceID())) {
 		return true;
+	}
+
+	const Npc* npc = creature->getNpc();
+	if (npc) {
+		const Tile* tile = npc->getTile();
+		const HouseTile* houseTile = dynamic_cast<const HouseTile*>(tile);
+		return houseTile != nullptr;
 	}
 
 	const Player* player = creature->getPlayer();
