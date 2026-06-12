@@ -58,6 +58,10 @@ function exaltedCore.onUse(player, item, fromPosition, target, toPosition, isHot
 
 	-- Pick a random candidate and find its soul core item
 	local chosen = candidates[math.random(#candidates)]
+	if not chosen or not chosen.name then
+		player:sendTextMessage(MESSAGE_INFO_DESCR, "Could not determine the target creature.")
+		return false
+	end
 	local newCoreName = (chosen.name:lower() .. " soul core")
 	local newCoreType = ItemType(newCoreName)
 	if not newCoreType or newCoreType:getId() == 0 then

@@ -122,7 +122,7 @@ function HuntingShop.purchaseOffer(player, offerIndex)
 			end
 		end
 		if not success then
-			success = player:addItem(itemId, count) ~= false
+			success = player:addItem(itemId, count) ~= nil
 		end
 
 	elseif offer.type == OFFER_MOUNT and offer.mountId then
