@@ -154,7 +154,7 @@ local function saveWeeklyData(playerGuid)
 		"`any_creature_total`, `any_creature_current`, `completed_kill_tasks`, `completed_delivery_tasks`, " ..
 		"`kill_task_reward_exp`, `delivery_task_reward_exp`, `reward_hunting_points`, `reward_soulseals`, " ..
 		"`soulseals_points`, `needs_reward`, `weekly_progress_finished`, " ..
-		"`kill_tasks`, `delivery_tasks`, `last_item_notify`) " ..
+		"`kill_tasks`, `delivery_tasks`, `last_week`, `last_item_notify`) " ..
 		"VALUES (" .. playerGuid .. ", " .. (data.hasExpansion and 1 or 0) .. ", " .. data.difficulty .. ", " ..
 		data.anyCreatureTotal .. ", " .. data.anyCreatureCurrent .. ", " ..
 		data.completedKillTasks .. ", " .. data.completedDeliveryTasks .. ", " ..
@@ -169,7 +169,7 @@ local function saveWeeklyData(playerGuid)
 		"`reward_hunting_points` = VALUES(`reward_hunting_points`), `reward_soulseals` = VALUES(`reward_soulseals`), " ..
 		"`soulseals_points` = VALUES(`soulseals_points`), `needs_reward` = VALUES(`needs_reward`), " ..
 		"`weekly_progress_finished` = VALUES(`weekly_progress_finished`), " ..
-		"`kill_tasks` = VALUES(`kill_tasks`), `delivery_tasks` = VALUES(`delivery_tasks`), " ..
+		"`kill_tasks` = VALUES(`kill_tasks`), `delivery_tasks` = VALUES(`delivery_tasks`), `last_week` = VALUES(`last_week`), " ..
 		"`last_item_notify` = VALUES(`last_item_notify`)"
 	)
 end
