@@ -55,7 +55,6 @@ if Zone then
 						stopEvent(SoulPit.kickTimerEvent)
 						SoulPit.kickTimerEvent = nil
 					end
-					end
 				end
 
 				-- Deactivate obelisk
