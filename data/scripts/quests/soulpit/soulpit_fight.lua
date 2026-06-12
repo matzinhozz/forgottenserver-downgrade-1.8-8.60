@@ -403,4 +403,15 @@ soulPitAction:id(SoulPit.obeliskActiveId)
 soulPitAction:id(SoulPit.obeliskInactiveId)
 soulPitAction:register()
 
+-- Export monitor and kick timer for network-based encounter start
+SoulPit.startMonitor = function()
+    if not SoulPit.encounter then return end
+    SoulPit.monitorEvent = addEvent(monitorEncounter, SoulPit.checkMonstersDelay)
+end
+
+SoulPit.startKick = function()
+    if not SoulPit.encounter then return end
+    startKickTimer()
+end
+
 SoulPit.log("Soulpit fight script loaded")

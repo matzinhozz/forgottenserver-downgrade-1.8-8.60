@@ -265,6 +265,151 @@ function SoulPit.onFuseSoulCores(player, item, target)
 end
 
 -- ============================================
+-- SOULSEAL DATA (creature list for client UI)
+-- ============================================
+
+-- Build soulseal entries from the bestiary for the client UI
+function SoulPit.buildSoulsealEntries()
+    local entries = {}
+    if not CustomBestiary or not CustomBestiary.monstersByRaceId then
+        return entries
+    end
+
+    for raceId, monster in pairs(CustomBestiary.monstersByRaceId) do
+        local stars = monster.stars or 1
+        -- Cost formula: stars * 100 soulseal points per fight
+        local cost = stars * 100
+        table.insert(entries, {
+            raceId = raceId,
+            name = monster.name or ("Creature " .. tostring(raceId)),
+            stars = stars,
+            cost = cost,
+            mastered = false,
+        })
+    end
+
+    -- Sort by stars then name
+    table.sort(entries, function(a, b)
+        if a.stars ~= b.stars then return a.stars < b.stars end
+        return (a.name or "") < (b.name or "")
+    end)
+
+    return entries
+end
+
+-- Get soulseal cost for a specific race
+function SoulPit.getSoulsealCost(raceId)
+    local monster = CustomBestiary and CustomBestiary.getMonster(raceId)
+    if not monster then
+        return nil
+    end
+    local stars = monster.stars or 1
+    return stars * 100
+end
+
+-- Start a SoulPit encounter programmatically (without physical soul core item)
+-- Used by the network soulseal fight handler.
+function SoulPit.startEncounter(player, monsterName)
+    if not player or not monsterName then
+        return false, "Invalid player or monster name."
+    end
+
+    -- Validate monster exists
+    local monsterType = MonsterType(monsterName)
+    if not monsterType then
+        return false, "This creature does not exist."
+    end
+
+    -- Level check
+    if player:getLevel() < 100 then
+        return false, "You need level 100 to enter Soulpit."
+    end
+
+    -- Check if encounter is already running
+    if SoulPit.encounter then
+        return false, "A Soulpit encounter is already in progress."
+    end
+
+    -- Activate obelisk (transform inactive -> active)
+    local obeliskTile = Tile(SoulPit.obeliskPos)
+    if obeliskTile then
+        local obeliskItem = obeliskTile:getItemById(SoulPit.obeliskInactiveId)
+        if obeliskItem then
+            obeliskItem:transform(SoulPit.obeliskActiveId)
+        end
+    end
+
+    -- Start encounter state
+    SoulPit.encounter = {
+        monsterName = monsterName,
+        currentStage = 1,
+        startTime = os.time(),
+    }
+
+    SoulPit.log("Encounter started via network with monster: " .. monsterName)
+
+    -- Spawn first wave using the spawn function from soulpit_fight
+    -- We need to re-import the spawn logic here
+    local function spawnMonsterWave(waveIndex)
+        if not SoulPit.encounter then return end
+        if not SoulPit.waves[waveIndex] then return end
+
+        local wave = SoulPit.waves[waveIndex]
+
+        for stack, count in pairs(wave.stacks) do
+            for i = 1, count do
+                local spawnPos
+                if stack == 40 then
+                    spawnPos = SoulPit.obeliskPos
+                elseif SoulPit.zone then
+                    spawnPos = SoulPit.zone:randomPosition()
+                end
+
+                if spawnPos then
+                    local effect = SoulPit.effects[stack] or CONST_ME_TELEPORT
+                    spawnPos:sendMagicEffect(effect)
+
+                    addEvent(function()
+                        if not SoulPit.encounter then return end
+                        local monster
+                        if Game and Game.createSoulPitMonster then
+                            monster = Game.createSoulPitMonster(monsterName, spawnPos, stack)
+                        else
+                            monster = Game.createMonster(monsterName, spawnPos)
+                        end
+
+                        if monster and stack == 40 then
+                            local abilityName = SoulPit.possibleAbilities[math.random(#SoulPit.possibleAbilities)]
+                            local applyFunc = SoulPit.bossAbilities[abilityName]
+                            if applyFunc then
+                                SoulPit.log("Applying boss ability: " .. abilityName)
+                                applyFunc(monster)
+                            end
+                        end
+                    end, SoulPit.timeToSpawnMonsters)
+                end
+            end
+        end
+    end
+
+    spawnMonsterWave(1)
+
+    -- Start monitor and kick timer
+    addEvent(function()
+        if not SoulPit.encounter then return end
+        -- These functions are defined in soulpit_fight.lua; call them if available
+        if SoulPit.startMonitor then SoulPit.startMonitor() end
+        if SoulPit.startKick then SoulPit.startKick() end
+    end, SoulPit.timeToSpawnMonsters + 500)
+
+    -- Teleport player into arena
+    player:teleportTo(SoulPit.playerExitDestination)
+    SoulPit.playerExitDestination:sendMagicEffect(CONST_ME_TELEPORT)
+
+    return true, nil
+end
+
+-- ============================================
 -- DEBUG / LOGGING
 -- ============================================
 

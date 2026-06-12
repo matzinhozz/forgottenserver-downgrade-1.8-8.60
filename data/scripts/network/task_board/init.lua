@@ -1,4 +1,4 @@
--- Task Board Network Module — Main Entry Point
+﻿-- Task Board Network Module — Main Entry Point
 -- Wires together protocol, bounty, weekly, shop, and resource balance modules.
 -- Opcodes: 0x5F (client->server), 0x5B/0xBA/0xEE (server->client via protocol module).
 --
@@ -49,6 +49,14 @@ if shop and shop.setProtocol then
 	shop.setProtocol(protocol)
 end
 
+local soulseal = nil
+if soulsealsEnabled then
+	soulseal = dofile("data/scripts/network/task_board/soulseal_handler.lua")
+	if soulseal and soulseal.setProtocol then
+		soulseal.setProtocol(protocol)
+	end
+end
+
 -- Resource balance
 local resourceBalance = dofile("data/scripts/network/task_board/resource_balance.lua")
 if resourceBalance and resourceBalance.setProtocol then
@@ -95,10 +103,9 @@ function taskBoardActionHandler.onReceive(player, msg)
 		if not bountyEnabled then return end
 		if bounty then bounty.openBounty(player) end
 
-	elseif option == 1 then -- Open Weekly
-		if not weeklyEnabled then return end
-		if weekly then weekly.sendWeeklyData(player) end
-
+    elseif option == 1 then -- Open Weekly
+        if not weeklyEnabled then return end
+        if weekly then weekly.sendWeeklyData(player) end
 	elseif option == 2 then -- Change Difficulty
 		if not bountyEnabled then return end
 		if bounty then bounty.changeDifficulty(player, payload.difficulty) end
@@ -156,6 +163,11 @@ function taskBoardActionHandler.onReceive(player, msg)
 	elseif option == 16 then -- Assign Unwanted
 		if not bountyEnabled then return end
 		if bounty then bounty.assignUnwanted(player, payload.slot, payload.raceId) end
+	elseif option == 17 then -- Open SoulSeal (request creature list)
+		if not soulsealsEnabled then return end
+		if soulseal and soulseal.sendSoulsealsData then
+			soulseal.sendSoulsealsData(player)
+		end
 	end
 end
 
@@ -170,6 +182,7 @@ TaskBoardProtocol = protocol
 TaskBoardBountyTasks = bounty
 TaskBoardWeeklyTasks = weekly
 TaskBoardHuntingShop = shop
+TaskBoardSoulSealHandler = soulseal
 TaskBoardResourceBalance = resourceBalance
 
 -- Also expose for other scripts
