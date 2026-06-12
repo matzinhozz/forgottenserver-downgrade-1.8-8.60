@@ -79,42 +79,14 @@ local taskBoardLogin = CreatureEvent("TaskBoardLogin")
 function taskBoardLogin.onLogin(player)
 	local playerGuid = player:getGuid()
 
-	-- Sync C++ fields from Lua DB caches (C++ fields default to 0 on login)
-	-- Bounty points: load from player_bounty_tasks DB
-	if bountyEnabled then
-		local bounty = getBountyModule()
-		if bounty then
-			-- Force-load the Lua cache, which reads bounty_points from DB
-			local ok, bountyData = pcall(function()
-				-- Access internal loadBountyData via a helper
-				local data = bounty.loadBountyData and bounty.loadBountyData(playerGuid)
-				return data
-			end)
-			if ok and bountyData then
-				player:setBountyPoints(bountyData.bountyPoints or 0)
-			end
-		end
-	end
-
-	-- Soulseals: load from player_weekly_tasks DB
+	-- All point fields loaded by iologindata.cpp from the players table.
+	-- Distribute pending weekly rewards if any (this loads weekly data lazily).
 	if weeklyEnabled then
 		local weekly = getWeeklyModule()
 		if weekly then
 			weekly.checkRewardsOnLogin(player)
-			local ok, weeklyData = pcall(function()
-				local data = weekly.loadWeeklyData and weekly.loadWeeklyData(playerGuid)
-				return data
-			end)
-			if ok and weeklyData then
-				player:setSoulsealsPoints(weeklyData.soulsealsPoints or 0)
-				if weeklyData.hasExpansion then
-					player:setWeeklyExpansion(true)
-				end
-			end
 		end
 	end
-
-	-- Task hunting points are already loaded by iologindata.cpp:416
 
 	-- Send resource balances (use GUID to re-acquire player after delay)
 	local rb = getResourceBalance()
