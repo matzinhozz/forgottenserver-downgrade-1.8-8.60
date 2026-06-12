@@ -1,6 +1,11 @@
 -- Soulpit Creature Event: Boss enrage (damage reduction by HP threshold)
 -- Ported from Crystal Server.
 
+-- Guard: only register if Soulpit system is enabled
+if not configManager or not configManager.getBoolean or not configManager.getBoolean(configKeys.SOULPIT_SYSTEM_ENABLED) then
+	return
+end
+
 local enrage = CreatureEvent("SoulPitEnrage")
 
 function enrage.onHealthChange(creature, attacker, primaryDamage, primaryType, secondaryDamage, secondaryType)

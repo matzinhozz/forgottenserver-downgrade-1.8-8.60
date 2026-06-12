@@ -1,6 +1,11 @@
 -- Exalted Core: downgrades a soul core to a lower difficulty tier's monster.
 -- Ported from Crystal Server.
 
+-- Guard: only load if Soulpit system is enabled
+if not configManager or not configManager.getBoolean or not configManager.getBoolean(configKeys.SOULPIT_SYSTEM_ENABLED) then
+	return
+end
+
 local exaltedCore = Action()
 
 function exaltedCore.onUse(player, item, fromPosition, target, toPosition, isHotkey)

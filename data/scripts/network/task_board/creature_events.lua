@@ -9,33 +9,19 @@ local bountyEnabled = configManager.getBoolean(configKeys.BOUNTY_TASKS_ENABLED)
 local weeklyEnabled = configManager.getBoolean(configKeys.WEEKLY_TASKS_ENABLED)
 local soulsealsEnabled = configManager.getBoolean(configKeys.SOULSEALS_SYSTEM_ENABLED)
 
-local bountyModule = nil
-local weeklyModule = nil
-local resourceBalance = nil
-
--- These are set after the modules load
+-- Use globals set by init.lua (single module instance, protocol already wired).
+-- Do NOT reload modules via dofile — that creates a second copy with nil protocol
+-- and a separate cache, causing nil crashes and stale progress in UI.
 local function getBountyModule()
-	if not bountyModule then
-		local ok, mod = pcall(dofile, "data/scripts/network/task_board/bounty_tasks.lua")
-		if ok then bountyModule = mod end
-	end
-	return bountyModule
+	return _TASK_BOARD_BOUNTY_MODULE
 end
 
 local function getWeeklyModule()
-	if not weeklyModule then
-		local ok, mod = pcall(dofile, "data/scripts/network/task_board/weekly_tasks.lua")
-		if ok then weeklyModule = mod end
-	end
-	return weeklyModule
+	return _TASK_BOARD_WEEKLY_MODULE
 end
 
 local function getResourceBalance()
-	if not resourceBalance then
-		local ok, mod = pcall(dofile, "data/scripts/network/task_board/resource_balance.lua")
-		if ok then resourceBalance = mod end
-	end
-	return resourceBalance
+	return TaskBoardResourceBalance
 end
 
 -- ============================================
@@ -91,18 +77,53 @@ taskBoardKill:register()
 local taskBoardLogin = CreatureEvent("TaskBoardLogin")
 
 function taskBoardLogin.onLogin(player)
-	-- Check weekly rewards
+	local playerGuid = player:getGuid()
+
+	-- Sync C++ fields from Lua DB caches (C++ fields default to 0 on login)
+	-- Bounty points: load from player_bounty_tasks DB
+	if bountyEnabled then
+		local bounty = getBountyModule()
+		if bounty then
+			-- Force-load the Lua cache, which reads bounty_points from DB
+			local ok, bountyData = pcall(function()
+				-- Access internal loadBountyData via a helper
+				local data = bounty.loadBountyData and bounty.loadBountyData(playerGuid)
+				return data
+			end)
+			if ok and bountyData then
+				player:setBountyPoints(bountyData.bountyPoints or 0)
+			end
+		end
+	end
+
+	-- Soulseals: load from player_weekly_tasks DB
 	if weeklyEnabled then
 		local weekly = getWeeklyModule()
 		if weekly then
 			weekly.checkRewardsOnLogin(player)
+			local ok, weeklyData = pcall(function()
+				local data = weekly.loadWeeklyData and weekly.loadWeeklyData(playerGuid)
+				return data
+			end)
+			if ok and weeklyData then
+				player:setSoulsealsPoints(weeklyData.soulsealsPoints or 0)
+				if weeklyData.hasExpansion then
+					player:setWeeklyExpansion(true)
+				end
+			end
 		end
+	end
+
+	-- Task hunting points: load from player_hunting_task_points table
+	local resultId = db.storeQuery("SELECT `points` FROM `player_hunting_task_points` WHERE `player_id` = " .. playerGuid)
+	if resultId ~= false then
+		player:setTaskHuntingPoints(result.getDataLong(resultId, "points") or 0)
+		result.free(resultId)
 	end
 
 	-- Send resource balances (use GUID to re-acquire player after delay)
 	local rb = getResourceBalance()
 	if rb then
-		local playerGuid = player:getGuid()
 		addEvent(function()
 			local p = Player(playerGuid)
 			if p then

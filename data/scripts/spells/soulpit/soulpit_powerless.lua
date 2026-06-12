@@ -1,12 +1,13 @@
--- Soulpit Powerless: boss spell — applies CONDITION_POWERLESS
+-- Soulpit Powerless: boss spell — blocks attack spells (CONDITION_POWERLESS).
+-- Crystal Server: ConditionGeneric, blocks SPELLGROUP_ATTACK.
+-- TFS 1.8: uses CONDITION_POWERLESS (ported from Crystal, 1ULL << 35).
 -- Ported from Crystal Server.
 
 local combat = Combat()
 combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_UNDEFINEDDAMAGE)
 combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_EXPLOSIONHIT)
 
--- CONDITION_POWERLESS = 36
-local condition = Condition(CONDITION_PARALYZE)
+local condition = Condition(CONDITION_POWERLESS)
 condition:setParameter(CONDITION_PARAM_TICKS, 3000)
 combat:setCondition(condition)
 

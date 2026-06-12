@@ -236,7 +236,8 @@ function WeeklyTasks.distributeRewards(player)
 	-- Give soulseals
 	if data.rewardSoulseals > 0 then
 		player:addSoulsealsPoints(data.rewardSoulseals)
-		data.soulsealsPoints = player:getSoulsealsPoints() -- sync from authoritative source
+		-- Keep Lua cache as authoritative (loaded from DB, C++ is just a mirror)
+		data.soulsealsPoints = (data.soulsealsPoints or 0) + data.rewardSoulseals
 		protocol.sendResourceBalance(player, protocol.RESOURCE_SOULSEALS_POINTS, data.soulsealsPoints)
 	end
 
@@ -531,6 +532,11 @@ function WeeklyTasks.saveOnLogout(player)
 	local playerGuid = getPlayerGuid(player)
 	saveWeeklyData(playerGuid)
 	invalidateCache(playerGuid)
+end
+
+-- Expose internal loader for C++ sync on login
+function WeeklyTasks.loadWeeklyData(playerGuid)
+	return loadWeeklyData(playerGuid)
 end
 
 -- Check pending rewards on login

@@ -8,7 +8,7 @@ end
 
 local dropCallback = EventCallback()
 
-function dropCallback.monsterOnDropLoot(monster, corpse)
+function dropCallback.onDropLoot(monster, corpse)
 	if not monster or not corpse then
 		return
 	end

@@ -858,4 +858,9 @@ function BountyTasks.saveOnLogout(player)
 	invalidateCache(playerGuid)
 end
 
+-- Expose internal loader for C++ sync on login
+function BountyTasks.loadBountyData(playerGuid)
+	return loadBountyData(playerGuid)
+end
+
 return BountyTasks

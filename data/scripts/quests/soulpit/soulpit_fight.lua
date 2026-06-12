@@ -364,8 +364,28 @@ end
 
 -- Register for all soul core items (any item that has "soul core" in the name will work)
 -- The script checks the obelisk target ID, so it only activates on the obelisk
--- Register known soulpit item IDs so the use cursor appears on soul cores.
--- The onUse handler validates the target (obelisk or another soul core).
+-- TFS useItemEx dispatches by the INVENTORY item ID (the held item).
+-- Register on soul core items for obelisk activation and fusion.
+-- Skip prism/exalted core (they have dedicated actions).
+local skipIds = {
+	[SoulPit.itemIds.soulPrism] = true,
+	[SoulPit.itemIds.exaltedCore] = true,
+}
+local registeredIds = {}
+for id = SoulPit.itemIds.ominousSoulCore - 100, SoulPit.itemIds.ominousSoulCore + 200 do
+	if skipIds[id] then goto continue end
+	local itemType = ItemType(id)
+	if itemType and itemType:getId() ~= 0 then
+		local name = itemType:getName():lower()
+		if name:find("soul core") and not registeredIds[id] then
+			soulPitAction:id(id)
+			registeredIds[id] = true
+		end
+	end
+	::continue::
+end
+-- Also register the obelisks as use-targets
+soulPitAction:id(SoulPit.obeliskActiveId)
 soulPitAction:id(SoulPit.obeliskInactiveId)
 soulPitAction:register()
 

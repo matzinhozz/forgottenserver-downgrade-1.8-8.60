@@ -132,7 +132,7 @@ function HuntingShop.purchaseOffer(player, offerIndex)
 		player:addOutfit(offer.outfitId)
 		local addons = offer.addons or 0
 		if addons > 0 then
-			player:addOutfitAddons(offer.outfitId, addons)
+			player:addOutfitAddon(offer.outfitId, addons)
 		end
 		success = true
 
