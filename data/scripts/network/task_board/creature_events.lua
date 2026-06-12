@@ -117,8 +117,8 @@ function taskBoardLogin.onLogin(player)
 	-- Task hunting points: load from player_hunting_task_points table
 	local resultId = db.storeQuery("SELECT `points` FROM `player_hunting_task_points` WHERE `player_id` = " .. playerGuid)
 	if resultId ~= false then
-		player:setTaskHuntingPoints(result.getDataLong(resultId, "points") or 0)
-		result.free(resultId)
+		player:setTaskHuntingPoints(resultId:getNumber("points") or 0)
+		resultId:free()
 	end
 
 	-- Send resource balances (use GUID to re-acquire player after delay)
