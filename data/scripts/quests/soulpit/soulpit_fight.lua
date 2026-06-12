@@ -133,6 +133,7 @@ local function spawnMonsterWave(monsterName, waveIndex)
 				-- Boss spawns at center
 				spawnPos = SoulPit.obeliskPos
 			else
+				if not SoulPit.zone then return end
 				spawnPos = SoulPit.zone:randomPosition()
 			end
 
