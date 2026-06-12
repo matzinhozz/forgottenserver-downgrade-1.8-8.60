@@ -1,6 +1,11 @@
 -- OnDropLoot Soul Core: drops soul cores and soul prisms from fiendish monsters.
 -- Ported from Crystal Server.
 
+-- Guard: only register if Soulpit system is enabled
+if not configManager or not configManager.getBoolean or not configManager.getBoolean(configKeys.SOULPIT_SYSTEM_ENABLED) then
+	return
+end
+
 local dropCallback = EventCallback()
 
 function dropCallback.monsterOnDropLoot(monster, corpse)

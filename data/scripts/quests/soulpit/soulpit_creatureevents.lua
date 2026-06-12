@@ -8,8 +8,29 @@ function enrage.onHealthChange(creature, attacker, primaryDamage, primaryType, s
 		return primaryDamage, primaryType, secondaryDamage, secondaryType
 	end
 
-	-- Only applies to soulpit bosses in the arena
+	-- Only applies to active soulpit bosses in the arena
 	if not SoulPit or not SoulPit.encounter then
+		return primaryDamage, primaryType, secondaryDamage, secondaryType
+	end
+
+	-- Verify creature is within the soulpit arena zone
+	local pos = creature:getPosition()
+	if not pos or not SoulPit.zone then
+		return primaryDamage, primaryType, secondaryDamage, secondaryType
+	end
+
+	-- Only reduce damage for monsters inside the zone
+	local spectators = Game.getSpectators(SoulPit.zoneArea.fromPos, SoulPit.zoneArea.toPos, false, false)
+	local isInArena = false
+	if spectators then
+		for _, spec in ipairs(spectators) do
+			if spec == creature then
+				isInArena = true
+				break
+			end
+		end
+	end
+	if not isInArena then
 		return primaryDamage, primaryType, secondaryDamage, secondaryType
 	end
 

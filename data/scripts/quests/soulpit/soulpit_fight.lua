@@ -178,6 +178,7 @@ local function checkStageCompletion()
 		-- Stage complete
 		if stage >= maxStages then
 			-- All stages complete — encounter won!
+			local monsterName = SoulPit.encounter and SoulPit.encounter.monsterName
 			SoulPit.encounter = false
 
 			-- Reward all players
@@ -185,8 +186,8 @@ local function checkStageCompletion()
 			for _, player in ipairs(players) do
 				player:sendTextMessage(MESSAGE_INFO_DESCR, "You have conquered the Soulpit!")
 				-- Give animus mastery if available
-				if SoulPit.encounter.monsterName and player.addAnimusMastery then
-					player:addAnimusMastery(SoulPit.encounter.monsterName)
+				if monsterName and player.addAnimusMastery then
+					player:addAnimusMastery(monsterName)
 				end
 				-- Teleport out
 				player:teleportTo(SoulPit.exitDestination)
@@ -347,9 +348,12 @@ function soulPitAction.onUse(player, item, fromPosition, target, toPosition, isH
 	-- Spawn first wave
 	spawnMonsterWave(monsterName, 1)
 
-	-- Start monitoring and kick timer
-	monitorEncounter()
-	startKickTimer()
+	-- Start monitoring and kick timer after the spawn delay
+	addEvent(function()
+		if not SoulPit.encounter then return end
+		monitorEncounter()
+		startKickTimer()
+	end, SoulPit.timeToSpawnMonsters + 500)
 
 	-- Teleport player into arena
 	player:teleportTo(SoulPit.playerExitDestination)
@@ -360,7 +364,9 @@ end
 
 -- Register for all soul core items (any item that has "soul core" in the name will work)
 -- The script checks the obelisk target ID, so it only activates on the obelisk
-soulPitAction:id(SoulPit.obeliskInactiveId) -- only show use cursor on obelisk
+-- Register known soulpit item IDs so the use cursor appears on soul cores.
+-- The onUse handler validates the target (obelisk or another soul core).
+soulPitAction:id(SoulPit.obeliskInactiveId)
 soulPitAction:register()
 
 SoulPit.log("Soulpit fight script loaded")

@@ -51,11 +51,23 @@ function exaltedCore.onUse(player, item, fromPosition, target, toPosition, isHot
 		return false
 	end
 
+	-- Pick a random candidate and find its soul core item
+	local chosen = candidates[math.random(#candidates)]
+	local newCoreName = (chosen.name:lower() .. " soul core")
+	local newCoreType = ItemType(newCoreName)
+	if not newCoreType or newCoreType:getId() == 0 then
+		player:sendTextMessage(MESSAGE_INFO_DESCR, "Soul core for " .. chosen.name .. " not found.")
+		return false
+	end
+
+	-- Validate before consuming
+	local newCoreId = newCoreType:getId()
 	target:remove(1)
 	item:remove(1)
 
+	player:addItem(newCoreId, 1)
 	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_BLUE)
-	player:sendTextMessage(MESSAGE_INFO_DESCR, "Exalted Core used successfully! The soul core has been transformed.")
+	player:sendTextMessage(MESSAGE_INFO_DESCR, "Exalted Core used successfully! The soul core has been transformed into " .. chosen.name .. ".")
 
 	return true
 end

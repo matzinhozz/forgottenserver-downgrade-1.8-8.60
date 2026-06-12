@@ -17,8 +17,8 @@ function onUpdateDatabase()
 			`soulseals_points` INT UNSIGNED NOT NULL DEFAULT 0,
 			`needs_reward` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 			`weekly_progress_finished` TINYINT UNSIGNED NOT NULL DEFAULT 0,
-			`kill_tasks` TEXT NOT NULL DEFAULT '[]',
-			`delivery_tasks` TEXT NOT NULL DEFAULT '[]',
+			`kill_tasks` TEXT NOT NULL,
+			`delivery_tasks` TEXT NOT NULL,
 			`last_item_notify` BIGINT NOT NULL DEFAULT 0,
 			PRIMARY KEY (`player_id`),
 			FOREIGN KEY (`player_id`) REFERENCES `players`(`id`) ON DELETE CASCADE

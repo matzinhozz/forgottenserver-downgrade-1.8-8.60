@@ -30,7 +30,7 @@ local bounty = nil
 if bountyEnabled then
 	bounty = dofile("data/scripts/network/task_board/bounty_tasks.lua")
 	if bounty and bounty.setProtocol then
-		bounty:setProtocol(protocol)
+		bounty.setProtocol(protocol)
 	end
 end
 
@@ -39,20 +39,20 @@ local weekly = nil
 if weeklyEnabled then
 	weekly = dofile("data/scripts/network/task_board/weekly_tasks.lua")
 	if weekly and weekly.setProtocol then
-		weekly:setProtocol(protocol)
+		weekly.setProtocol(protocol)
 	end
 end
 
 -- Hunting shop
 local shop = dofile("data/scripts/network/task_board/hunting_shop.lua")
 if shop and shop.setProtocol then
-	shop:setProtocol(protocol)
+	shop.setProtocol(protocol)
 end
 
 -- Resource balance
 local resourceBalance = dofile("data/scripts/network/task_board/resource_balance.lua")
 if resourceBalance and resourceBalance.setProtocol then
-	resourceBalance:setProtocol(protocol)
+	resourceBalance.setProtocol(protocol)
 end
 
 -- ============================================
@@ -63,14 +63,14 @@ end
 if weeklyEnabled then
 	local ok, deliveryItems = pcall(dofile, "data/lib/task_board/delivery_items.lua")
 	if ok and weekly and weekly.setDeliveryItems then
-		weekly:setDeliveryItems(deliveryItems)
+		weekly.setDeliveryItems(deliveryItems)
 	end
 end
 
 -- Shop offers
 local ok, offers = pcall(dofile, "data/lib/task_board/shop_offers.lua")
 if ok and shop and shop.setOffers then
-	shop:setOffers(offers)
+	shop.setOffers(offers)
 end
 
 -- ============================================

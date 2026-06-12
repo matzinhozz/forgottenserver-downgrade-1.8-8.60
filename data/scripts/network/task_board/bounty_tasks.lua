@@ -103,7 +103,7 @@ local function loadBountyData(playerGuid)
 		difficulty = DIFFICULTY_BEGINNER,
 		bountyPoints = 0,
 		rerollTokens = INITIAL_REROLL_TOKENS,
-		freeRerollTimestamp = 0,
+		freeRerollTimestamp = os.time(), -- new players can claim immediately
 		activeTask = nil,
 		creaturesList = {},
 		talismans = {
@@ -379,8 +379,8 @@ local function generateCreatureList(data)
 		elseif grade == GRADE_GOLD then gradeMult = 4 end
 
 		local baseExp = entry and (entry.experience or 0) * requiredKills or 0
-		local rewardExp = (baseExp * 0.15) * gradeMult -- 15% of total exp
-		local bountyPts = math.floor(requiredKills / 10) * gradeMult
+		local rewardExp = math.min(math.floor((baseExp * 0.15) * gradeMult), 65535) -- 15% of total exp, U16 max
+		local bountyPts = math.min(math.floor(requiredKills / 10) * gradeMult, 65535)
 
 		creatures[#creatures + 1] = {
 			raceId = raceId,
@@ -419,12 +419,12 @@ function BountyTasks.openBounty(player)
 	local playerGuid = getPlayerGuid(player)
 	local data = loadBountyData(playerGuid)
 
-	-- If in selection or active state, send existing data
-	if data.state == STATE_SELECTION then
+	-- Preserve active/completed states — only generate new list when idle or finished claiming
+	if data.state == STATE_SELECTION or data.state == STATE_ACTIVE or data.state == STATE_COMPLETED then
 		return BountyTasks.sendBountyData(player)
 	end
 
-	-- Generate new creature list
+	-- Generate new creature list (only when state is STATE_NONE)
 	data.state = STATE_SELECTION
 	data.creaturesList = generateCreatureList(data)
 
@@ -538,7 +538,7 @@ function BountyTasks.claimReward(player)
 	local playerGuid = getPlayerGuid(player)
 	local data = loadBountyData(playerGuid)
 
-	if data.state ~= STATE_ACTIVE then return false end
+	if data.state ~= STATE_ACTIVE and data.state ~= STATE_COMPLETED then return false end
 
 	local active = data.activeTask
 	if not active then return false end
@@ -606,13 +606,11 @@ function BountyTasks.unlockPreferredSlot(player, slot)
 		return false
 	end
 
-	-- Check unlock cost
+	-- Check unlock cost: count active slots before the requested slot
 	local slotIndex = 1
-	for i = 1, #data.preferredLists do
-		if data.preferredLists[i].active then
+	for i = 1, slot - 1 do
+		if data.preferredLists[i] and data.preferredLists[i].active then
 			slotIndex = slotIndex + 1
-		else
-			break
 		end
 	end
 

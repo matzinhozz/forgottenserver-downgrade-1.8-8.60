@@ -12,9 +12,9 @@ function arenaExit.onUse(player, item, fromPosition, target, toPosition, isHotke
 		return false
 	end
 
-	-- Teleport player to safe exit position
-	player:teleportTo(SoulPit.playerExitDestination)
-	SoulPit.playerExitDestination:sendMagicEffect(CONST_ME_TELEPORT)
+	-- Teleport player to safe exit position outside the arena
+	player:teleportTo(SoulPit.exitDestination)
+	SoulPit.exitDestination:sendMagicEffect(CONST_ME_TELEPORT)
 
 	return true
 end

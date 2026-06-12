@@ -1,6 +1,11 @@
 -- Soul Prism: upgrades a soul core to a higher difficulty tier's monster.
 -- Ported from Crystal Server.
 
+-- Guard: only load if Soulpit system is enabled
+if not configManager or not configManager.getBoolean or not configManager.getBoolean(configKeys.SOULPIT_SYSTEM_ENABLED) then
+	return
+end
+
 local soulPrism = Action()
 
 function soulPrism.onUse(player, item, fromPosition, target, toPosition, isHotkey)
@@ -61,18 +66,22 @@ function soulPrism.onUse(player, item, fromPosition, target, toPosition, isHotke
 		return false
 	end
 
-	-- Pick random candidate
+	-- Pick random candidate and find their soul core item
 	local chosen = candidates[math.random(#candidates)]
-	-- Find their soul core item (by name pattern)
-	-- For now, give a basic message
+	local newCoreName = (chosen.name:lower() .. " soul core")
+	local newCoreType = ItemType(newCoreName)
+	if not newCoreType or newCoreType:getId() == 0 then
+		player:sendTextMessage(MESSAGE_INFO_DESCR, "Soul core for " .. chosen.name .. " not found.")
+		return false
+	end
+
+	local newCoreId = newCoreType:getId()
 	target:remove(1)
 	item:remove(1)
 
+	player:addItem(newCoreId, 1)
 	player:getPosition():sendMagicEffect(CONST_ME_MAGIC_BLUE)
-	player:sendTextMessage(MESSAGE_INFO_DESCR, "Soul Prism used successfully! The soul core has been transformed.")
-
-	-- TODO: Find and give the actual upgraded soul core item
-	-- This requires Game.getSoulCoreItems() or a name->itemId lookup
+	player:sendTextMessage(MESSAGE_INFO_DESCR, "Soul Prism used successfully! The soul core has been transformed into " .. chosen.name .. ".")
 
 	return true
 end

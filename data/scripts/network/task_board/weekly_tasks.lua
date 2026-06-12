@@ -100,6 +100,7 @@ local function loadWeeklyData(playerGuid)
 		rewardHTP = 0,
 		rewardSoulseals = 0,
 		soulsealsPoints = 0,
+		lastWeek = nil,
 		needsReward = false,
 		weeklyProgressFinished = 0,
 		lastItemNotify = 0,
@@ -179,15 +180,12 @@ function WeeklyTasks.shouldReset(playerGuid)
 	local data = weeklyCache[playerGuid]
 	if not data then data = loadWeeklyData(playerGuid) end
 
-	-- Check if it's a new week by day boundary
-	local now = os.time()
-	local nowDate = os.date("*t", now)
-	local nowWeekDay = nowDate.wday -- 1=Sunday
-
-	-- Reset if it's reset day and we have data from last week
-	-- For simplicity: reset if progress is 0 (first load this week)
-	-- Actual reset timing should be handled by a global event
-	return data.weeklyProgressFinished == 0 and data.difficulty == 0
+	-- Compare current week identifier against stored week
+	local currentWeek = os.date("%Y-%U") -- ISO year-week
+	if not data.lastWeek or data.lastWeek ~= currentWeek then
+		return true
+	end
+	return false
 end
 
 function WeeklyTasks.performWeeklyReset(player)
@@ -238,8 +236,8 @@ function WeeklyTasks.distributeRewards(player)
 	-- Give soulseals
 	if data.rewardSoulseals > 0 then
 		player:addSoulsealsPoints(data.rewardSoulseals)
-		data.soulsealsPoints = (data.soulsealsPoints or 0) + data.rewardSoulseals
-		protocol.sendResourceBalance(player, protocol.RESOURCE_SOULSEALS_POINTS, player:getSoulsealsPoints())
+		data.soulsealsPoints = player:getSoulsealsPoints() -- sync from authoritative source
+		protocol.sendResourceBalance(player, protocol.RESOURCE_SOULSEALS_POINTS, data.soulsealsPoints)
 	end
 
 	data.needsReward = false
@@ -257,8 +255,8 @@ function WeeklyTasks.selectDifficulty(player, difficulty)
 	local playerGuid = getPlayerGuid(player)
 	local data = loadWeeklyData(playerGuid)
 
-	-- Can only set once per week
-	if data.difficulty > 0 and data.weeklyProgressFinished == 1 then
+	-- Can only set once per week; block if progress is already finished
+	if data.weeklyProgressFinished == 1 then
 		return false
 	end
 
@@ -500,8 +498,6 @@ function WeeklyTasks.sendWeeklyData(player)
 			grade = dt.grade or 0,
 		}
 	end
-
-	local htp = protocol or {}
 
 	-- Use actual soulseals balance from C++ player object
 	local soulsealsBalance = player:getSoulsealsPoints()

@@ -16,7 +16,7 @@ local resourceBalance = nil
 -- These are set after the modules load
 local function getBountyModule()
 	if not bountyModule then
-		local ok, mod = pcall(function() return require("data/scripts/network/task_board/bounty_tasks") end)
+		local ok, mod = pcall(dofile, "data/scripts/network/task_board/bounty_tasks.lua")
 		if ok then bountyModule = mod end
 	end
 	return bountyModule
@@ -24,7 +24,7 @@ end
 
 local function getWeeklyModule()
 	if not weeklyModule then
-		local ok, mod = pcall(function() return require("data/scripts/network/task_board/weekly_tasks") end)
+		local ok, mod = pcall(dofile, "data/scripts/network/task_board/weekly_tasks.lua")
 		if ok then weeklyModule = mod end
 	end
 	return weeklyModule
@@ -32,7 +32,7 @@ end
 
 local function getResourceBalance()
 	if not resourceBalance then
-		local ok, mod = pcall(function() return require("data/scripts/network/task_board/resource_balance") end)
+		local ok, mod = pcall(dofile, "data/scripts/network/task_board/resource_balance.lua")
 		if ok then resourceBalance = mod end
 	end
 	return resourceBalance
@@ -99,12 +99,14 @@ function taskBoardLogin.onLogin(player)
 		end
 	end
 
-	-- Send resource balances
+	-- Send resource balances (use GUID to re-acquire player after delay)
 	local rb = getResourceBalance()
 	if rb then
+		local playerGuid = player:getGuid()
 		addEvent(function()
-			if player then
-				rb.sendAll(player)
+			local p = Player(playerGuid)
+			if p then
+				rb.sendAll(p)
 			end
 		end, 1000) -- delay 1s for client to be ready
 	end
@@ -112,6 +114,7 @@ function taskBoardLogin.onLogin(player)
 	return true
 end
 
+taskBoardLogin:type("login")
 taskBoardLogin:register()
 
 -- ============================================
@@ -138,4 +141,5 @@ function taskBoardLogout.onLogout(player)
 	return true
 end
 
+taskBoardLogout:type("logout")
 taskBoardLogout:register()

@@ -130,14 +130,17 @@ function HuntingShop.purchaseOffer(player, offerIndex)
 
 	elseif offer.type == OFFER_OUTFIT and offer.outfitId then
 		player:addOutfit(offer.outfitId)
-		if offer.addons > 0 then
-			player:addOutfitAddons(offer.outfitId, offer.addons)
+		local addons = offer.addons or 0
+		if addons > 0 then
+			player:addOutfitAddons(offer.outfitId, addons)
 		end
 		success = true
 
 	elseif offer.type == OFFER_BONUS_PROMOTION then
-		-- Grant premium or bonus promotion
-		player:setPremiumEndsAt(os.time() + (30 * 24 * 60 * 60)) -- 30 days
+		-- Add 30 days to existing or current time
+		local currentEndsAt = player:getPremiumEndsAt() or 0
+		local baseTime = math.max(currentEndsAt, os.time())
+		player:setPremiumEndsAt(baseTime + (30 * 24 * 60 * 60))
 		success = true
 
 	elseif offer.type == OFFER_WEEKLY_EXPANSION then

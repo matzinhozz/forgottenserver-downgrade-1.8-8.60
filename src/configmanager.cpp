@@ -472,6 +472,12 @@ bool ConfigManager::load()
 	booleans[Boolean::SOULPIT_SYSTEM_ENABLED] = getGlobalBoolean(L, "soulpitSystemEnabled", false);
 	booleans[Boolean::SOULSEALS_SYSTEM_ENABLED] = getGlobalBoolean(L, "soulsealsSystemEnabled", false);
 
+	// Normalize: if task hunting is off, dependent features are also off
+	if (!booleans[Boolean::TASK_HUNTING_SYSTEM_ENABLED]) {
+		booleans[Boolean::BOUNTY_TASKS_ENABLED] = false;
+		booleans[Boolean::WEEKLY_TASKS_ENABLED] = false;
+	}
+
 	// Stress Reactor
 	booleans[Boolean::STRESS_TEST] = getGlobalBoolean(L, "stressTest", false);
 	booleans[Boolean::STRESS_TEST_SEND] = getGlobalBoolean(L, "stressTestSend", true);

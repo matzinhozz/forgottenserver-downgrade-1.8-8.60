@@ -13,16 +13,16 @@ SoulPit.SoulCoresConfiguration = {
 	chanceToGetOminousSoulCore = 2,        -- 2%
 	chanceToDropSoulPrism = 4,             -- 4%
 	monsterVariationsSoulCore = {
-		["Horse"] = "horse soul core (taupe)",
-		["Brown Horse"] = "horse soul core (brown)",
-		["Grey Horse"] = "horse soul core (gray)",
-		["Nomad"] = "nomad soul core (basic)",
-		["Nomad Blue"] = "nomad soul core (blue)",
-		["Nomad Female"] = "nomad soul core (female)",
-		["Purple Butterfly"] = "butterfly soul core (purple)",
-		["Butterfly"] = "butterfly soul core (blue)",
-		["Blue Butterfly"] = "butterfly soul core (blue)",
-		["Red Butterfly"] = "butterfly soul core (red)",
+		["horse"] = "horse soul core (taupe)",
+		["brown horse"] = "horse soul core (brown)",
+		["grey horse"] = "horse soul core (gray)",
+		["nomad"] = "nomad soul core (basic)",
+		["nomad blue"] = "nomad soul core (blue)",
+		["nomad female"] = "nomad soul core (female)",
+		["purple butterfly"] = "butterfly soul core (purple)",
+		["butterfly"] = "butterfly soul core (blue)",
+		["blue butterfly"] = "butterfly soul core (blue)",
+		["red butterfly"] = "butterfly soul core (red)",
 	},
 	monstersDifficulties = {
 		["Harmless"] = 1,
@@ -171,7 +171,18 @@ end
 -- Get variation mapping from monster type name to soul core variant name
 function SoulPit.getMonsterVariationNameBySoulCore(searchName)
 	local variations = SoulPit.SoulCoresConfiguration.monsterVariationsSoulCore
-	return variations[searchName]
+	-- Case-insensitive lookup (monster name -> soul core variant name)
+	local lower = searchName and searchName:lower()
+	if lower and variations[lower] then
+		return variations[lower]
+	end
+	-- Fallback: iterate for partial match
+	for key, value in pairs(variations) do
+		if key:lower() == lower then
+			return value
+		end
+	end
+	return nil
 end
 
 -- Get difficulty name by stars count
@@ -228,14 +239,9 @@ function SoulPit.onFuseSoulCores(player, item, target)
 		return false
 	end
 
-	-- Consume both items
-	item:remove(1)
-	target:remove(1)
-
-	-- Get all possible soul cores and pick a random one
+	-- Validate soul core pool before consuming items
 	local soulCores = SoulPit.getSoulCoreItems()
 	if #soulCores == 0 then
-		-- Fallback: give a random core from known list
 		player:sendTextMessage(MESSAGE_INFO_DESCR, "Soul core fusion is not yet available.")
 		return false
 	end
@@ -243,6 +249,10 @@ function SoulPit.onFuseSoulCores(player, item, target)
 	local randomCore = soulCores[math.random(#soulCores)]
 	local coreItemId = randomCore:getId()
 	local coreName = randomCore:getName()
+
+	-- Consume both items (only after validation)
+	item:remove(1)
+	target:remove(1)
 
 	-- Give the fused core
 	player:addItem(coreItemId, 1)
