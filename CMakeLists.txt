@@ -21,6 +21,11 @@ if (BUILD_TESTING)
     list(APPEND VCPKG_MANIFEST_FEATURES "unit-tests")
 endif()
 
+option(BUILD_BENCHMARKING "Build benchmarks" OFF)
+if (BUILD_BENCHMARKING)
+    list(APPEND VCPKG_MANIFEST_FEATURES "benchmarks")
+endif()
+
 option(ENABLE_ASAN "Enable AddressSanitizer for memory diagnostics" OFF)
 option(ENABLE_NATIVE_OPTIMIZATIONS "Enable -march=native/-mtune=native for local Release builds" ON)
 
@@ -138,6 +143,10 @@ endif ()
 find_package(Threads REQUIRED)
 find_package(PugiXML CONFIG REQUIRED)
 
+if (BUILD_BENCHMARKING)
+    find_package(benchmark REQUIRED)
+endif()
+
 # Selects LuaJIT if user defines or auto-detected
 if (USE_LUAJIT)
     find_package(LuaJIT REQUIRED)
@@ -221,11 +230,13 @@ if (ENABLE_SLOW_TASK_DETECTION)
 endif()
 ### END SLOW TASK DETECTION ###
 
+if (BUILD_TESTING OR BUILD_BENCHMARKING)
+    enable_testing()
+endif()
+
 if (BUILD_TESTING)
     message(STATUS "Building unit tests")
-    enable_testing()
     add_test(
-        NAME build_source_list_parity
         COMMAND ${CMAKE_COMMAND}
             -DPROJECT_SOURCE_DIR=${CMAKE_SOURCE_DIR}
             -P ${CMAKE_SOURCE_DIR}/tools/check-source-list-parity.cmake
@@ -269,6 +280,11 @@ add_subdirectory(src)
 
 add_executable(tfs ${tfs_MAIN})
 target_link_libraries(tfs tfslib ZLIB::ZLIB OpenSSL::Crypto absl::flat_hash_map)
+
+# Embed the application icon on Windows (rc.exe compiles the .rc -> MAINICON)
+if (WIN32)
+    target_sources(tfs PRIVATE ${CMAKE_SOURCE_DIR}/vc18/theforgottenserver.rc)
+endif()
 
 # Link mimalloc if enabled
 if (USE_MIMALLOC AND NOT WIN32)

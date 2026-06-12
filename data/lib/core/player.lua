@@ -60,24 +60,14 @@ function Player.hasFlag(self, flag) return self:getGroup():hasFlag(flag) end
 
 function Player.getLossPercent(self)
 	local blessings = 0
-	local blessingNames = {"First", "Second", "Third", "Fourth", "Fifth"}
-	local hasBlessings = {}
-	
-	for i = 1, 5 do
+	for i = 1, 8 do
 		if self:hasBlessing(i) then
 			blessings = blessings + 1
-			hasBlessings[i] = true
-		else
-			hasBlessings[i] = false
 		end
 	end
-	
 	local blessingReduction = blessings * 8
-	
 	local basePenalty = self:getDeathPenalty()
-	
 	local finalPenalty = math.max(0, basePenalty - blessingReduction)
-	
 	return finalPenalty
 end
 
@@ -135,6 +125,15 @@ end
 
 function Player.sendExtendedOpcode(self, opcode, buffer)
 	if not self:isUsingOtClient() then return false end
+	buffer = buffer or ""
+	if type(buffer) ~= "string" then
+		buffer = tostring(buffer)
+	end
+	-- NetworkMessage::addString silently refuses strings above 8192 bytes.
+	-- Avoid sending a malformed packet containing only 0x32 + opcode.
+	if #buffer > 8192 then
+		return false
+	end
 
 	local networkMessage<close> = NetworkMessage()
 	networkMessage:addByte(0x32)

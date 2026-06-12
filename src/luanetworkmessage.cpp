@@ -14,7 +14,11 @@ bool isOtcOnlyLuaOpcode(uint8_t opcode)
 {
 	switch (opcode) {
 		case 0x29: // custom supply stash
+		case 0x2B: // custom party hunt analyzer
+		case 0x2D: // custom charm activated
 		case 0x2F: // custom unjustified points
+		case 0x30: // custom imbuement activated
+		case 0x31: // custom special skill activated
 		case 0x32: // extended opcode
 		case 0x48: // custom cyclopedia/bestiary
 		case 0x5F: // custom wheel of destiny window
@@ -24,8 +28,6 @@ bool isOtcOnlyLuaOpcode(uint8_t opcode)
 		case 0xA7: // custom fight mode sync
 		case 0xBA: // native hunting task base data
 		case 0xBB: // native hunting task slot data
-		case 0xC6: // custom item values
-		case 0xC7: // custom item details
 		case 0xD1: // custom hunt analyzer
 		case 0xDB: // custom market
 		case 0xEB: // imbuing window
@@ -43,6 +45,23 @@ bool isOtcOnlyLuaOpcode(uint8_t opcode)
 	}
 }
 
+bool isAstraOnlyLuaOpcode(uint8_t opcode)
+{
+	switch (opcode) {
+		case 0x2C: // custom boss cooldown
+		case 0x37: // custom battle pass
+		case 0x9B: // blessing window
+		case 0x9C: // blessing status
+		case 0xC0: // managed quick-loot containers
+		case 0xC6: // custom item values
+		case 0xC7: // custom item details
+		case 0xCF: // quick-loot statistics
+			return true;
+		default:
+			return false;
+	}
+}
+
 bool canSendLuaNetworkMessageToPlayer(const NetworkMessage& message, const Player& player)
 {
 	if (message.getLength() == 0) {
@@ -50,6 +69,9 @@ bool canSendLuaNetworkMessageToPlayer(const NetworkMessage& message, const Playe
 	}
 
 	const uint8_t opcode = message.getBuffer()[NetworkMessage::INITIAL_BUFFER_POSITION];
+	if (isAstraOnlyLuaOpcode(opcode) && !player.isAstraClient()) {
+		return false;
+	}
 	return !isOtcOnlyLuaOpcode(opcode) || player.isOTC();
 }
 
@@ -66,11 +88,21 @@ int sendLuaNetworkMessageToPlayer(lua_State* L, NetworkMessage& message, Player&
 }
 
 // NetworkMessage
+std::shared_ptr<NetworkMessage>& getNetworkMessage(lua_State* L)
+{
+	static thread_local std::shared_ptr<NetworkMessage> sentinel;
+	auto* ptr = static_cast<std::shared_ptr<NetworkMessage>*>(luaL_testudata(L, 1, "NetworkMessage"));
+	if (!ptr || !*ptr) {
+		sentinel.reset();
+		return sentinel;
+	}
+	return *ptr;
+}
+
 int luaNetworkMessageCreate(lua_State* L)
 {
 	// NetworkMessage([player])
-	auto message = std::make_unique<NetworkMessage>();
-	pushOwnedUserdata<NetworkMessage>(L, std::move(message));
+	pushSharedPtr(L, tfs::net::make_network_message());
 	setMetatable(L, -1, "NetworkMessage");
 
 	if (const auto player = getPlayer(L, 1)) {
@@ -82,13 +114,17 @@ int luaNetworkMessageCreate(lua_State* L)
 
 int luaNetworkMessageDelete(lua_State* L)
 {
-	return deleteOwnedUserdata(L);
+	auto ptr = static_cast<std::shared_ptr<NetworkMessage>*>(lua_touserdata(L, 1));
+	if (ptr) {
+		ptr->reset();
+	}
+	return 0;
 }
 
 int luaNetworkMessageGetByte(lua_State* L)
 {
 	// networkMessage:getByte()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, message->getByte());
 	} else {
@@ -100,7 +136,7 @@ int luaNetworkMessageGetByte(lua_State* L)
 int luaNetworkMessageGetU16(lua_State* L)
 {
 	// networkMessage:getU16()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, message->get<uint16_t>());
 	} else {
@@ -112,7 +148,7 @@ int luaNetworkMessageGetU16(lua_State* L)
 int luaNetworkMessageGetU32(lua_State* L)
 {
 	// networkMessage:getU32()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, message->get<uint32_t>());
 	} else {
@@ -124,7 +160,7 @@ int luaNetworkMessageGetU32(lua_State* L)
 int luaNetworkMessageGetU64(lua_State* L)
 {
 	// networkMessage:getU64()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, message->get<uint64_t>());
 	} else {
@@ -136,7 +172,7 @@ int luaNetworkMessageGetU64(lua_State* L)
 int luaNetworkMessageGetString(lua_State* L)
 {
 	// networkMessage:getString()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		pushString(L, message->getString());
 	} else {
@@ -148,7 +184,7 @@ int luaNetworkMessageGetString(lua_State* L)
 int luaNetworkMessageGetPosition(lua_State* L)
 {
 	// networkMessage:getPosition()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		pushPosition(L, message->getPosition());
 	} else {
@@ -160,7 +196,7 @@ int luaNetworkMessageGetPosition(lua_State* L)
 int luaNetworkMessageAddByte(lua_State* L)
 {
 	// networkMessage:addByte(integer)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		uint8_t integer = getInteger<uint8_t>(L, 2);
 		message->addByte(integer);
@@ -174,7 +210,7 @@ int luaNetworkMessageAddByte(lua_State* L)
 int luaNetworkMessageAddU16(lua_State* L)
 {
 	// networkMessage:addU16(integer)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		uint16_t integer = getInteger<uint16_t>(L, 2);
 		message->add<uint16_t>(integer);
@@ -188,7 +224,7 @@ int luaNetworkMessageAddU16(lua_State* L)
 int luaNetworkMessageAddU32(lua_State* L)
 {
 	// networkMessage:addU32(integer)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		uint32_t integer = getInteger<uint32_t>(L, 2);
 		message->add<uint32_t>(integer);
@@ -202,7 +238,7 @@ int luaNetworkMessageAddU32(lua_State* L)
 int luaNetworkMessageAddU64(lua_State* L)
 {
 	// networkMessage:addU64(integer)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		uint64_t integer = getInteger<uint64_t>(L, 2);
 		message->add<uint64_t>(integer);
@@ -216,7 +252,7 @@ int luaNetworkMessageAddU64(lua_State* L)
 int luaNetworkMessageAddString(lua_State* L)
 {
 	// networkMessage:addString(string)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		const std::string& string = getString(L, 2);
 		message->addString(string);
@@ -230,7 +266,7 @@ int luaNetworkMessageAddString(lua_State* L)
 int luaNetworkMessageAddPosition(lua_State* L)
 {
 	// networkMessage:addPosition(position)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		const Position& position = getPosition(L, 2);
 		message->addPosition(position);
@@ -244,7 +280,7 @@ int luaNetworkMessageAddPosition(lua_State* L)
 int luaNetworkMessageAddDouble(lua_State* L)
 {
 	// networkMessage:addDouble(number)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		double number = getNumber<double>(L, 2);
 		message->addDouble(number);
@@ -265,7 +301,7 @@ int luaNetworkMessageAddItem(lua_State* L)
 		return 1;
 	}
 
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		if (getAssociatedValue(L, 1, 1)) {
 			if (const auto player = getPlayer(L, -1)) {
@@ -288,7 +324,7 @@ int luaNetworkMessageAddItem(lua_State* L)
 int luaNetworkMessageAddItemId(lua_State* L)
 {
 	// networkMessage:addItemId(itemId)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (!message) {
 		lua_pushnil(L);
 		return 1;
@@ -323,7 +359,7 @@ int luaNetworkMessageAddItemId(lua_State* L)
 int luaNetworkMessageReset(lua_State* L)
 {
 	// networkMessage:reset()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		message->reset();
 		pushBoolean(L, true);
@@ -336,7 +372,7 @@ int luaNetworkMessageReset(lua_State* L)
 int luaNetworkMessageSeek(lua_State* L)
 {
 	// networkMessage:seek(position)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message && isInteger(L, 2)) {
 		pushBoolean(L, message->setBufferPosition(getInteger<uint16_t>(L, 2)));
 	} else {
@@ -348,7 +384,7 @@ int luaNetworkMessageSeek(lua_State* L)
 int luaNetworkMessageTell(lua_State* L)
 {
 	// networkMessage:tell()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, static_cast<int64_t>(message->getBufferPosition()) - message->INITIAL_BUFFER_POSITION);
 	} else {
@@ -360,7 +396,7 @@ int luaNetworkMessageTell(lua_State* L)
 int luaNetworkMessageLength(lua_State* L)
 {
 	// networkMessage:len()
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		lua_pushinteger(L, message->getLength());
 	} else {
@@ -372,7 +408,7 @@ int luaNetworkMessageLength(lua_State* L)
 int luaNetworkMessageSkipBytes(lua_State* L)
 {
 	// networkMessage:skipBytes(integer)
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (message) {
 		int16_t integer = getInteger<int16_t>(L, 2);
 		message->skipBytes(integer);
@@ -386,7 +422,7 @@ int luaNetworkMessageSkipBytes(lua_State* L)
 int luaNetworkMessageSendToPlayer(lua_State* L)
 {
 	// networkMessage:sendToPlayer([player])
-	NetworkMessage* message = getUserdata<NetworkMessage>(L, 1);
+	const auto& message = getNetworkMessage(L);
 	if (!message) {
 		lua_pushnil(L);
 		return 1;
@@ -415,7 +451,6 @@ void LuaScriptInterface::registerNetworkMessage()
 	registerMetaMethod("NetworkMessage", "__eq", LuaScriptInterface::luaUserdataCompare);
 	registerMetaMethod("NetworkMessage", "__gc", luaNetworkMessageDelete);
 	registerMetaMethod("NetworkMessage", "__close", luaNetworkMessageDelete);
-	registerMethod("NetworkMessage", "delete", luaNetworkMessageDelete);
 
 	registerMethod("NetworkMessage", "getByte", luaNetworkMessageGetByte);
 	registerMethod("NetworkMessage", "getU16", luaNetworkMessageGetU16);

@@ -22,6 +22,7 @@
 #include "npc.h"
 #include "party.h"
 #include "rewardchest.h"
+#include "save_manager.h"
 #include "scriptmanager.h"
 #include "scheduler.h"
 #include "logger.h"
@@ -215,6 +216,7 @@ uint32_t Player::playerAutoID = 0x10000000;
 // storedConditionList is now a per-instance member (see player.h)
 
 Player::Player(ProtocolGame_ptr p) : Creature(), client(std::make_shared<ProtocolSpectator>(std::move(p))), lastPing(OTSYS_TIME()), lastPong(lastPing),
+	m_weaponProficiency(std::make_unique<WeaponProficiency>(*this)),
 	storeInbox(std::make_shared<StoreInbox>(ITEM_STORE_INBOX))
 {
 	storeInbox->setParent(this);
@@ -680,6 +682,88 @@ Item* Player::getWeapon(slots_t slot, bool ignoreAmmo) const
 	return item;
 }
 
+void Player::sendMonkData()
+{
+	if (!client || !client->isAstraClient) {
+		return;
+	}
+	std::string json = fmt::format(
+		"{{"
+		"\"harmony\":{},"
+		"\"serene\":{},"
+		"\"virtue\":{}"
+		"}}",
+		m_harmony,
+		m_serene,
+		static_cast<uint8_t>(m_virtue)
+	);
+	client->sendExtendedOpcode(0x92, json);
+}
+
+void Player::addBlessing(uint8_t blessing, uint8_t count)
+{
+	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS || blessings[blessing] == 255) return;
+	const uint8_t oldCount = blessings[blessing];
+	blessings[blessing] = static_cast<uint8_t>(std::min(255, blessings[blessing] + count));
+	if (blessings[blessing] != oldCount) {
+		sendBlessStatus();
+	}
+}
+
+void Player::removeBlessing(uint8_t blessing, uint8_t count)
+{
+	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS) return;
+	const uint8_t oldCount = blessings[blessing];
+	blessings[blessing] = static_cast<uint8_t>(std::max(0, blessings[blessing] - count));
+	if (blessings[blessing] != oldCount) {
+		sendBlessStatus();
+	}
+}
+
+bool Player::hasBlessing(uint8_t blessing) const
+{
+	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS) return false;
+	return blessings[blessing] > 0;
+}
+
+uint8_t Player::getBlessingCount(uint8_t blessing) const
+{
+	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS) return 0;
+	return blessings[blessing];
+}
+
+void Player::addDeathLog(uint32_t timestamp, uint8_t color, std::string_view message)
+{
+	DeathLogEntry entry;
+	entry.timestamp = timestamp;
+	entry.color = color;
+	entry.message = message;
+	m_deathLog.push_back(entry);
+	// Keep only last 5 entries
+	while (m_deathLog.size() > 5) {
+		m_deathLog.erase(m_deathLog.begin());
+	}
+}
+
+void Player::sendBlessStatus()
+{
+	if (!client || !client->isAstraClient) {
+		return;
+	}
+
+	uint8_t totalCount = 0;
+	for (uint8_t i = 2; i <= 8; i++) {
+		if (hasBlessing(i)) totalCount++;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0x9C);
+	bool glow = getVocationId() > 0 && (totalCount >= 4 || getLevel() < 21);
+	msg.add<uint16_t>(glow ? 1 : 0);
+	msg.addByte(totalCount >= 7 ? 3 : (totalCount >= 5 ? 2 : 1));
+	client->writeToOutputBuffer(msg);
+}
+
 Item* Player::getWeapon(bool ignoreAmmo /* = false*/) const
 {
 	if (isDualWielding()) {
@@ -1050,7 +1134,7 @@ float Player::getDefenseFactor() const
 
 uint16_t Player::getClientIcons() const
 {
-	uint16_t icons = 0;
+	uint64_t icons = 0;
 	for (const auto& condition : conditions) {
 		if (!isSuppress(condition->getType())) {
 			icons |= condition->getIcons();
@@ -1079,6 +1163,52 @@ uint16_t Player::getClientIcons() const
 		}
 	}
 	return icon_bitset.to_ulong();
+}
+
+uint64_t Player::getClientIcons64() const
+{
+	uint64_t icons = 0;
+	for (const auto& condition : conditions) {
+		if (!isSuppress(condition->getType())) {
+			icons |= condition->getIcons();
+		}
+	}
+
+	if (pzLocked) {
+		icons |= static_cast<uint64_t>(PlayerIcon_RedSwords);
+	}
+
+	if (const Tile* playerTile = getTile(); playerTile && playerTile->hasFlag(TILESTATE_PROTECTIONZONE)) {
+		icons |= static_cast<uint64_t>(PlayerIcon_Pigeon);
+		if (icons & static_cast<uint64_t>(PlayerIcon_Swords)) {
+			icons &= ~static_cast<uint64_t>(PlayerIcon_Swords);
+		}
+	}
+
+	return icons;
+}
+
+IconBakragore_t Player::getBakragoreIcon() const
+{
+	return IconBakragore_None;
+}
+
+void Player::sendIcons() const
+{
+	if (!client) {
+		return;
+	}
+	client->sendIcons(getClientIcons());
+
+	// Send extended 64-bit condition icons for AstraClient ONLY
+	if (!client->isAstraClient) {
+		return;
+	}
+
+	uint64_t highIcons = getClientIcons64() & ~0xFFFFULL;
+	if (highIcons != 0) {
+		client->sendExtendedOpcode(0x8C, std::string(reinterpret_cast<const char*>(&highIcons), sizeof(highIcons)));
+	}
 }
 
 void Player::updateInventoryWeight()
@@ -1395,12 +1525,43 @@ void Player::setStorageValue(const uint32_t key, const std::optional<int64_t> va
 		modifiedStorageKeys.erase(key);
 		removedStorageKeys.insert(key);
 	}
+	storageDirtyKeyRevisions[key] = ++storageDirtyRevision;
+}
+
+Player::StorageDirtySnapshot Player::getStorageDirtySnapshot() const
+{
+	return StorageDirtySnapshot{storageDirtyRevision, modifiedStorageKeys, removedStorageKeys};
+}
+
+void Player::acknowledgeStorageDirty(const StorageDirtySnapshot& snapshot)
+{
+	auto acknowledgeKey = [this, snapshotId = snapshot.snapshotId](uint32_t key) {
+		const auto versionIt = storageDirtyKeyRevisions.find(key);
+		if (versionIt != storageDirtyKeyRevisions.end() && versionIt->second > snapshotId) {
+			return;
+		}
+
+		modifiedStorageKeys.erase(key);
+		removedStorageKeys.erase(key);
+		if (versionIt != storageDirtyKeyRevisions.end()) {
+			storageDirtyKeyRevisions.erase(versionIt);
+		}
+	};
+
+	for (const uint32_t key : snapshot.modifiedKeys) {
+		acknowledgeKey(key);
+	}
+
+	for (const uint32_t key : snapshot.removedKeys) {
+		acknowledgeKey(key);
+	}
 }
 
 void Player::clearStorageDirty()
 {
 	modifiedStorageKeys.clear();
 	removedStorageKeys.clear();
+	storageDirtyKeyRevisions.clear();
 }
 
 bool Player::canSee(const Position& pos) const
@@ -2212,7 +2373,7 @@ void Player::onRemoveCreature(Creature* creature, bool isLogout)
 
 		bool saved = false;
 		for (uint32_t tries = 0; tries < 3; ++tries) {
-			if (IOLoginData::savePlayer(this)) {
+			if (g_saveManager.savePlayerSync(this)) {
 				saved = true;
 				break;
 			}
@@ -2468,7 +2629,7 @@ void Player::setNextActionTask(std::unique_ptr<SchedulerTask> task, bool resetId
 	}
 }
 
-uint32_t Player::getNextActionTime() const { return std::max<int64_t>(SCHEDULER_MINTICKS, nextAction - OTSYS_TIME()); }
+uint32_t Player::getNextActionTime() const { return std::max<int64_t>(MIN_TASK_INTERVAL, nextAction - OTSYS_TIME()); }
 
 void Player::onThink(uint32_t interval)
 {
@@ -3204,15 +3365,19 @@ void Player::death(Creature* lastHitCreature)
 			}
 		}
 
-		if (blessings.test(5)) {
-			if (lastHitPlayer) {
-				blessings.reset(5);
-			} else {
-				blessings.reset();
-				blessings.set(5);
+		// Consume blessings on death (Crystal/Canary-style)
+		bool hasTOF = blessings[1] > 0; // Twist of Fate = blessing 1
+		if (hasTOF && lastHitPlayer) {
+			blessings[1] = std::max<uint8_t>(0, blessings[1] - 1);
+		} else if (hasTOF) {
+			for (int i = 1; i <= PLAYER_MAX_BLESSINGS; i++) {
+				blessings[i] = 0;
 			}
+			blessings[1] = 1; // Keep TOF
 		} else {
-			blessings.reset();
+			for (int i = 1; i <= PLAYER_MAX_BLESSINGS; i++) {
+				blessings[i] = 0;
+			}
 		}
 
 		if (getSkull() == SKULL_BLACK) {
@@ -3229,6 +3394,14 @@ void Player::death(Creature* lastHitCreature)
 		sendStats();
 		sendSkills();
 		sendReLoginWindow();
+
+		// Add death log entry for blessing history
+		std::string deathMsg = "Died at Level " + std::to_string(level);
+		if (lastHitCreature) {
+			deathMsg += " by " + lastHitCreature->getNameDescription();
+		}
+		addDeathLog(static_cast<uint32_t>(OTSYS_TIME() / 1000), 0, deathMsg);
+
 		g_creatureEvents->playerLogout(this);
 	} else {
 		setSkillLoss(true);
@@ -3243,6 +3416,12 @@ void Player::death(Creature* lastHitCreature)
 		onThink(EVENT_CREATURE_THINK_INTERVAL);
 		onIdleStatus();
 		sendStats();
+
+		std::string deathMsg = "Died at Level " + std::to_string(level);
+		if (lastHitCreature) {
+			deathMsg += " by " + lastHitCreature->getNameDescription();
+		}
+		addDeathLog(static_cast<uint32_t>(OTSYS_TIME() / 1000), 1, deathMsg);
 	}
 	clearTemporaryDeathLossReduction();
 }
@@ -4477,7 +4656,7 @@ void Player::doAttacking(uint32_t)
 			result = Weapon::useFist(this, ac.get());
 		}
 
-		auto task = createSchedulerTask(std::max<uint32_t>(SCHEDULER_MINTICKS, delay),
+		auto task = createSchedulerTask(std::max<uint32_t>(MIN_TASK_INTERVAL, delay),
 		                                          [id = getID()]() { g_game.checkCreatureAttack(id); });
 
 		if (!classicSpeed && !allowAutoAttackWithoutExhaustion) {
@@ -5203,10 +5382,13 @@ Skulls_t Player::getSkullClient(const Creature* creature) const
 		return SKULL_NONE;
 	}
 
-	// Influenced monsters always show green skull regardless of world type
+	// Influenced/fiendish: OTC gets skull, Astra gets creature icon via 0x8B
 	if (const Monster* monster = creature->getMonster()) {
-		if (monster->isInfluenced()) {
-			return SKULL_GREEN;
+		if (monster->isInfluenced() || monster->isFiendish()) {
+			if (isAstraClient()) {
+				return SKULL_NONE;
+			}
+			return monster->isInfluenced() ? SKULL_GREEN : SKULL_RED;
 		}
 	}
 
@@ -5339,19 +5521,21 @@ void Player::checkSkullTicks(int64_t ticks)
 
 bool Player::isPromoted() const
 {
-	uint16_t promotedVocation = g_vocations.getPromotedVocation(vocation->getId());
-	return promotedVocation == VOCATION_NONE && vocation->getId() != promotedVocation;
+	return vocation->getFromVocation() != vocation->getId();
 }
 
 double Player::getLostPercent() const
 {
 	int64_t deathLosePercent = getInteger(ConfigManager::DEATH_LOSE_PERCENT);
+
+	uint8_t blessCount = getBlessingReduction();
+
 	if (deathLosePercent != -1) {
 		if (isPromoted()) {
 			deathLosePercent -= 3;
 		}
 
-		deathLosePercent -= blessings.count();
+		deathLosePercent -= blessCount;
 		deathLosePercent -= totalReduceSkillLoss;
 
 		return std::max<int32_t>(0, deathLosePercent) / 100.;
@@ -5370,10 +5554,34 @@ double Player::getLostPercent() const
 	if (isPromoted()) {
 		percentReduction += 30;
 	}
-	percentReduction += blessings.count() * 8;
+	percentReduction += blessCount * 8;
 	percentReduction += totalReduceSkillLoss;
 
 	return lossPercent * (1 - (percentReduction / 100.)) / 100.;
+}
+
+uint8_t Player::getBlessingReduction() const
+{
+	uint8_t count = 0;
+	for (int i = 2; i <= PLAYER_MAX_BLESSINGS; i++) {
+		if (blessings[i] > 0) count++;
+	}
+	return count;
+}
+
+double Player::getEquipmentLossPercent(bool isContainer) const
+{
+	uint8_t blessCount = getBlessingReduction();
+	float lossPercent = 0;
+	switch (blessCount) {
+		case 0: lossPercent = 10; break;
+		case 1: lossPercent = 7; break;
+		case 2: lossPercent = 4.5; break;
+		case 3: lossPercent = 2.5; break;
+		case 4: lossPercent = 1; break;
+		default: lossPercent = 0; break;
+	}
+	return isContainer ? lossPercent * 10 : lossPercent;
 }
 
 void Player::learnInstantSpell(std::string_view spellName)
@@ -5728,7 +5936,7 @@ bool Player::toggleMount(bool mount)
 bool Player::tameMount(uint16_t mountId)
 {
 	Mount* mount = g_game.mounts.getMountByID(mountId);
-	if (!mount || hasMount(mount)) {
+	if (!mount || ownsMount(mount)) {
 		return false;
 	}
 
@@ -5739,7 +5947,7 @@ bool Player::tameMount(uint16_t mountId)
 bool Player::untameMount(uint16_t mountId)
 {
 	Mount* mount = g_game.mounts.getMountByID(mountId);
-	if (!mount || hasMount(mount)) {
+	if (!mount || !ownsMount(mount)) {
 		return false;
 	}
 
@@ -5757,6 +5965,11 @@ bool Player::untameMount(uint16_t mountId)
 	return true;
 }
 
+bool Player::ownsMount(const Mount* mount) const
+{
+	return mount && mounts.contains(mount->id);
+}
+
 bool Player::hasMount(const Mount* mount) const
 {
 	if (isAccessPlayer()) {
@@ -5767,7 +5980,7 @@ bool Player::hasMount(const Mount* mount) const
 		return false;
 	}
 
-	return mounts.contains(mount->id);
+	return ownsMount(mount);
 }
 
 bool Player::hasMounts() const
@@ -6379,7 +6592,7 @@ void Player::lootCorpse(Container* container)
 
 void Player::sendLootContainers() const
 {
-	if (client) {
+	if (client && isAstraClient()) {
 		client->sendLootContainers();
 	}
 }
@@ -6485,48 +6698,58 @@ void Player::flushPendingLoot(const std::string& groupKey)
 		ss << ": ";
 	}
 
-	bool first = true;
-	const bool colorizedLootValue = ConfigManager::getBoolean(ConfigManager::COLORIZED_LOOT_VALUE);
-	for (auto& [itemId, count] : group->items) {
-		const ItemType& itemType = Item::items[itemId];
-		if (!first) {
-			ss << ", ";
-		}
-		first = false;
-		if (colorizedLootValue) {
-			const uint64_t itemValue = static_cast<uint64_t>(itemType.sellPrice > 0 ? itemType.sellPrice : itemType.buyPrice) * count;
-			ss << "{" << itemId << ":" << itemValue << "|";
-		}
-		if (count > 1) {
-			ss << count << " " << itemType.getPluralName();
-		} else {
-			if (itemType.article.empty() || itemType.stackable) {
-				ss << "1 " << itemType.name;
+	const std::string prefix = ss.str();
+	const auto buildLootText = [&](bool colorized) {
+		std::stringstream text;
+		text << prefix;
+		bool first = true;
+		for (auto& [itemId, count] : group->items) {
+			const ItemType& itemType = Item::items[itemId];
+			if (!first) {
+				text << ", ";
+			}
+			first = false;
+			if (colorized) {
+				const uint64_t itemValue =
+				    static_cast<uint64_t>(itemType.sellPrice > 0 ? itemType.sellPrice : itemType.buyPrice) * count;
+				text << "{" << itemId << ":" << itemValue << "|";
+			}
+			if (count > 1) {
+				text << count << " " << itemType.getPluralName();
+			} else if (itemType.article.empty() || itemType.stackable) {
+				text << "1 " << itemType.name;
 			} else {
-				ss << itemType.article << " " << itemType.name;
+				text << itemType.article << " " << itemType.name;
+			}
+			if (colorized) {
+				text << "}";
 			}
 		}
-		if (colorizedLootValue) {
-			ss << "}";
-		}
-	}
-	ss << ".";
+		text << ".";
+		return text.str();
+	};
 
-	std::string text = ss.str();
+	const bool colorizedLootEnabled = ConfigManager::getBoolean(ConfigManager::COLORIZED_LOOT_VALUE);
+	const std::string plainText = buildLootText(false);
+	const std::string colorizedText = colorizedLootEnabled ? buildLootText(true) : plainText;
+	const auto sendLootText = [&](Player& recipient) {
+		recipient.sendChannelMessage(
+		    "", colorizedLootEnabled && recipient.isAstraClient() ? colorizedText : plainText, TALKTYPE_CHANNEL_O, 10);
+	};
 
 	const auto& party = getParty();
 	if (party && party->isSharedExperienceEnabled()) {
 		const auto& leader = party->getLeader();
 		if (leader) {
-			leader->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+			sendLootText(*leader);
 		}
 		for (auto& member : party->getMembers()) {
 			if (auto memberPtr = member.lock()) {
-				memberPtr->sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+				sendLootText(*memberPtr);
 			}
 		}
 	} else {
-		sendChannelMessage("", text, TALKTYPE_CHANNEL_O, 10);
+		sendLootText(*this);
 	}
 
 	m_pendingLootGroups.erase(it);

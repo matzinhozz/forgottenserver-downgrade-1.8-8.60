@@ -467,6 +467,30 @@ bool ConfigManager::load()
 	booleans[Boolean::ITEM_UPGRADE_CLASSIFICATION] = getGlobalBoolean(L, "enableItemUpgradeClassification", false);
 	booleans[Boolean::QUICK_LOOT_ENABLED] = getGlobalBoolean(L, "enableQuickLoot", false);
 
+	// Stress Reactor
+	booleans[Boolean::STRESS_TEST] = getGlobalBoolean(L, "stressTest", false);
+	booleans[Boolean::STRESS_TEST_SEND] = getGlobalBoolean(L, "stressTestSend", true);
+	booleans[Boolean::STRESS_TEST_SCHEDULE] = getGlobalBoolean(L, "stressTestSchedule", true);
+	booleans[Boolean::STRESS_TEST_STAGGERED] = getGlobalBoolean(L, "stressTestStaggered", true);
+	booleans[Boolean::STRESS_TEST_MIXED] = getGlobalBoolean(L, "stressTestMixed", true);
+	booleans[Boolean::STRESS_TEST_CANCEL] = getGlobalBoolean(L, "stressTestCancel", true);
+	booleans[Boolean::STRESS_TEST_CONCURRENT_PUSH] = getGlobalBoolean(L, "stressTestConcurrentPush", true);
+	booleans[Boolean::STRESS_TEST_CONCURRENT_SCHEDULE] = getGlobalBoolean(L, "stressTestConcurrentSchedule", true);
+	booleans[Boolean::STRESS_TEST_HEAP_ORDER] = getGlobalBoolean(L, "stressTestHeapOrder", true);
+	booleans[Boolean::STRESS_TEST_UNIQUE_IDS] = getGlobalBoolean(L, "stressTestUniqueIds", true);
+	booleans[Boolean::STRESS_TEST_MOVE_ONLY] = getGlobalBoolean(L, "stressTestMoveOnly", true);
+	booleans[Boolean::STRESS_TEST_EXPIRATION] = getGlobalBoolean(L, "stressTestExpiration", true);
+	booleans[Boolean::STRESS_TEST_BURST] = getGlobalBoolean(L, "stressTestBurst", true);
+	booleans[Boolean::STRESS_TEST_REENTRANCY] = getGlobalBoolean(L, "stressTestReentrancy", true);
+	booleans[Boolean::STRESS_TEST_SHUTDOWN_PENDING] = getGlobalBoolean(L, "stressTestShutdownPending", true);
+	booleans[Boolean::STRESS_TEST_CANCEL_EXTERNAL] = getGlobalBoolean(L, "stressTestCancelExternal", true);
+	booleans[Boolean::STRESS_TEST_EXCEPTION] = getGlobalBoolean(L, "stressTestException", true);
+	booleans[Boolean::STRESS_TEST_BENCHMARK] = getGlobalBoolean(L, "stressTestBenchmark", true);
+	booleans[Boolean::STRESS_TEST_INSPECTION] = getGlobalBoolean(L, "stressTestInspection", true);
+	booleans[Boolean::STRESS_TEST_MIXED_DELAYS] = getGlobalBoolean(L, "stressTestMixedDelays", true);
+	booleans[Boolean::STRESS_TEST_LEAK] = getGlobalBoolean(L, "stressTestLeak", true);
+	booleans[Boolean::STRESS_TEST_SHUTDOWN_SEND] = getGlobalBoolean(L, "stressTestShutdownSend", true);
+
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);
 	booleans[Boolean::ADMIN_REQUIRE_LOGIN] = getGlobalBoolean(L, "adminRequireLogin", true);
@@ -603,6 +627,34 @@ bool ConfigManager::load()
 	floats[BOOSTED_SPAWN_MULTIPLIER] = getGlobalFloat(L, "boostedSpawnMultiplier", 0.5f);
 	integers[Integer::BOOSTED_BOSS_LOOT_BONUS] = getGlobalInteger(L, "boostedBossLootBonus", 250);
 	integers[Integer::BOOSTED_BOSS_KILL_BONUS] = getGlobalInteger(L, "boostedBossKillBonus", 3);
+
+	// Stress Reactor
+	integers[Integer::STRESS_TEST_COUNT] = getGlobalInteger(L, "stressTestCount", 10000);
+	integers[Integer::STRESS_TEST_THREADS] = getGlobalInteger(L, "stressTestThreads", 8);
+	integers[Integer::STRESS_TEST_SEND_COUNT] = getGlobalInteger(L, "stressTestSendCount", 10000);
+	integers[Integer::STRESS_TEST_SCHEDULE_COUNT] = getGlobalInteger(L, "stressTestScheduleCount", 10000);
+	integers[Integer::STRESS_TEST_STAGGERED_COUNT] = getGlobalInteger(L, "stressTestStaggeredCount", 10000);
+	integers[Integer::STRESS_TEST_MIXED_COUNT] = getGlobalInteger(L, "stressTestMixedCount", 10000);
+	integers[Integer::STRESS_TEST_CANCEL_COUNT] = getGlobalInteger(L, "stressTestCancelCount", 10000);
+	integers[Integer::STRESS_TEST_CONCURRENT_PUSH_COUNT] = getGlobalInteger(L, "stressTestConcurrentPushCount", 10000);
+	integers[Integer::STRESS_TEST_CONCURRENT_SCHEDULE_COUNT] = getGlobalInteger(L, "stressTestConcurrentScheduleCount", 10000);
+	integers[Integer::STRESS_TEST_HEAP_ORDER_COUNT] = getGlobalInteger(L, "stressTestHeapOrderCount", 5000);
+	integers[Integer::STRESS_TEST_UNIQUE_IDS_COUNT] = getGlobalInteger(L, "stressTestUniqueIdsCount", 10000);
+	integers[Integer::STRESS_TEST_MOVE_ONLY_COUNT] = getGlobalInteger(L, "stressTestMoveOnlyCount", 1000);
+	integers[Integer::STRESS_TEST_EXPIRATION_COUNT] = getGlobalInteger(L, "stressTestExpirationCount", 10000);
+	integers[Integer::STRESS_TEST_BURST_COUNT] = getGlobalInteger(L, "stressTestBurstCount", 10000);
+	integers[Integer::STRESS_TEST_CONCURRENT_PUSH_THREADS] = getGlobalInteger(L, "stressTestConcurrentPushThreads", 8);
+	integers[Integer::STRESS_TEST_CONCURRENT_SCHEDULE_THREADS] = getGlobalInteger(L, "stressTestConcurrentScheduleThreads", 8);
+	integers[Integer::STRESS_TEST_UNIQUE_IDS_THREADS] = getGlobalInteger(L, "stressTestUniqueIdsThreads", 8);
+	integers[Integer::STRESS_TEST_REENTRANCY_COUNT] = getGlobalInteger(L, "stressTestReentrancyCount", 1000);
+	integers[Integer::STRESS_TEST_SHUTDOWN_PENDING_COUNT] = getGlobalInteger(L, "stressTestShutdownPendingCount", 10000);
+	integers[Integer::STRESS_TEST_CANCEL_EXTERNAL_COUNT] = getGlobalInteger(L, "stressTestCancelExternalCount", 10000);
+	integers[Integer::STRESS_TEST_CANCEL_EXTERNAL_THREADS] = getGlobalInteger(L, "stressTestCancelExternalThreads", 8);
+	integers[Integer::STRESS_TEST_EXCEPTION_COUNT] = getGlobalInteger(L, "stressTestExceptionCount", 10000);
+	integers[Integer::STRESS_TEST_INSPECTION_COUNT] = getGlobalInteger(L, "stressTestInspectionCount", 100);
+	integers[Integer::STRESS_TEST_MIXED_DELAYS_COUNT] = getGlobalInteger(L, "stressTestMixedDelaysCount", 10000);
+	integers[Integer::STRESS_TEST_LEAK_COUNT] = getGlobalInteger(L, "stressTestLeakCount", 10000);
+	integers[Integer::STRESS_TEST_SHUTDOWN_SEND_COUNT] = getGlobalInteger(L, "stressTestShutdownSendCount", 10000);
 
 	floats[COMBAT_CHAIN_SKILL_FORMULA_AXE] = getGlobalFloat(L, "combatChainSkillFormulaAxe", 0.9f);
 	floats[COMBAT_CHAIN_SKILL_FORMULA_CLUB] = getGlobalFloat(L, "combatChainSkillFormulaClub", 0.7f);

@@ -449,19 +449,13 @@ void Game::setGameState(GameState_t newState)
 			saveMotdNum();
 			saveGameState();
 
-			{
-				auto shutdownTask = createTaskWithStats([this]() { shutdown(); }, "Game::shutdown", "setGameState");
-				shutdownTask->trackInStats = false;
-				shutdownTask->skipSlowDetection = true;
-				g_dispatcher.addTask(std::move(shutdownTask));
-			}
-
 			g_scheduler.stop();
 			g_databaseTasks.stop();
 			g_dispatcher.stop();
 #ifdef STATS_ENABLED
 			g_stats.stop();
 #endif
+			shutdown();
 			LOG_INFO(">> Shutdown complete.");
 			break;
 		}
@@ -864,6 +858,24 @@ std::shared_ptr<Player> Game::getPlayerByAccount(uint32_t acc)
 		}
 	}
 	return nullptr;
+}
+
+bool Game::reserveLogin(uint32_t guid)
+{
+	std::unique_lock<std::shared_mutex> lock(pendingLoginsMutex);
+	return pendingLogins.emplace(guid).second;
+}
+
+void Game::releaseLogin(uint32_t guid)
+{
+	std::unique_lock<std::shared_mutex> lock(pendingLoginsMutex);
+	pendingLogins.erase(guid);
+}
+
+bool Game::isLoginPending(uint32_t guid) const
+{
+	std::shared_lock<std::shared_mutex> lock(pendingLoginsMutex);
+	return pendingLogins.contains(guid);
 }
 
 std::vector<std::shared_ptr<Player>> Game::getPlayers() const
@@ -1384,7 +1396,7 @@ void Game::playerMoveItem(Player* player, const Position& fromPos, uint16_t spri
                           const Position& toPos, uint8_t count, Item* item, Cylinder* toCylinder)
 {
 	if (player->hasCondition(CONDITION_EXHAUST_WEAPON, EXHAUST_MOVEITEM)) {
-		uint32_t delay = SCHEDULER_MINTICKS;
+		uint32_t delay = MIN_TASK_INTERVAL;
 		if (Condition* cond = player->getCondition(CONDITION_EXHAUST_WEAPON, CONDITIONID_DEFAULT, EXHAUST_MOVEITEM)) {
 			int64_t remaining = cond->getEndTime() - OTSYS_TIME();
 			if (remaining > 0) {
@@ -6735,8 +6747,6 @@ void Game::shutdown()
 		checkCreatureList.clear();
 	}
 
-	g_luaEnvironment.shutdown();
-
 	map.spawns.clear();
 	raids.clear();
 	guilds.clear();
@@ -6881,15 +6891,46 @@ void Game::updateCreatureEmblem(Creature* creature)
 	}
 }
 
-void Game::updateCreatureSkull(const Creature* creature)
+void Game::updateCreatureIcon(const Player* spectator, const Creature* creature)
 {
-	// Allow influenced monsters to show skull in any world type
-	bool isInfluencedMonster = false;
-	if (const Monster* monster = creature->getMonster()) {
-		isInfluencedMonster = monster->isInfluenced();
+	if (!spectator || !creature) {
+		return;
+	}
+	spectator->sendCreatureIcon(creature);
+}
+
+void Game::updateCreatureIcon(const Creature* creature)
+{
+	if (!creature) {
+		return;
 	}
 
-	if (!isInfluencedMonster && getWorldType() != WORLD_TYPE_PVP) {
+	const Tile* tile = creature->getTile();
+	if (!tile) {
+		return;
+	}
+
+	SpectatorVec spectators;
+	map.getSpectators(spectators, tile->getPosition(), true, true);
+	const uint32_t creatureInstance = creature->getInstanceID();
+	for (const auto& spectator : spectators.players()) {
+		Player* p = static_cast<Player*>(spectator.get());
+		if (!p->compareInstance(creatureInstance)) {
+			continue;
+		}
+		p->sendCreatureIcon(creature);
+	}
+}
+
+void Game::updateCreatureSkull(const Creature* creature)
+{
+	// Allow influenced/fiendish monsters to show skull in any world type
+	bool isForgeMonster = false;
+	if (const Monster* monster = creature->getMonster()) {
+		isForgeMonster = monster->isInfluenced() || monster->isFiendish();
+	}
+
+	if (!isForgeMonster && getWorldType() != WORLD_TYPE_PVP) {
 		return;
 	}
 

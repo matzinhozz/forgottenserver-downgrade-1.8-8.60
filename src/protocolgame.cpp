@@ -10,6 +10,7 @@
 #include "creatureevent.h"
 #include "game.h"
 #include "iologindata.h"
+#include "save_manager.h"
 #include "instance_utils.h"
 #include "monster.h"
 #include "outputmessage.h"
@@ -18,6 +19,7 @@
 #include "imbuement.h"
 #include "scheduler.h"
 #include "scriptmanager.h"
+#include "thread_pool.h"
 
 uint32_t ProtocolGame::spectatorId = 1;
 std::set<std::string> ProtocolGame::spectatorNames;
@@ -150,7 +152,7 @@ auto findClient(uint32_t guid)
 		}
 	}
 
-	return std::make_pair(waitList.end(), slot);
+	return std::make_pair(waitList.end(), static_cast<std::size_t>(0));
 }
 
 constexpr int64_t getWaitTime(std::size_t slot)
@@ -230,6 +232,79 @@ std::size_t clientLogin(const Player& player)
 } // namespace
 
 ProtocolGame::~ProtocolGame() = default;
+
+void ProtocolGame::sendBlessingWindow()
+{
+	if (!player || !isAstraClient) return;
+
+	NetworkMessage msg;
+	msg.addByte(0x9B);
+	msg.addByte(0x08);
+
+	for (uint8_t i = 1; i <= 8; i++) {
+		msg.add<uint16_t>(1 << i);
+		msg.addByte(player->getBlessingCount(i));
+		msg.addByte(0);
+	}
+
+	uint8_t blessCount = player->getBlessingReduction();
+	bool isPromoted = player->isPromoted();
+	uint8_t skillReduction = blessCount * 8;
+	uint8_t promotionReduction = isPromoted ? 30 : 0;
+	uint8_t minReduction = skillReduction + promotionReduction;
+	uint8_t maxPvpReduction = 80 + (2 * blessCount) - (blessCount / 3);
+	if (blessCount == 5) maxPvpReduction -= 1;
+	if (isPromoted) maxPvpReduction += 6;
+
+	msg.addByte(isPromoted ? 1 : 0);
+	msg.addByte(30);
+	msg.addByte(minReduction);
+	msg.addByte(maxPvpReduction);
+	msg.addByte(minReduction);
+
+	bool hasSkull = player->getSkull() == SKULL_RED || player->getSkull() == SKULL_BLACK;
+	auto amulet = player->getInventoryItem(CONST_SLOT_NECKLACE);
+	bool usingAol = amulet && amulet->getID() == ITEM_AMULETOFLOSS;
+
+	if (hasSkull) {
+		msg.addByte(100); msg.addByte(100);
+	} else if (usingAol) {
+		msg.addByte(0); msg.addByte(0);
+	} else {
+		msg.addByte(static_cast<uint8_t>(player->getEquipmentLossPercent(true)));
+		msg.addByte(static_cast<uint8_t>(player->getEquipmentLossPercent(false)));
+	}
+	msg.addByte(hasSkull ? 1 : 0);
+	msg.addByte(usingAol ? 1 : 0);
+
+	// Death history log
+	auto& deathLog = player->getDeathLog();
+	msg.addByte(static_cast<uint8_t>(deathLog.size()));
+	for (const auto& entry : deathLog) {
+		msg.add<uint32_t>(entry.timestamp);
+		msg.addByte(entry.color);
+		msg.addString(entry.message);
+	}
+
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::sendBlessStatus()
+{
+	if (!player || !isAstraClient) return;
+
+	uint8_t totalCount = 0;
+	for (uint8_t i = 2; i <= 8; i++) {
+		if (player->hasBlessing(i)) totalCount++;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0x9C);
+	bool glow = player->getVocationId() > 0 && (totalCount >= 4 || player->getLevel() < 21);
+	msg.add<uint16_t>(glow ? 1 : 0);
+	msg.addByte(totalCount >= 6 ? 3 : (totalCount >= 4 ? 2 : 1));
+	writeToOutputBuffer(msg);
+}
 
 void ProtocolGame::release()
 {
@@ -364,55 +439,64 @@ void ProtocolGame::login(uint32_t characterId, uint32_t accountId, OperatingSyst
 			return;
 		}
 
-		if (!IOLoginData::loadPlayerById(player.get(), player->getGUID())) {
-			disconnectClient("Your character could not be loaded.");
+		const uint32_t reservedGuid = player->getGUID();
+		if (!g_game.reserveLogin(reservedGuid)) {
+			disconnectClient("You are already logging in.");
 			return;
 		}
 
-		player->setOperatingSystem(operatingSystem);
-		player->client->isOTCv8 = isOTCv8;
-		player->client->isMehah = isMehah;
-		player->client->isOTC = isOTC;
-		player->client->isAstraClient = isAstraClient;
-
-		if (!g_game.placeCreature(player.get(), player->getLoginPosition())) {
-			if (!g_game.placeCreature(player.get(), player->getTemplePosition(), false, true)) {
-				disconnectClient("Temple position is wrong. Contact the administrator.");
-				return;
-			}
-		}
-		sendLootContainers();
-
-		if (isOTC) {
-			player->registerCreatureEvent("ExtendedOpcode");
+		if (g_saveManager.hasFailedRecovery(reservedGuid)) {
+			g_game.releaseLogin(reservedGuid);
+			disconnectClient(
+			    "Your character data is in a recoverable state. Please contact an administrator to resolve this issue.");
+			return;
 		}
 
-		// Setup Account Manager mode (only if not already set by namelock handler above)
-		if (ConfigManager::getBoolean(ConfigManager::ACCOUNT_MANAGER) && name == "Account Manager" &&
-		    player->getAccountManagerMode() == ACCOUNT_MANAGER_NONE) {
-			if (accountId == 1) {
-				player->setAccountManagerMode(ACCOUNT_MANAGER_NEW);
-				player->sendTextMessage(
-				    MESSAGE_STATUS_CONSOLE_ORANGE,
-				    "Account Manager: Welcome! You are now speaking with the Account Manager. To create a new account, type {account}. If you already have one and need to recover it, type {recover}. Type {cancel} anytime to restart this conversation.");
-			} else {
-				player->setAccountManagerMode(ACCOUNT_MANAGER_ACCOUNT);
-				player->setAccountManagerData(accountId);
-				player->resetTalkState(0, 0);
-				player->setManagerTalkState(1, true);
-				player->sendTextMessage(
-				    MESSAGE_STATUS_CONSOLE_ORANGE,
-				    "Account Manager: Welcome back. Type {account} to manage your account, {character} to create a new character, or {cancel} to start over.");
-			}
-		}
-		// Block movement for all Account Manager modes
-		if (player->isAccountManager()) {
-			player->setMovementBlocked(true);
-		}
+		const auto loginPlayer = player;
+		g_threadPool.detach_task([self = getThis(), loginPlayer, reservedGuid, accountId, operatingSystem]() {
+			// Shared atomic: guards mutual exclusion between timeout and callback
+			auto completed = std::make_shared<std::atomic<bool>>(false);
 
-		player->lastIP = player->getIP();
-		player->lastLoginSaved = std::max<time_t>(time(nullptr), player->lastLoginSaved + 1);
-		acceptPackets = true;
+			const uint32_t timeoutEventId = g_scheduler.addEvent(10000, [self, reservedGuid, completed]() {
+				if (completed->exchange(true)) {
+					return; // callback already handled
+				}
+				g_dispatcher.addTask([self, reservedGuid]() {
+					g_game.releaseLogin(reservedGuid);
+					if (self->player) {
+						self->disconnectClient("Login timed out waiting for save to complete.");
+					}
+				});
+			});
+
+			g_saveManager.drainPlayerFlushAsync(reservedGuid,
+				[self, reservedGuid, accountId, loginPlayer, operatingSystem, timeoutEventId, completed](bool drained) {
+				g_scheduler.stopEvent(timeoutEventId);
+				if (completed->exchange(true)) {
+					// Timeout already handled this login
+					return;
+				}
+
+				if (!drained) {
+					g_dispatcher.addTask([self, reservedGuid]() {
+						g_game.releaseLogin(reservedGuid);
+						if (self->player) {
+							self->disconnectClient(
+								"Character data is still being saved. Please try again in a few seconds.");
+						}
+					});
+					return;
+				}
+
+				g_threadPool.detach_task([self, reservedGuid, accountId, loginPlayer, operatingSystem]() {
+					const bool loaded = IOLoginData::loadPlayerById(loginPlayer.get(), reservedGuid, true);
+					g_dispatcher.addTask([self, reservedGuid, accountId, loaded, operatingSystem]() {
+						self->finishLogin(reservedGuid, accountId, loaded, operatingSystem);
+					});
+				});
+			});
+		});
+		return;
 	} else {
 		if (eventConnect != 0 || !getBoolean(ConfigManager::REPLACE_KICK_ON_LOGIN)) {
 			// Already trying to connect
@@ -435,6 +519,70 @@ void ProtocolGame::login(uint32_t characterId, uint32_t accountId, OperatingSyst
 			connect(foundPlayer->getID(), operatingSystem);
 		}
 	}
+}
+
+void ProtocolGame::finishLogin(uint32_t reservedGuid, uint32_t accountId, bool loaded, OperatingSystem_t operatingSystem)
+{
+	if (!player || isConnectionExpired()) {
+		g_game.releaseLogin(reservedGuid);
+		return;
+	}
+
+	if (!loaded) {
+		g_game.releaseLogin(reservedGuid);
+		disconnectClient("Your character could not be loaded.");
+		return;
+	}
+
+	IOLoginData::loadPlayerWorldData(player.get());
+
+	player->setOperatingSystem(operatingSystem);
+	player->client->isOTCv8 = isOTCv8;
+	player->client->isMehah = isMehah;
+	player->client->isOTC = isOTC;
+	player->client->isAstraClient = isAstraClient;
+
+	if (!g_game.placeCreature(player.get(), player->getLoginPosition())) {
+		if (!g_game.placeCreature(player.get(), player->getTemplePosition(), false, true)) {
+			g_game.releaseLogin(reservedGuid);
+			disconnectClient("Temple position is wrong. Contact the administrator.");
+			return;
+		}
+	}
+	sendDllCheck();
+	sendLootContainers();
+
+	if (isOTC) {
+		player->registerCreatureEvent("ExtendedOpcode");
+	}
+
+	const std::string& name = player->getName();
+	if (ConfigManager::getBoolean(ConfigManager::ACCOUNT_MANAGER) && name == "Account Manager" &&
+	    player->getAccountManagerMode() == ACCOUNT_MANAGER_NONE) {
+		if (accountId == 1) {
+			player->setAccountManagerMode(ACCOUNT_MANAGER_NEW);
+			player->sendTextMessage(
+			    MESSAGE_STATUS_CONSOLE_ORANGE,
+			    "Account Manager: Welcome! You are now speaking with the Account Manager. To create a new account, type {account}. If you already have one and need to recover it, type {recover}. Type {cancel} anytime to restart this conversation.");
+		} else {
+			player->setAccountManagerMode(ACCOUNT_MANAGER_ACCOUNT);
+			player->setAccountManagerData(accountId);
+			player->resetTalkState(0, 0);
+			player->setManagerTalkState(1, true);
+			player->sendTextMessage(
+			    MESSAGE_STATUS_CONSOLE_ORANGE,
+			    "Account Manager: Welcome back. Type {account} to manage your account, {character} to create a new character, or {cancel} to start over.");
+		}
+	}
+
+	if (player->isAccountManager()) {
+		player->setMovementBlocked(true);
+	}
+
+	player->lastIP = player->getIP();
+	player->lastLoginSaved = std::max<time_t>(time(nullptr), player->lastLoginSaved + 1);
+	acceptPackets = true;
+	g_game.releaseLogin(reservedGuid);
 }
 
 void ProtocolGame::spectate(const std::string& name, const std::string& password)
@@ -851,6 +999,12 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 		return;
 	}
 
+	auto dispatchPlayerNetworkMessage = [&](uint8_t byte, NetworkMessage& message) {
+		g_dispatcher.addTask([=, playerID = player->getID(), message = tfs::net::make_network_message(message)]() {
+			g_game.parsePlayerNetworkMessage(playerID, byte, message);
+		});
+	};
+
 	switch (recvbyte) {
 		case 0x14:
 			g_dispatcher.addTask([thisPtr = getThis()]() { thisPtr->logout(true, false); });
@@ -971,140 +1125,169 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 		case 0x8C:
 			parseLookAt(msg);
 			break;
+
 		case 0x8D:
 			parseLookInBattleList(msg);
 			break;
+
 		case 0x8E: /* join aggression */
 			break;
+
 		case 0x8F:
 			if (shouldSendQuickLootFlags()) {
 				parseQuickLoot(msg);
 			} else {
-				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-				});
+				dispatchPlayerNetworkMessage(recvbyte, msg);
 			}
 			break;
+
 		case 0x90:
 			if (shouldSendQuickLootFlags()) {
 				parseLootContainer(msg);
 			} else {
-				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-				});
+				dispatchPlayerNetworkMessage(recvbyte, msg);
 			}
 			break;
+
 		case 0x91:
 			if (shouldSendQuickLootFlags()) {
 				parseQuickLootBlackWhitelist(msg);
 			} else {
-				g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-					g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-				});
+				dispatchPlayerNetworkMessage(recvbyte, msg);
 			}
 			break;
+
 		case 0x96:
 			parseSay(msg);
 			break;
+
 		case 0x97:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerRequestChannels(playerID); });
 			break;
+
 		case 0x98:
 			parseOpenChannel(msg);
 			break;
+
 		case 0x99:
 			parseCloseChannel(msg);
 			break;
+
 		case 0x9A:
 			parseOpenPrivateChannel(msg);
 			break;
+
 		case 0x9E:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerCloseNpcChannel(playerID); });
 			break;
+
 		case 0xA1:
 			parseAttack(msg);
 			break;
+
 		case 0xA2:
 			parseFollow(msg);
 			break;
+
 		case 0xA3:
 			parseInviteToParty(msg);
 			break;
+
 		case 0xA4:
 			parseJoinParty(msg);
 			break;
+
 		case 0xA5:
 			parseRevokePartyInvite(msg);
 			break;
+
 		case 0xA6:
 			parsePassPartyLeadership(msg);
 			break;
+
 		case 0xA7:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerLeaveParty(playerID); });
 			break;
+
 		case 0xA8:
 			parseEnableSharedPartyExperience(msg);
 			break;
+
 		case 0xAA:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerCreatePrivateChannel(playerID); });
 			break;
+
 		case 0xAB:
 			parseChannelInvite(msg);
 			break;
+
 		case 0xAC:
 			parseChannelExclude(msg);
 			break;
+
 		case 0xBE:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerCancelAttackAndFollow(playerID); });
 			break;
+
+		case 0xCF:
+			if (isAstraClient) {
+				g_dispatcher.addTask([thisPtr = getThis()]() {
+					thisPtr->sendBlessingWindow();
+				});
+			}
+			break;
+
 		case 0xC9: /* update tile */
 			break;
+
 		case 0xCA:
 			parseUpdateContainer(msg);
 			break;
+
 		case 0xD2:
 			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerRequestOutfit(playerID); });
 			break;
+
 		case 0xD3:
 			parseSetOutfit(msg);
 			break;
+
 		case 0xDC:
 			parseAddVip(msg);
 			break;
+
 		case 0xDD:
 			parseRemoveVip(msg);
 			break;
+
 		case 0xE6:
 			parseBugReport(msg);
 			break;
+
 		case 0xE7: /* thank you / custom wheel gem action */
-			g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-				g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-			});
+			dispatchPlayerNetworkMessage(recvbyte, msg);
 			break;
+
 		case 0xF2:
 			parseRuleViolationReport(msg);
 			break;
+
 		case 0xF3: /* get object info */
 			break;
+
 		case 0xF8: /* custom store transfer */
 		case 0xFA: /* custom store history */
 		case 0xFB: /* custom store open */
 		case 0xFC: /* custom store buy */
-			g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-				g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-			});
+			dispatchPlayerNetworkMessage(recvbyte, msg);
 			break;
+
 		case 0xF9:
 			parseModalWindowAnswer(msg);
 			break;
 
 		default:
-			// we cannot pass a unique_ptr as capture here because
-			// std::function requires the callable object to be *copyable*
-			g_dispatcher.addTask([=, playerID = player->getID(), message = std::make_shared<NetworkMessage>(msg)]() {
-				g_game.parsePlayerNetworkMessage(playerID, recvbyte, std::make_unique<NetworkMessage>(*message));
-			});
+			dispatchPlayerNetworkMessage(recvbyte, msg);
 			break;
 	}
 
@@ -2013,13 +2196,13 @@ void ProtocolGame::sendCreatureShield(const Creature* creature)
 
 void ProtocolGame::sendCreatureSkull(const Creature* creature)
 {
-	// Allow influenced monsters to show skull in any world type
-	bool isInfluencedMonster = false;
+	// Allow influenced/fiendish monsters to show skull regardless of world type
+	bool isForgeMonster = false;
 	if (const Monster* monster = creature->getMonster()) {
-		isInfluencedMonster = monster->isInfluenced();
+		isForgeMonster = monster->isInfluenced() || monster->isFiendish();
 	}
 
-	if (!isInfluencedMonster && g_game.getWorldType() != WORLD_TYPE_PVP) {
+	if (!isForgeMonster && g_game.getWorldType() != WORLD_TYPE_PVP) {
 		return;
 	}
 
@@ -2205,6 +2388,54 @@ void ProtocolGame::sendIcons(uint16_t icons)
 	writeToOutputBuffer(msg);
 }
 
+void ProtocolGame::sendIcons(uint64_t icons, IconBakragore_t bakragoreIcon)
+{
+	if (!player || !supportsAstraCreatureIcons()) {
+		return;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0xA2);
+	msg.add<uint64_t>(icons);
+	msg.addByte(static_cast<uint8_t>(bakragoreIcon));
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::sendCreatureIcon(const Creature* creature)
+{
+	if (!creature || !player || !supportsAstraCreatureIcons()) {
+		return;
+	}
+
+	if (!canSee(creature)) {
+		return;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0x8B);
+	msg.add<uint32_t>(creature->getID());
+	msg.addByte(14);
+	AddCreatureIcon(msg, creature);
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::AddCreatureIcon(NetworkMessage& msg, const Creature* creature)
+{
+	if (!creature) {
+		return;
+	}
+
+	const auto& icons = creature->getIcons();
+	const size_t count = std::min<size_t>(icons.size(), 3);
+	msg.addByte(static_cast<uint8_t>(count));
+	for (size_t i = 0; i < count; ++i) {
+		const auto& icon = icons[i];
+		msg.addByte(icon.serialize());
+		msg.addByte(static_cast<uint8_t>(icon.category));
+		msg.add<uint16_t>(icon.count);
+	}
+}
+
 void ProtocolGame::sendContainer(uint8_t cid, const Container* container, bool hasParent, uint16_t firstIndex)
 {
 	NetworkMessage msg;
@@ -2241,6 +2472,7 @@ void ProtocolGame::sendLootContainers()
 	msg.addByte(0xC0);
 	msg.addByte(player->getQuickLootFallbackToMainContainer() ? 1 : 0);
 	msg.addByte(0); // managed loot containers
+	msg.addByte(0); // managed obtain containers
 	writeToOutputBuffer(msg);
 }
 
@@ -2892,6 +3124,14 @@ void ProtocolGame::sendAddCreature(const Creature* creature, const Position& pos
 		sendBasicData();
 	}
 
+	if (isAstraClient && (player->getVocationId() == 9 || player->getVocationId() == 10)) {
+		player->sendMonkData();
+	}
+
+	if (isAstraClient) {
+		player->sendBlessStatus();
+	}
+
 	sendWorldLight(g_game.getWorldLightInfo());
 	sendCreatureLight(creature);
 
@@ -3426,6 +3666,10 @@ void ProtocolGame::AddCreature(NetworkMessage& msg, const Creature* creature, bo
 	}
 
 	msg.addByte(player->canWalkthroughEx(creature) ? 0x00 : 0x01);
+
+	if (supportsAstraCreatureIcons()) {
+		AddCreatureIcon(msg, creature);
+	}
 }
 
 void ProtocolGame::AddPlayerStats(NetworkMessage& msg)
@@ -3719,6 +3963,23 @@ void ProtocolGame::sendNewPing(uint32_t pingId)
 	NetworkMessage msg;
 	msg.addByte(0x40);
 	msg.add<uint32_t>(pingId);
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::sendExtendedOpcode(uint8_t opcode, std::string_view data)
+{
+	if (!isOTCv8 && !isOTC && !isAstraClient) {
+		return;
+	}
+
+	if (data.size() > 65535) {
+		return;
+	}
+
+	NetworkMessage msg;
+	msg.addByte(0x32);
+	msg.addByte(opcode);
+	msg.addString(data);
 	writeToOutputBuffer(msg);
 }
 

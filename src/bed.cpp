@@ -8,6 +8,7 @@
 #include "game.h"
 #include "house.h"
 #include "iologindata.h"
+#include "save_manager.h"
 #include "scheduler.h"
 
 using namespace std::chrono;
@@ -154,7 +155,7 @@ bool BedItem::sleep(Player* player)
 	g_game.addMagicEffect(player->getPosition(), CONST_ME_SLEEP, player->getInstanceID());
 
 	// kick player after he sees himself walk onto the bed and it change id
-	g_scheduler.addEvent(createSchedulerTask(SCHEDULER_MINTICKS,
+	g_scheduler.addEvent(createSchedulerTask(MIN_TASK_INTERVAL,
 	                                         [playerID = player->getID()]() { g_game.kickPlayer(playerID, false); }));
 
 	// change self and partner's appearance
@@ -178,7 +179,7 @@ void BedItem::wakeUp(Player* player)
 			Player regenPlayer(nullptr);
 			if (IOLoginData::loadPlayerById(&regenPlayer, sleeperGUID)) {
 				regeneratePlayer(&regenPlayer);
-				IOLoginData::savePlayer(&regenPlayer);
+				g_saveManager.savePlayerSync(&regenPlayer);
 			}
 		} else {
 			regeneratePlayer(player);

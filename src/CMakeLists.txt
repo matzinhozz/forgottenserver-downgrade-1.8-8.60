@@ -99,6 +99,7 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/protocoladmin.cpp
 	${CMAKE_CURRENT_LIST_DIR}/protocolspectator.cpp
 	${CMAKE_CURRENT_LIST_DIR}/protocolstatus.cpp
+	${CMAKE_CURRENT_LIST_DIR}/reactor.cpp
 	${CMAKE_CURRENT_LIST_DIR}/raids.cpp
 	${CMAKE_CURRENT_LIST_DIR}/rewardchest.cpp
 	${CMAKE_CURRENT_LIST_DIR}/rsa.cpp
@@ -114,6 +115,7 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/storeinbox.cpp
 	${CMAKE_CURRENT_LIST_DIR}/spy.cpp
 	${CMAKE_CURRENT_LIST_DIR}/stats.cpp
+	${CMAKE_CURRENT_LIST_DIR}/stress_test.cpp
 	${CMAKE_CURRENT_LIST_DIR}/talkaction.cpp
 	${CMAKE_CURRENT_LIST_DIR}/tasks.cpp
 	${CMAKE_CURRENT_LIST_DIR}/thread_pool.cpp
@@ -123,6 +125,7 @@ set(tfs_SRC
 	${CMAKE_CURRENT_LIST_DIR}/tools.cpp
 	${CMAKE_CURRENT_LIST_DIR}/trashholder.cpp
 	${CMAKE_CURRENT_LIST_DIR}/vocation.cpp
+	${CMAKE_CURRENT_LIST_DIR}/weapon_proficiency.cpp
 	${CMAKE_CURRENT_LIST_DIR}/weapons.cpp
 	${CMAKE_CURRENT_LIST_DIR}/wildcardtree.cpp
 	${CMAKE_CURRENT_LIST_DIR}/xtea.cpp
@@ -205,6 +208,7 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/protocolspectator.h
 	${CMAKE_CURRENT_LIST_DIR}/protocolstatus.h
 	${CMAKE_CURRENT_LIST_DIR}/pugicast.h
+	${CMAKE_CURRENT_LIST_DIR}/reactor.h
 	${CMAKE_CURRENT_LIST_DIR}/raids.h
 	${CMAKE_CURRENT_LIST_DIR}/rewardchest.h
 	${CMAKE_CURRENT_LIST_DIR}/rsa.h
@@ -214,6 +218,7 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/scriptmanager.h
 	${CMAKE_CURRENT_LIST_DIR}/server.h
 	${CMAKE_CURRENT_LIST_DIR}/signals.h
+	${CMAKE_CURRENT_LIST_DIR}/stress_test.h
 	${CMAKE_CURRENT_LIST_DIR}/spawn.h
 	${CMAKE_CURRENT_LIST_DIR}/spectators.h
 	${CMAKE_CURRENT_LIST_DIR}/spells.h
@@ -231,6 +236,7 @@ set(tfs_HDR
 	${CMAKE_CURRENT_LIST_DIR}/town.h
 	${CMAKE_CURRENT_LIST_DIR}/trashholder.h
 	${CMAKE_CURRENT_LIST_DIR}/vocation.h
+	${CMAKE_CURRENT_LIST_DIR}/weapon_proficiency.h
 	${CMAKE_CURRENT_LIST_DIR}/weapons.h
 	${CMAKE_CURRENT_LIST_DIR}/wildcardtree.h
 	${CMAKE_CURRENT_LIST_DIR}/xtea.h
@@ -261,4 +267,8 @@ add_custom_target(format COMMAND /usr/bin/clang-format -style=file -i ${tfs_HDR}
 
 if (BUILD_TESTING)
 	add_subdirectory(tests)
+endif()
+
+if (BUILD_BENCHMARKING)
+	add_subdirectory(benchs)
 endif()
