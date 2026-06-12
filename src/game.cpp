@@ -348,8 +348,12 @@ void Game::start(const std::shared_ptr<ServiceManager>& manager)
 	g_scheduler.addEvent(createSchedulerTask(1000, [this]() { checkSereneStatus(); }));
 
 	if (ConfigManager::getBoolean(ConfigManager::LUA_GC_STEP_ENABLED)) {
-		g_scheduler.addEvent(createSchedulerTask(
-		    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), [this]() { checkLuaGc(); }));
+		auto stepInterval = ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL);
+		if (stepInterval > 0) {
+			g_scheduler.addEvent(createSchedulerTask(stepInterval, [this]() { checkLuaGc(); }));
+		} else {
+			LOG_WARN("LUA_GC_STEP_INTERVAL is <= 0 ({}), skipping GC step scheduler", stepInterval);
+		}
 	}
 }
 
@@ -6607,8 +6611,10 @@ void Game::checkLight()
 
 void Game::checkLuaGc()
 {
-	g_scheduler.addEvent(createSchedulerTask(
-	    ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL), [this]() { checkLuaGc(); }));
+	int32_t gcInterval = ConfigManager::getInteger(ConfigManager::LUA_GC_STEP_INTERVAL);
+	if (gcInterval > 0) {
+		g_scheduler.addEvent(createSchedulerTask(gcInterval, [this]() { checkLuaGc(); }));
+	}
 
 	if (g_luaEnvironment.getLuaState()) {
 		LuaGcMonitor::step(g_luaEnvironment.getLuaState());

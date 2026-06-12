@@ -47,7 +47,7 @@ luaGcCriticalMemoryKb = 524288   -- critical threshold (512 MB)
 
 Use `/luagc` as GOD (account type 6):
 
-```
+```text
 /luagc          - Show memory usage, mode, step config
 /luagc collect  - Force full GC collect
 /luagc step     - Run one GC step

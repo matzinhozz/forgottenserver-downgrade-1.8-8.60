@@ -47,9 +47,13 @@ function talkaction.onSay(player, words, param)
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, ">> Lua GC Status:")
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Memory: " .. formatMemory(mem))
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Mode: " .. (luaGcMode or "unknown"))
-	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Step: " .. (luaGcStepEnabled ~= false and "ON" or "OFF") ..
+	local function enabledStr(v)
+		if v == nil then return "UNKNOWN" end
+		return v and "ON" or "OFF"
+	end
+	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Step: " .. enabledStr(luaGcStepEnabled) ..
 		" (interval: " .. (luaGcStepInterval or "?") .. "ms, size: " .. (luaGcStepSize or "?") .. ")")
-	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Log: " .. (luaGcLogEnabled ~= false and "ON" or "OFF") ..
+	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Log: " .. enabledStr(luaGcLogEnabled) ..
 		" (interval: " .. (luaGcLogInterval or "?") .. "ms)")
 	player:sendTextMessage(MESSAGE_STATUS_CONSOLE_BLUE, "   Subcommands: collect, step, memory, mode")
 	return false
