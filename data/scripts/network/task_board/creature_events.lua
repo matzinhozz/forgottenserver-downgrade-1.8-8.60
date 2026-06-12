@@ -1,7 +1,7 @@
 -- Creature Events for Task Board: onKill, onLogin, onLogout hooks.
 
 -- Guard: only register if Task Hunting system is enabled
-if not configManager.getBoolean(configKeys.TASK_HUNTING_SYSTEM_ENABLED) then
+if not configManager or not configManager.getBoolean or not configManager.getBoolean(configKeys.TASK_HUNTING_SYSTEM_ENABLED) then
 	return
 end
 

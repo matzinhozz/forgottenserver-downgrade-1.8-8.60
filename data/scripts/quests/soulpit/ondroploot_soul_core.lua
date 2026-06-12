@@ -20,6 +20,7 @@ function dropCallback.onDropLoot(monster, corpse)
 
 	local config = SoulPit.SoulCoresConfiguration
 	local monsterType = monster:getType()
+	if not monsterType then return end
 	local monsterName = monsterType:getName()
 	local raceId = monsterType:raceId()
 

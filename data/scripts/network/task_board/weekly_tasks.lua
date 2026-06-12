@@ -104,6 +104,7 @@ local function loadWeeklyData(playerGuid)
 		needsReward = false,
 		weeklyProgressFinished = 0,
 		lastItemNotify = 0,
+		lastWeek = nil,
 	}
 
 	local resultId = db.storeQuery("SELECT * FROM `player_weekly_tasks` WHERE `player_id` = " .. playerGuid)
@@ -122,6 +123,7 @@ local function loadWeeklyData(playerGuid)
 		data.needsReward = result.getDataInt(resultId, "needs_reward") ~= 0
 		data.weeklyProgressFinished = result.getDataInt(resultId, "weekly_progress_finished")
 		data.lastItemNotify = result.getDataLong(resultId, "last_item_notify")
+	data.lastWeek = result.getDataString(resultId, "last_week") or nil
 
 		-- Parse kill tasks
 		local ktStr = result.getDataString(resultId, "kill_tasks") or "[]"
@@ -159,7 +161,7 @@ local function saveWeeklyData(playerGuid)
 		data.killTaskRewardExp .. ", " .. data.deliveryTaskRewardExp .. ", " ..
 		data.rewardHTP .. ", " .. data.rewardSoulseals .. ", " ..
 		data.soulsealsPoints .. ", " .. (data.needsReward and 1 or 0) .. ", " .. data.weeklyProgressFinished .. ", " ..
-		db.escapeString(ktJson) .. ", " .. db.escapeString(dtJson) .. ", " .. data.lastItemNotify .. ") " ..
+		db.escapeString(ktJson) .. ", " .. db.escapeString(dtJson) .. ", " .. db.escapeString(data.lastWeek or "") .. ", " .. data.lastItemNotify .. ") " ..
 		"ON DUPLICATE KEY UPDATE `has_expansion` = VALUES(`has_expansion`), `difficulty` = VALUES(`difficulty`), " ..
 		"`any_creature_total` = VALUES(`any_creature_total`), `any_creature_current` = VALUES(`any_creature_current`), " ..
 		"`completed_kill_tasks` = VALUES(`completed_kill_tasks`), `completed_delivery_tasks` = VALUES(`completed_delivery_tasks`), " ..

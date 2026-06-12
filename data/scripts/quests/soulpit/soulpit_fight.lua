@@ -21,7 +21,8 @@ end
 -- ============================================
 
 SoulPit.encounter = false
-SoulPit.kickEvent = nil
+SoulPit.monitorEvent = nil
+SoulPit.kickTimerEvent = nil
 
 -- ============================================
 -- ZONE SETUP
@@ -46,9 +47,14 @@ if Zone then
 				-- Reset encounter
 				if SoulPit.encounter then
 					SoulPit.encounter = false
-					if SoulPit.kickEvent then
-						stopEvent(SoulPit.kickEvent)
-						SoulPit.kickEvent = nil
+					if SoulPit.monitorEvent then
+						stopEvent(SoulPit.monitorEvent)
+						SoulPit.monitorEvent = nil
+					end
+					if SoulPit.kickTimerEvent then
+						stopEvent(SoulPit.kickTimerEvent)
+						SoulPit.kickTimerEvent = nil
+					end
 					end
 				end
 
@@ -203,9 +209,13 @@ local function checkStageCompletion()
 				end
 			end
 
-			if SoulPit.kickEvent then
-				stopEvent(SoulPit.kickEvent)
-				SoulPit.kickEvent = nil
+			if SoulPit.monitorEvent then
+				stopEvent(SoulPit.monitorEvent)
+				SoulPit.monitorEvent = nil
+			end
+			if SoulPit.kickTimerEvent then
+				stopEvent(SoulPit.kickTimerEvent)
+				SoulPit.kickTimerEvent = nil
 			end
 
 			SoulPit.log("Encounter completed! All waves cleared.")
@@ -220,7 +230,7 @@ end
 
 local function monitorEncounter()
 	if not SoulPit.encounter then
-		SoulPit.kickEvent = nil
+		SoulPit.monitorEvent = nil
 		return
 	end
 
@@ -228,7 +238,7 @@ local function monitorEncounter()
 
 	-- Schedule next check
 	if SoulPit.encounter then
-		SoulPit.kickEvent = addEvent(monitorEncounter, SoulPit.checkMonstersDelay)
+		SoulPit.monitorEvent = addEvent(monitorEncounter, SoulPit.checkMonstersDelay)
 	end
 end
 
@@ -237,7 +247,7 @@ end
 -- ============================================
 
 local function startKickTimer()
-	SoulPit.kickEvent = addEvent(function()
+	SoulPit.kickTimerEvent = addEvent(function()
 		if not SoulPit.encounter then return end
 
 		SoulPit.log("Kick timer expired. Removing all players from arena.")
@@ -251,7 +261,8 @@ local function startKickTimer()
 
 		-- Clean up
 		SoulPit.encounter = false
-		SoulPit.kickEvent = nil
+		SoulPit.monitorEvent = nil
+		SoulPit.kickTimerEvent = nil
 
 		-- Deactivate obelisk
 		local obeliskTile = Tile(SoulPit.obeliskPos)
@@ -331,9 +342,12 @@ function soulPitAction.onUse(player, item, fromPosition, target, toPosition, isH
 	item:remove(1)
 
 	-- Activate obelisk (transform inactive -> active)
-	local obeliskItem = Tile(SoulPit.obeliskPos):getItemById(SoulPit.obeliskInactiveId)
-	if obeliskItem then
-		obeliskItem:transform(SoulPit.obeliskActiveId)
+	local obeliskTile = Tile(SoulPit.obeliskPos)
+	if obeliskTile then
+		local obeliskItem = obeliskTile:getItemById(SoulPit.obeliskInactiveId)
+		if obeliskItem then
+			obeliskItem:transform(SoulPit.obeliskActiveId)
+		end
 	end
 
 	-- Start encounter

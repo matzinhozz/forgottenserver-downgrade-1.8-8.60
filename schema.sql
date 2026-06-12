@@ -563,6 +563,7 @@ CREATE TABLE IF NOT EXISTS player_weekly_tasks (
   weekly_progress_finished TINYINT UNSIGNED NOT NULL DEFAULT 0,
   kill_tasks TEXT NOT NULL,
   delivery_tasks TEXT NOT NULL,
+  last_week VARCHAR(10) NOT NULL DEFAULT '',
   last_item_notify BIGINT NOT NULL DEFAULT 0,
   PRIMARY KEY (player_id),
   FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
