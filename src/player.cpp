@@ -311,22 +311,22 @@ bool Player::removeTaskHuntingPoints(uint64_t points)
 	return true;
 }
 
-void Player::addBountyTaskPoints(uint64_t points)
+void Player::addBountyPoints(uint64_t points)
 {
 	uint64_t maxVal = std::numeric_limits<uint64_t>::max();
-	if (bountyTaskPoints > maxVal - points) {
-		bountyTaskPoints = maxVal;
+	if (bountyPoints > maxVal - points) {
+		bountyPoints = maxVal;
 	} else {
-		bountyTaskPoints += points;
+		bountyPoints += points;
 	}
 }
 
-bool Player::removeBountyTaskPoints(uint64_t points)
+bool Player::removeBountyPoints(uint64_t points)
 {
-	if (bountyTaskPoints < points) {
+	if (bountyPoints < points) {
 		return false;
 	}
-	bountyTaskPoints -= points;
+	bountyPoints -= points;
 	return true;
 }
 

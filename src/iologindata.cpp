@@ -414,7 +414,7 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result, bool deferWorl
 
 	player->bankBalance = result->getNumber<uint64_t>("balance");
 	player->taskHuntingPoints = result->getNumber<uint64_t>("task_hunting_points");
-	player->bountyTaskPoints = result->getNumber<uint64_t>("bounty_points");
+	player->bountyPoints = result->getNumber<uint64_t>("bounty_points");
 	player->soulsealsPoints = result->getNumber<uint64_t>("soulseals_points");
 	player->m_hasWeeklyExpansion = result->getNumber<uint16_t>("has_weekly_expansion") != 0;
 
@@ -1143,7 +1143,7 @@ bool IOLoginData::savePlayerQueries(Player* player)
 	query << "`lastlogout` = " << player->getLastLogout() << ',';
 	query << "`balance` = " << player->bankBalance << ',';
 	query << "`task_hunting_points` = " << player->taskHuntingPoints << ',';
-	query << "`bounty_points` = " << player->bountyTaskPoints << ',';
+	query << "`bounty_points` = " << player->bountyPoints << ',';
 	query << "`soulseals_points` = " << player->soulsealsPoints << ',';
 	query << "`has_weekly_expansion` = " << (player->m_hasWeeklyExpansion ? 1 : 0) << ',';
 	query << "`offlinetraining_time` = " << player->getOfflineTrainingTime() / 1000 << ',';

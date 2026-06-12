@@ -289,10 +289,10 @@ public:
 	void addTaskHuntingPoints(uint64_t points);
 	[[nodiscard]] bool removeTaskHuntingPoints(uint64_t points);
 
-	uint64_t getBountyTaskPoints() const { return bountyTaskPoints; }
-	void setBountyTaskPoints(uint64_t points) { bountyTaskPoints = points; }
-	void addBountyTaskPoints(uint64_t points);
-	[[nodiscard]] bool removeBountyTaskPoints(uint64_t points);
+	uint64_t getBountyPoints() const { return bountyPoints; }
+	void setBountyPoints(uint64_t points) { bountyPoints = points; }
+	void addBountyPoints(uint64_t points);
+	[[nodiscard]] bool removeBountyPoints(uint64_t points);
 
 	uint64_t getSoulsealsPoints() const { return soulsealsPoints; }
 	void setSoulsealsPoints(uint64_t points) { soulsealsPoints = points; }
@@ -1579,7 +1579,7 @@ private:
 	uint64_t lastAttack = 0;
 	uint64_t bankBalance = 0;
 	uint64_t taskHuntingPoints = 0;
-	uint64_t bountyTaskPoints = 0;
+	uint64_t bountyPoints = 0;
 	uint64_t soulsealsPoints = 0;
 	int64_t lastFailedFollow = 0;
 	int64_t skullTicks = 0;

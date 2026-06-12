@@ -1579,7 +1579,7 @@ int luaPlayerGetBountyPoints(lua_State* L)
 	// player:getBountyPoints()
 	const Player* player = getUserdata<const Player>(L, 1);
 	if (player) {
-		lua_pushinteger(L, player->getBountyTaskPoints());
+		lua_pushinteger(L, player->getBountyPoints());
 	} else {
 		lua_pushnil(L);
 	}
@@ -1601,7 +1601,7 @@ int luaPlayerSetBountyPoints(lua_State* L)
 		lua_pushnil(L);
 		return 1;
 	}
-	player->setBountyTaskPoints(static_cast<uint64_t>(bountyPoints));
+	player->setBountyPoints(static_cast<uint64_t>(bountyPoints));
 	pushBoolean(L, true);
 	return 1;
 }
@@ -1621,7 +1621,7 @@ int luaPlayerAddBountyPoints(lua_State* L)
 		lua_pushnil(L);
 		return 1;
 	}
-	player->addBountyTaskPoints(static_cast<uint64_t>(points));
+	player->addBountyPoints(static_cast<uint64_t>(points));
 	pushBoolean(L, true);
 	return 1;
 }
@@ -1641,7 +1641,7 @@ int luaPlayerRemoveBountyPoints(lua_State* L)
 		lua_pushnil(L);
 		return 1;
 	}
-	pushBoolean(L, player->removeBountyTaskPoints(static_cast<uint64_t>(points)));
+	pushBoolean(L, player->removeBountyPoints(static_cast<uint64_t>(points)));
 	return 1;
 }
 
