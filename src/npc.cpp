@@ -752,10 +752,13 @@ void Npc::onCreatureSay(Creature* creature, SpeakClasses type, std::string_view 
 
 	// only players for script events
 	Player* player = creature->getPlayer();
-	if (player) {
-		if (npcEventHandler) {
-			npcEventHandler->onCreatureSay(player, type, text);
-		}
+	if (!player || !compareInstance(player->getInstanceID()) ||
+	    !getPosition().isInRange(player->getPosition(), Npcs::TalkRadius, Npcs::TalkRadius, 0)) {
+		return;
+	}
+
+	if (npcEventHandler) {
+		npcEventHandler->onCreatureSay(player, type, text);
 	}
 }
 
@@ -1704,8 +1707,8 @@ void NpcEventsHandler::onCreatureMove(Creature* creature, const Position& oldPos
 	scriptInterface->pushFunction(creatureMoveEvent);
 	Lua::pushUserdata<Creature>(L, creature);
 	Lua::setCreatureMetatable(L, -1, creature);
-	Lua::pushPosition(L, oldPos);
-	Lua::pushPosition(L, newPos);
+	Lua::pushPosition(L, oldPos, 0, creature->getInstanceID());
+	Lua::pushPosition(L, newPos, 0, creature->getInstanceID());
 	scriptInterface->callVoidFunction(3);
 }
 
