@@ -9,7 +9,6 @@
 #include "events.h"
 #include "game.h"
 #include "instance_utils.h"
-#include "luascript.h"
 #include "matrixarea.h"
 #include "monster.h"
 #include "scriptmanager.h"
@@ -18,8 +17,6 @@
 #include "weapons.h"
 
 extern Game g_game;
-
-extern LuaEnvironment g_luaEnvironment;
 
 namespace {
 
@@ -101,57 +98,14 @@ std::vector<Tile*> getCombatArea(const Position& centerPos, const Position& targ
 	return {tile};
 }
 
-namespace {
-
-uint32_t g_cleaveDefaultPercent = 30;
-uint32_t g_cleaveFistPercent = 20;
-bool g_cleaveConfigLoaded = false;
-
-void loadCleaveConfigFromLua()
-{
-	if (g_cleaveConfigLoaded) {
-		return;
-	}
-
-	lua_State* L = g_luaEnvironment.getLuaState();
-	if (!L) {
-		g_cleaveConfigLoaded = true;
-		return;
-	}
-
-	lua_getglobal(L, "CleaveSystem");
-	if (lua_istable(L, -1)) {
-		lua_getfield(L, -1, "defaultPercent");
-		if (lua_isnumber(L, -1)) {
-			auto val = std::clamp(static_cast<int>(lua_tonumber(L, -1)), 0, 100);
-			g_cleaveDefaultPercent = static_cast<uint32_t>(val);
-		}
-		lua_pop(L, 1);
-
-		lua_getfield(L, -1, "fistPercent");
-		if (lua_isnumber(L, -1)) {
-			auto val = std::clamp(static_cast<int>(lua_tonumber(L, -1)), 0, 100);
-			g_cleaveFistPercent = static_cast<uint32_t>(val);
-		}
-		lua_pop(L, 1);
-	}
-	lua_pop(L, 1);
-
-	g_cleaveConfigLoaded = true;
-}
-
-} // namespace
-
 uint32_t Combat::getCleaveDefaultPercent()
 {
-	loadCleaveConfigFromLua();
-	return g_cleaveDefaultPercent;
+	return static_cast<uint32_t>(ConfigManager::getInteger(ConfigManager::CLEAVE_DEFAULT_PERCENT));
 }
 
 uint32_t Combat::getCleaveFistPercent()
 {
-	loadCleaveConfigFromLua();
-	return g_cleaveFistPercent;
+	return static_cast<uint32_t>(ConfigManager::getInteger(ConfigManager::CLEAVE_FIST_PERCENT));
 }
 
 void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const CombatDamage& originalDamage,

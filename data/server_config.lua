@@ -28,6 +28,8 @@ resetssystem = true
 
 -- Cleave System
 cleavesystem = true
+cleaveDefaultPercent = 30
+cleaveFistPercent = 20
 
 -- Visual display customization
 modifyDamageInK = false
