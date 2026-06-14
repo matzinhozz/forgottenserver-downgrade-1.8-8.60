@@ -2,7 +2,7 @@ local function isCleaveSystemEnabled()
 	if configManager and configKeys and configKeys.CLEAVE_SYSTEM_ENABLED then
 		return configManager.getBoolean(configKeys.CLEAVE_SYSTEM_ENABLED)
 	end
-	return true
+	return false
 end
 
 local cleaveTalk = TalkAction("!cleave")

@@ -115,14 +115,20 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 		return;
 	}
 
-	const Position& casterPos = caster->getPosition();
+	const uint32_t casterId = caster->getID();
+	const Position casterPos = caster->getPosition();
 
 	SpectatorVec spectators;
 	g_game.map.getSpectators(spectators, casterPos, false, false);
 
 	for (const auto& spectator : spectators) {
+		Creature* resolvedCaster = g_game.getCreatureByID(casterId);
+		if (!resolvedCaster) {
+			break;
+		}
+
 		Creature* creature = spectator.get();
-		if (!creature || creature == caster || creature == primaryTarget) {
+		if (!creature || creature == resolvedCaster || creature == primaryTarget) {
 			continue;
 		}
 
@@ -134,7 +140,7 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 			continue;
 		}
 
-		if (Combat::canDoCombat(caster, creature) != RETURNVALUE_NOERROR) {
+		if (Combat::canDoCombat(resolvedCaster, creature) != RETURNVALUE_NOERROR) {
 			continue;
 		}
 
@@ -153,7 +159,7 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 		cleaveParams.impactEffect = params.impactEffect;
 		cleaveParams.combatType = params.combatType;
 
-		Combat::doTargetCombat(caster, creature, cleaveDamage, cleaveParams);
+		Combat::doTargetCombat(resolvedCaster, creature, cleaveDamage, cleaveParams);
 	}
 }
 

@@ -257,11 +257,11 @@ bool Weapon::useFist(Player* player, Creature* target)
 	damage.primary.type = params.combatType;
 	damage.primary.value = -normal_random(0, maxDamage);
 
+	CombatDamage cleaveSnapshot = damage;
 	Combat::doTargetCombat(player, target, damage, params);
 	if (player->checkCleaveSystem()) {
 		uint32_t cleavePercent = Combat::getCleaveFistPercent();
 		if (cleavePercent > 0) {
-			CombatDamage cleaveSnapshot = damage;
 			Combat::doCombatCleave(player, target, cleaveSnapshot, params, cleavePercent);
 		}
 	}
@@ -293,6 +293,8 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 		damage.secondary.type = getElementType();
 		damage.secondary.value = (getElementDamage(player, target, item) * damageModifier) / 100;
 
+		CombatDamage cleaveSnapshot = damage;
+
 		if (player->checkChainSystem()) {
 			auto chainCombat = std::make_shared<Combat>();
 			chainCombat->setupChain(g_weapons->getWeapon(item));
@@ -311,7 +313,6 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 				cleavePercent = Combat::getCleaveDefaultPercent();
 			}
 			if (cleavePercent > 0) {
-				CombatDamage cleaveSnapshot = damage;
 				Combat::doCombatCleave(player, target, cleaveSnapshot, params, cleavePercent);
 			}
 		}
