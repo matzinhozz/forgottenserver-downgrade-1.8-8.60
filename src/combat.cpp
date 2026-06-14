@@ -123,13 +123,15 @@ void loadCleaveConfigFromLua()
 	if (lua_istable(L, -1)) {
 		lua_getfield(L, -1, "defaultPercent");
 		if (lua_isnumber(L, -1)) {
-			g_cleaveDefaultPercent = static_cast<uint32_t>(lua_tonumber(L, -1));
+			auto val = std::clamp(static_cast<int>(lua_tonumber(L, -1)), 0, 100);
+			g_cleaveDefaultPercent = static_cast<uint32_t>(val);
 		}
 		lua_pop(L, 1);
 
 		lua_getfield(L, -1, "fistPercent");
 		if (lua_isnumber(L, -1)) {
-			g_cleaveFistPercent = static_cast<uint32_t>(lua_tonumber(L, -1));
+			auto val = std::clamp(static_cast<int>(lua_tonumber(L, -1)), 0, 100);
+			g_cleaveFistPercent = static_cast<uint32_t>(val);
 		}
 		lua_pop(L, 1);
 	}
@@ -179,6 +181,10 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 		}
 
 		if (Combat::canDoCombat(caster, creature) != RETURNVALUE_NOERROR) {
+			continue;
+		}
+
+		if (!creature->getMonster()) {
 			continue;
 		}
 

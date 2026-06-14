@@ -296,7 +296,7 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 			Combat::doTargetCombat(player, target, damage, params);
 		}
 
-		if (player->checkCleaveSystem()) {
+		if (player->checkCleaveSystem() && damage.origin == ORIGIN_MELEE) {
 			uint32_t cleavePercent = getCleavePercent();
 			if (weaponType == WEAPON_FIST && cleavePercent == 0) {
 				cleavePercent = Combat::getCleaveFistPercent();
@@ -304,7 +304,8 @@ void Weapon::internalUseWeapon(Player* player, Item* item, Creature* target, int
 				cleavePercent = Combat::getCleaveDefaultPercent();
 			}
 			if (cleavePercent > 0) {
-				Combat::doCombatCleave(player, target, damage, params, cleavePercent);
+				CombatDamage cleaveSnapshot = damage;
+				Combat::doCombatCleave(player, target, cleaveSnapshot, params, cleavePercent);
 			}
 		}
 
