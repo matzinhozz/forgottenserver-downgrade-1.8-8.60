@@ -258,6 +258,13 @@ bool Weapon::useFist(Player* player, Creature* target)
 	damage.primary.value = -normal_random(0, maxDamage);
 
 	Combat::doTargetCombat(player, target, damage, params);
+	if (player->checkCleaveSystem()) {
+		uint32_t cleavePercent = Combat::getCleaveFistPercent();
+		if (cleavePercent > 0) {
+			CombatDamage cleaveSnapshot = damage;
+			Combat::doCombatCleave(player, target, cleaveSnapshot, params, cleavePercent);
+		}
+	}
 	if (!player->hasFlag(PlayerFlag_NotGainSkill) && player->getAddAttackSkill()) {
 		player->addSkillAdvance(SKILL_FIST, 1);
 	}
