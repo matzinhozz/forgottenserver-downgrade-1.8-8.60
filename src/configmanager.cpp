@@ -490,6 +490,7 @@ bool ConfigManager::load()
 	booleans[Boolean::STRESS_TEST_MIXED_DELAYS] = getGlobalBoolean(L, "stressTestMixedDelays", true);
 	booleans[Boolean::STRESS_TEST_LEAK] = getGlobalBoolean(L, "stressTestLeak", true);
 	booleans[Boolean::STRESS_TEST_SHUTDOWN_SEND] = getGlobalBoolean(L, "stressTestShutdownSend", true);
+	booleans[Boolean::CLEAVE_SYSTEM_ENABLED] = getGlobalBoolean(L, "cleavesystem", true);
 
 	// Admin Config
 	booleans[Boolean::ADMIN_LOCALHOST_ONLY] = getGlobalBoolean(L, "adminLocalhostOnly", true);

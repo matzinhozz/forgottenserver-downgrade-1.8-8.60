@@ -35,6 +35,7 @@ extern Vocations g_vocations;
 
 namespace {
 constexpr uint32_t CHAIN_SYSTEM_STORAGE = 40001;
+constexpr uint32_t CLEAVE_SYSTEM_STORAGE = 40002;
 
 std::shared_ptr<Item> getSharedItem(Item* item)
 {
@@ -5640,6 +5641,14 @@ bool Player::checkChainSystem() const
 		return false;
 	}
 
+	if (vocation->canCleave()) {
+		return false;
+	}
+
+	if (isPaladin()) {
+		return false;
+	}
+
 	auto playerKV = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()));
 	auto settings = playerKV->scoped("settings");
 	auto chainValue = settings->get("chainSystem");
@@ -5655,6 +5664,32 @@ bool Player::checkChainSystem() const
 	const bool enabled = legacyValue.value() == 1;
 	settings->set("chainSystem", ValueWrapper(enabled));
 	return enabled;
+}
+
+bool Player::checkCleaveSystem() const
+{
+	if (!ConfigManager::getBoolean(ConfigManager::CLEAVE_SYSTEM_ENABLED)) {
+		return false;
+	}
+
+	if (!vocation->canCleave()) {
+		return false;
+	}
+
+	auto playerKV = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()));
+	auto settings = playerKV->scoped("settings");
+	auto cleaveValue = settings->get("cleaveSystem");
+	if (cleaveValue.has_value()) {
+		return cleaveValue->get<BooleanType>();
+	}
+
+	const auto legacyValue = getStorageValue(CLEAVE_SYSTEM_STORAGE);
+	if (!legacyValue.has_value()) {
+		return true; // enabled by default for vocations that can cleave
+	}
+
+	settings->set("cleaveSystem", ValueWrapper(legacyValue.value() == 1));
+	return legacyValue.value() == 1;
 }
 
 PartyShields_t Player::getPartyShield(const Player* player) const

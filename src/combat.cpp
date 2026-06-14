@@ -9,6 +9,7 @@
 #include "events.h"
 #include "game.h"
 #include "instance_utils.h"
+#include "luascript.h"
 #include "matrixarea.h"
 #include "monster.h"
 #include "scriptmanager.h"
@@ -17,6 +18,8 @@
 #include "weapons.h"
 
 extern Game g_game;
+
+extern LuaEnvironment g_luaEnvironment;
 
 namespace {
 
@@ -96,6 +99,102 @@ std::vector<Tile*> getCombatArea(const Position& centerPos, const Position& targ
 		g_game.map.setTile(targetPos, std::move(newTile));
 	}
 	return {tile};
+}
+
+namespace {
+
+uint32_t g_cleaveDefaultPercent = 30;
+uint32_t g_cleaveFistPercent = 20;
+bool g_cleaveConfigLoaded = false;
+
+void loadCleaveConfigFromLua()
+{
+	if (g_cleaveConfigLoaded) {
+		return;
+	}
+
+	lua_State* L = g_luaEnvironment.getLuaState();
+	if (!L) {
+		g_cleaveConfigLoaded = true;
+		return;
+	}
+
+	lua_getglobal(L, "CleaveSystem");
+	if (lua_istable(L, -1)) {
+		lua_getfield(L, -1, "defaultPercent");
+		if (lua_isnumber(L, -1)) {
+			g_cleaveDefaultPercent = static_cast<uint32_t>(lua_tonumber(L, -1));
+		}
+		lua_pop(L, 1);
+
+		lua_getfield(L, -1, "fistPercent");
+		if (lua_isnumber(L, -1)) {
+			g_cleaveFistPercent = static_cast<uint32_t>(lua_tonumber(L, -1));
+		}
+		lua_pop(L, 1);
+	}
+	lua_pop(L, 1);
+
+	g_cleaveConfigLoaded = true;
+}
+
+} // namespace
+
+uint32_t Combat::getCleaveDefaultPercent()
+{
+	loadCleaveConfigFromLua();
+	return g_cleaveDefaultPercent;
+}
+
+uint32_t Combat::getCleaveFistPercent()
+{
+	loadCleaveConfigFromLua();
+	return g_cleaveFistPercent;
+}
+
+void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const CombatDamage& originalDamage,
+                            const CombatParams& params, uint32_t cleavePercent)
+{
+	if (cleavePercent == 0 || !caster) {
+		return;
+	}
+
+	const Position& casterPos = caster->getPosition();
+
+	SpectatorVec spectators;
+	g_game.map.getSpectators(spectators, casterPos, false, false);
+
+	for (const auto& spectator : spectators) {
+		Creature* creature = spectator.get();
+		if (!creature || creature == caster || creature == primaryTarget) {
+			continue;
+		}
+
+		const Position& targetPos = creature->getPosition();
+		if (targetPos.z != casterPos.z) {
+			continue;
+		}
+		if (std::abs(targetPos.x - casterPos.x) > 1 || std::abs(targetPos.y - casterPos.y) > 1) {
+			continue;
+		}
+
+		if (Combat::canDoCombat(caster, creature) != RETURNVALUE_NOERROR) {
+			continue;
+		}
+
+		CombatDamage cleaveDamage;
+		cleaveDamage.primary.type = originalDamage.primary.type;
+		cleaveDamage.primary.value = (originalDamage.primary.value * static_cast<int32_t>(cleavePercent)) / 100;
+		cleaveDamage.secondary.type = originalDamage.secondary.type;
+		cleaveDamage.secondary.value = (originalDamage.secondary.value * static_cast<int32_t>(cleavePercent)) / 100;
+		cleaveDamage.origin = originalDamage.origin;
+
+		CombatParams cleaveParams;
+		cleaveParams.impactEffect = params.impactEffect;
+		cleaveParams.combatType = params.combatType;
+
+		Combat::doTargetCombat(caster, creature, cleaveDamage, cleaveParams);
+	}
 }
 
 CombatDamage Combat::getCombatDamage(Creature* creature, Creature* target, std::string_view instantSpellName) const

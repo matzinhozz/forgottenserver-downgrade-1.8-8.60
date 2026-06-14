@@ -24,6 +24,9 @@ dualWieldingMode = "allweapons"
 -- Enable or disable the full reset system.
 resetssystem = true
 
+-- Cleave System
+cleavesystem = true
+
 -- Visual display customization
 modifyDamageInK = false
 modifyExpInK = false

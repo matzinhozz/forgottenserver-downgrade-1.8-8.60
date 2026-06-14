@@ -2837,6 +2837,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::MODIFY_DAMAGE_IN_K);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_EXP_IN_K);
 	registerEnumIn("configKeys", ConfigManager::DEFAULT_HEALTH_DISPLAY_PERCENT);
+	registerEnumIn("configKeys", ConfigManager::CLEAVE_SYSTEM_ENABLED);
 
 	registerEnumIn("configKeys", ConfigManager::MAP_NAME);
 	registerEnumIn("configKeys", ConfigManager::HOUSE_RENT_PERIOD);
