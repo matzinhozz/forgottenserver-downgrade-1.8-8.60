@@ -420,7 +420,7 @@ int luaGameSetResetStages(lua_State* L)
 		auto minReset = getField<uint32_t>(L, tableIndex, "minReset", 1);
 		auto maxReset = getField<uint32_t>(L, tableIndex, "maxReset", 0);
 		auto multiplier = getField<float>(L, tableIndex, "multiplier", 1);
-		if (minReset == 0 || multiplier <= 0.0f) {
+		if (minReset == 0 || multiplier <= 0.0f || (maxReset != 0 && maxReset < minReset)) {
 			lua_pop(L, 4);
 			pushBoolean(L, false);
 			return 1;

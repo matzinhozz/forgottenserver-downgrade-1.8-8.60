@@ -780,6 +780,8 @@ void ConfigManager::setResetStages(ResetStages stages)
 			return a.minReset < b.minReset;
 		}
 		if (a.maxReset != b.maxReset) {
+			if (a.maxReset == 0) return false;
+			if (b.maxReset == 0) return true;
 			return a.maxReset < b.maxReset;
 		}
 		return a.multiplier < b.multiplier;

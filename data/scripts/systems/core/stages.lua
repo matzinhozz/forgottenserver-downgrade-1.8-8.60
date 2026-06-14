@@ -52,6 +52,7 @@ if StagesConfig.experienceEnabled then
         { minlevel = 176, maxlevel = 180,  multiplier = 2   },
         { minlevel = 181, maxlevel = 200,  multiplier = 1.5 },
         { minlevel = 201, maxlevel = 500,  multiplier = 1   },
+        { minlevel = 501,                multiplier = 1   },
     })
 else
     Game.setExperienceStages({
@@ -153,18 +154,30 @@ StagesConfig.configureResetStages({
 function StagesConfig.configureResetStages(config)
     local configType = type(config)
     if configType == "number" then
-        Game.setResetStages({
+        local ok = Game.setResetStages({
             { minReset = 1, maxReset = 0, multiplier = config }
         })
-        logger.info(">> Reset stages configured: flat multiplier %.2f", config)
+        if ok then
+            logger.info(">> Reset stages configured: flat multiplier %.2f", config)
+        else
+            logger.error(">> Reset stages configuration rejected: flat multiplier %.2f", config)
+        end
     elseif configType == "table" then
-        Game.setResetStages(config)
-        logger.info(">> Reset stages configured: %d stage(s)", #config)
+        local ok = Game.setResetStages(config)
+        if ok then
+            logger.info(">> Reset stages configured: %d stage(s)", #config)
+        else
+            logger.error(">> Reset stages configuration rejected: %d stage(s)", #config)
+        end
     elseif configType == "function" then
         local generated = config()
         if type(generated) == "table" then
-            Game.setResetStages(generated)
-            logger.info(">> Reset stages configured via formula: %d stage(s)", #generated)
+            local ok = Game.setResetStages(generated)
+            if ok then
+                logger.info(">> Reset stages configured via formula: %d stage(s)", #generated)
+            else
+                logger.error(">> Reset stages configuration rejected via formula: %d stage(s)", #generated)
+            end
         else
             logger.error(">> Reset stages formula must return a table, got %s", type(generated))
         end
