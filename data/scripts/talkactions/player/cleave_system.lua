@@ -1,14 +1,7 @@
 local function isCleaveSystemEnabled()
-	if CleaveSystem and CleaveSystem.enabled ~= nil then
-		return CleaveSystem.enabled
+	if configManager and configKeys and configKeys.CLEAVE_SYSTEM_ENABLED then
+		return configManager.getBoolean(configKeys.CLEAVE_SYSTEM_ENABLED)
 	end
-
-	if configManager and configKeys then
-		if configKeys.CLEAVE_SYSTEM_ENABLED then
-			return configManager.getBoolean(configKeys.CLEAVE_SYSTEM_ENABLED)
-		end
-	end
-
 	return true
 end
 
@@ -17,11 +10,6 @@ local cleaveTalk = TalkAction("!cleave")
 function cleaveTalk.onSay(player, words, param)
 	if not isCleaveSystemEnabled() then
 		player:sendTextMessage(MESSAGE_INFO_DESCR, "Cleave system is not enabled on this server.")
-		return true
-	end
-
-	if not CleaveSystem then
-		player:sendTextMessage(MESSAGE_INFO_DESCR, "Cleave system is not configured. Contact an administrator.")
 		return true
 	end
 
