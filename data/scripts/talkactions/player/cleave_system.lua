@@ -39,7 +39,8 @@ function cleaveTalk.onSay(player, words, param)
 	else
 		local enabled = settings:get("cleaveSystem")
 		if enabled == nil then
-			enabled = player:getStorageValue(cleaveStorage) == 1
+			local legacy = player:getStorageValue(cleaveStorage)
+			enabled = (legacy == nil) or (legacy == 1)
 			settings:set("cleaveSystem", enabled)
 		end
 		local stateText = (enabled == true) and "enabled" or "disabled"
