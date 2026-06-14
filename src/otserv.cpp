@@ -47,11 +47,11 @@ std::unique_lock<std::mutex> g_loaderUniqueLock(g_loaderLock);
 
 namespace {
 
-bool getLogToFileFromConfig(const std::string& configFile)
+std::pair<bool, LogLevel> getLogToFileFromConfig(const std::string& configFile)
 {
 	lua_State* L = luaL_newstate();
 	if (!L) {
-		return false;
+		return {false, LogLevel::INFO};
 	}
 	luaL_openlibs(L);
 
@@ -63,11 +63,19 @@ bool getLogToFileFromConfig(const std::string& configFile)
 	lua_setglobal(L, "TEXTCOLOR_ORANGE");
 
 	bool logToFile = false;
+	LogLevel logLevel = LogLevel::INFO;
 	if (luaL_dofile(L, configFile.c_str()) == 0) {
 		lua_getglobal(L, "logToFile");
 		if (lua_isboolean(L, -1)) {
 			logToFile = lua_toboolean(L, -1) != 0;
 		}
+		lua_pop(L, 1);
+
+		lua_getglobal(L, "logLevel");
+		if (lua_isstring(L, -1)) {
+			logLevel = parseLogLevel(lua_tostring(L, -1));
+		}
+		lua_pop(L, 1);
 	} else {
 		fmt::print(stderr, "Warning: Failed to parse config file '{}': {}\n", configFile, lua_tostring(L, -1));
 	}
@@ -79,13 +87,20 @@ bool getLogToFileFromConfig(const std::string& configFile)
 			if (lua_isboolean(L, -1)) {
 				logToFile = lua_toboolean(L, -1) != 0;
 			}
+			lua_pop(L, 1);
+
+			lua_getglobal(L, "logLevel");
+			if (lua_isstring(L, -1)) {
+				logLevel = parseLogLevel(lua_tostring(L, -1));
+			}
+			lua_pop(L, 1);
 		} else {
 			fmt::print(stderr, "Warning: Failed to parse server config '{}': {}\n", serverConfigFile, lua_tostring(L, -1));
 		}
 	}
 
 	lua_close(L);
-	return logToFile;
+	return {logToFile, logLevel};
 }
 
 void startupErrorMessage(std::string_view errorStr)
@@ -186,9 +201,9 @@ void mainLoader(const std::shared_ptr<ServiceManager>& services)
 		c_test.close();
 	}
 
-	bool logToFile = getLogToFileFromConfig(std::string{configFile});
+	auto [logToFile, logLevel] = getLogToFileFromConfig(std::string{configFile});
 
-	if (!initLogger(LogLevel::INFO, "data/logs/server.log", 5 * 1024 * 1024, 3, logToFile)) {
+	if (!initLogger(logLevel, "data/logs/server.log", 5 * 1024 * 1024, 3, logToFile)) {
 		fmt::print(stderr, "Failed to initialize logger!\n");
 		startupErrorMessage("Failed to initialize logger!");
 		return;
