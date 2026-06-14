@@ -5753,10 +5753,10 @@ bool Player::checkCleaveSystem() const
 		return cleaveValue->get<BooleanType>();
 	}
 
-	const auto legacyValue = getStorageValue(CLEAVE_SYSTEM_STORAGE);
-	if (!legacyValue.has_value()) {
-		return true; // enabled by default for vocations that can cleave
-	}
+		const auto legacyValue = getStorageValue(CLEAVE_SYSTEM_STORAGE);
+		if (!legacyValue.has_value()) {
+			return false; // disabled by default
+		}
 
 	settings->set("cleaveSystem", ValueWrapper(legacyValue.value() == 1));
 	return legacyValue.value() == 1;
