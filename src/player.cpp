@@ -35,7 +35,6 @@ extern Vocations g_vocations;
 
 namespace {
 constexpr uint32_t CHAIN_SYSTEM_STORAGE = 40001;
-constexpr uint32_t CLEAVE_SYSTEM_STORAGE = 40002;
 
 std::shared_ptr<Item> getSharedItem(Item* item)
 {
@@ -5753,13 +5752,7 @@ bool Player::checkCleaveSystem() const
 		return cleaveValue->get<BooleanType>();
 	}
 
-		const auto legacyValue = getStorageValue(CLEAVE_SYSTEM_STORAGE);
-		if (!legacyValue.has_value()) {
-			return true; // enabled by default for vocations that can cleave
-		}
-
-	settings->set("cleaveSystem", ValueWrapper(legacyValue.value() == 1));
-	return legacyValue.value() == 1;
+	return true; // enabled by default for vocations that can cleave
 }
 
 PartyShields_t Player::getPartyShield(const Player* player) const
