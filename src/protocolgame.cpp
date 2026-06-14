@@ -113,6 +113,44 @@ bool requireUnreadBytes(NetworkMessage& msg, std::size_t required)
 	return false;
 }
 
+bool canUseAstraHirelingProtocol(bool isAstraClient)
+{
+	return isAstraClient && getBoolean(ConfigManager::HIRELING_SYSTEM_ENABLED) &&
+	       getBoolean(ConfigManager::ASTRA_HIRELING_PROTOCOL_ENABLED);
+}
+
+constexpr std::size_t HIRELING_OUTFIT_REQUEST_SIZE = 9;
+constexpr std::size_t HIRELING_OUTFIT_CHANGE_SIZE = 16;
+constexpr uint8_t HIRELING_TARGET_TYPE = 1;
+
+bool hasHirelingOutfitMarker(const uint8_t* payload)
+{
+	return payload[0] == 'H' && payload[1] == 'R' && payload[2] == 'L' && payload[3] == 'G' &&
+	       payload[4] == HIRELING_TARGET_TYPE;
+}
+
+bool isHirelingOutfitRequestPacket(const NetworkMessage& msg, bool isAstraClient)
+{
+	if (!canUseAstraHirelingProtocol(isAstraClient) ||
+	    getUnreadBytes(msg) != HIRELING_OUTFIT_REQUEST_SIZE) {
+		return false;
+	}
+
+	const uint8_t* payload = msg.getBuffer() + msg.getBufferPosition();
+	return hasHirelingOutfitMarker(payload);
+}
+
+bool isHirelingOutfitChangePacket(const NetworkMessage& msg, bool isAstraClient)
+{
+	if (!canUseAstraHirelingProtocol(isAstraClient) ||
+	    getUnreadBytes(msg) != HIRELING_OUTFIT_CHANGE_SIZE) {
+		return false;
+	}
+
+	const uint8_t* payload = msg.getBuffer() + msg.getBufferPosition();
+	return hasHirelingOutfitMarker(payload);
+}
+
 uint8_t getRuleViolationTypeFromLegacyAction(uint8_t action)
 {
 	if (action == 6) {
@@ -814,7 +852,7 @@ void ProtocolGame::onRecvFirstMessage(NetworkMessage& msg)
 			disconnectClient(AstraClient::REQUIRED_MESSAGE);
 			return;
 		}
-		LOG_INFO("[AstraClient] Client accepted");
+		LOG_INFO(">> [AstraClient] Client accepted");
 	}
 
 	if (isOTC) {
@@ -1245,11 +1283,19 @@ void ProtocolGame::parsePacket(NetworkMessage& msg)
 			break;
 
 		case 0xD2:
-			g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerRequestOutfit(playerID); });
+			if (isHirelingOutfitRequestPacket(msg, isAstraClient)) {
+				dispatchPlayerNetworkMessage(recvbyte, msg);
+			} else {
+				g_dispatcher.addTask([playerID = player->getID()]() { g_game.playerRequestOutfit(playerID); });
+			}
 			break;
 
 		case 0xD3:
-			parseSetOutfit(msg);
+			if (isHirelingOutfitChangePacket(msg, isAstraClient)) {
+				dispatchPlayerNetworkMessage(recvbyte, msg);
+			} else {
+				parseSetOutfit(msg);
+			}
 			break;
 
 		case 0xDC:

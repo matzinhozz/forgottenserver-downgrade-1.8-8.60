@@ -291,6 +291,65 @@ uint16_t Player::getPreyDamageReduction(std::string_view monsterName) const
 	return 0;
 }
 
+// Task Hunting / Bounty / Soulseals
+
+void Player::addTaskHuntingPoints(uint64_t points)
+{
+	uint64_t maxVal = std::numeric_limits<uint64_t>::max();
+	if (taskHuntingPoints > maxVal - points) {
+		taskHuntingPoints = maxVal; // saturate
+	} else {
+		taskHuntingPoints += points;
+	}
+}
+
+bool Player::removeTaskHuntingPoints(uint64_t points)
+{
+	if (taskHuntingPoints < points) {
+		return false;
+	}
+	taskHuntingPoints -= points;
+	return true;
+}
+
+void Player::addBountyPoints(uint64_t points)
+{
+	uint64_t maxVal = std::numeric_limits<uint64_t>::max();
+	if (bountyPoints > maxVal - points) {
+		bountyPoints = maxVal;
+	} else {
+		bountyPoints += points;
+	}
+}
+
+bool Player::removeBountyPoints(uint64_t points)
+{
+	if (bountyPoints < points) {
+		return false;
+	}
+	bountyPoints -= points;
+	return true;
+}
+
+void Player::addSoulsealsPoints(uint64_t points)
+{
+	uint64_t maxVal = std::numeric_limits<uint64_t>::max();
+	if (soulsealsPoints > maxVal - points) {
+		soulsealsPoints = maxVal;
+	} else {
+		soulsealsPoints += points;
+	}
+}
+
+bool Player::removeSoulsealsPoints(uint64_t points)
+{
+	if (soulsealsPoints < points) {
+		return false;
+	}
+	soulsealsPoints -= points;
+	return true;
+}
+
 Player::~Player()
 {
 	for (auto& item : inventory) {
@@ -639,9 +698,9 @@ bool Player::isInventorySlot(slots_t slot) const
 	return slot >= CONST_SLOT_FIRST && slot <= CONST_SLOT_LAST;
 }
 
-void Player::addConditionSuppressions(uint32_t conditions) { conditionSuppressions |= conditions; }
+void Player::addConditionSuppressions(uint64_t conditions) { conditionSuppressions |= conditions; }
 
-void Player::removeConditionSuppressions(uint32_t conditions) { conditionSuppressions &= ~conditions; }
+void Player::removeConditionSuppressions(uint64_t conditions) { conditionSuppressions &= ~conditions; }
 
 Item* Player::getWeapon(slots_t slot, bool ignoreAmmo) const
 {
@@ -704,13 +763,21 @@ void Player::sendMonkData()
 void Player::addBlessing(uint8_t blessing, uint8_t count)
 {
 	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS || blessings[blessing] == 255) return;
+	const uint8_t oldCount = blessings[blessing];
 	blessings[blessing] = static_cast<uint8_t>(std::min(255, blessings[blessing] + count));
+	if (blessings[blessing] != oldCount) {
+		sendBlessStatus();
+	}
 }
 
 void Player::removeBlessing(uint8_t blessing, uint8_t count)
 {
 	if (blessing < 1 || blessing > PLAYER_MAX_BLESSINGS) return;
+	const uint8_t oldCount = blessings[blessing];
 	blessings[blessing] = static_cast<uint8_t>(std::max(0, blessings[blessing] - count));
+	if (blessings[blessing] != oldCount) {
+		sendBlessStatus();
+	}
 }
 
 bool Player::hasBlessing(uint8_t blessing) const
@@ -3982,7 +4049,8 @@ ReturnValue Player::queryRemove(const Thing& thing, uint32_t count, uint32_t fla
 	return RETURNVALUE_NOERROR;
 }
 
-Cylinder* Player::queryDestination(int32_t& index, const Thing& thing, Item** destItem, uint32_t& flags)
+Cylinder* Player::queryDestination(int32_t& index, const Thing& thing, Item** destItem, uint32_t& flags,
+                                   uint32_t destinationInstanceId)
 {
 	if (index == 0 /*drop to capacity window*/ || index == INDEX_WHEREEVER) {
 		*destItem = nullptr;
@@ -4011,7 +4079,8 @@ Cylinder* Player::queryDestination(int32_t& index, const Thing& thing, Item** de
 				if (autoStack && isStackable) {
 					// try find an already existing item to stack with
 					if (queryAdd(slotIndex, *item, item->getItemCount(), 0) == RETURNVALUE_NOERROR) {
-						if (inventoryItem->equals(item) &&
+						if (inventoryItem->getInstanceID() == destinationInstanceId &&
+						    inventoryItem->equalsIgnoringInstance(item) &&
 						    inventoryItem->getItemCount() < inventoryItem->getStackSize()) {
 							index = slotIndex;
 							*destItem = inventoryItem;
@@ -4071,7 +4140,8 @@ Cylinder* Player::queryDestination(int32_t& index, const Thing& thing, Item** de
 				}
 
 				// try find an already existing item to stack with
-				if (tmpItem->equals(item) && tmpItem->getItemCount() < tmpItem->getStackSize()) {
+				if (tmpItem->getInstanceID() == destinationInstanceId && tmpItem->equalsIgnoringInstance(item) &&
+				    tmpItem->getItemCount() < tmpItem->getStackSize()) {
 					index = n;
 					*destItem = tmpItem.get();
 					return tmpContainer;
@@ -5963,7 +6033,7 @@ bool Player::toggleMount(bool mount)
 bool Player::tameMount(uint16_t mountId)
 {
 	Mount* mount = g_game.mounts.getMountByID(mountId);
-	if (!mount || hasMount(mount)) {
+	if (!mount || ownsMount(mount)) {
 		return false;
 	}
 
@@ -5974,7 +6044,7 @@ bool Player::tameMount(uint16_t mountId)
 bool Player::untameMount(uint16_t mountId)
 {
 	Mount* mount = g_game.mounts.getMountByID(mountId);
-	if (!mount || hasMount(mount)) {
+	if (!mount || !ownsMount(mount)) {
 		return false;
 	}
 
@@ -5992,6 +6062,11 @@ bool Player::untameMount(uint16_t mountId)
 	return true;
 }
 
+bool Player::ownsMount(const Mount* mount) const
+{
+	return mount && mounts.contains(mount->id);
+}
+
 bool Player::hasMount(const Mount* mount) const
 {
 	if (isAccessPlayer()) {
@@ -6002,7 +6077,7 @@ bool Player::hasMount(const Mount* mount) const
 		return false;
 	}
 
-	return mounts.contains(mount->id);
+	return ownsMount(mount);
 }
 
 bool Player::hasMounts() const

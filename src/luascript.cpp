@@ -1340,14 +1340,15 @@ void Lua::pushSpell(lua_State* L, const Spell& spell)
 	setMetatable(L, -1, "Spell");
 }
 
-void Lua::pushPosition(lua_State* L, const Position& position, int32_t stackpos /* = 0*/)
+void Lua::pushPosition(lua_State* L, const Position& position, int32_t stackpos /* = 0*/, uint32_t instanceId /* = 0*/)
 {
-	lua_createtable(L, 0, 4);
+	lua_createtable(L, 0, 5);
 
 	setField(L, "x", position.x);
 	setField(L, "y", position.y);
 	setField(L, "z", position.z);
 	setField(L, "stackpos", stackpos);
+	setField(L, "instanceId", instanceId);
 
 	setMetatable(L, -1, "Position");
 }
@@ -1722,6 +1723,10 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(CONDITION_CLIPORT);
 	registerEnum(CONDITION_SPELLCOOLDOWN);
 	registerEnum(CONDITION_SPELLGROUPCOOLDOWN);
+	registerEnum(CONDITION_LESSERHEX);
+	registerEnum(CONDITION_INTENSEHEX);
+	registerEnum(CONDITION_GREATERHEX);
+	registerEnum(CONDITION_POWERLESS);
 	registerEnum(CreatureIconCategory_Quests);
 	registerEnum(CreatureIconCategory_Modifications);
 
@@ -2460,6 +2465,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(SPEECHBUBBLE_TRADE);
 	registerEnum(SPEECHBUBBLE_QUEST);
 	registerEnum(SPEECHBUBBLE_QUESTTRADER);
+	registerEnum(SPEECHBUBBLE_HIRELING);
 
 	registerEnum(TALKTYPE_SAY);
 	registerEnum(TALKTYPE_WHISPER);
@@ -2830,6 +2836,8 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::AUGMENT_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::MONSTER_LEVEL_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::LOOT_GROUPING_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::HIRELING_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::ASTRA_HIRELING_PROTOCOL_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::COLORIZED_LOOT_VALUE);
 	registerEnumIn("configKeys", ConfigManager::ITEM_TIER_DISPLAY);
 	registerEnumIn("configKeys", ConfigManager::ITEM_UPGRADE_CLASSIFICATION);
@@ -2837,6 +2845,11 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::MODIFY_DAMAGE_IN_K);
 	registerEnumIn("configKeys", ConfigManager::MODIFY_EXP_IN_K);
 	registerEnumIn("configKeys", ConfigManager::DEFAULT_HEALTH_DISPLAY_PERCENT);
+	registerEnumIn("configKeys", ConfigManager::TASK_HUNTING_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::BOUNTY_TASKS_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::WEEKLY_TASKS_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::SOULPIT_SYSTEM_ENABLED);
+	registerEnumIn("configKeys", ConfigManager::SOULSEALS_SYSTEM_ENABLED);
 	registerEnumIn("configKeys", ConfigManager::CLEAVE_SYSTEM_ENABLED);
 
 	registerEnumIn("configKeys", ConfigManager::MAP_NAME);

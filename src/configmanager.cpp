@@ -462,11 +462,25 @@ bool ConfigManager::load()
 	booleans[Boolean::RAID_SPAWN_FILE_ENABLED] = getGlobalBoolean(L, "raidSpawnFileEnabled", true);
 	booleans[Boolean::POWERLAW] = getGlobalBoolean(L, "powerlaw", false);
 	booleans[Boolean::ASTRA_CLIENT_ONLY] = getGlobalBoolean(L, "astraClientOnly", false);
+	booleans[Boolean::HIRELING_SYSTEM_ENABLED] = getGlobalBoolean(L, "hirelingSystemEnabled", false);
+	booleans[Boolean::ASTRA_HIRELING_PROTOCOL_ENABLED] =
+	    getGlobalBoolean(L, "astraHirelingProtocolEnabled", false);
 	booleans[Boolean::COLORIZED_LOOT_VALUE] = getGlobalBoolean(L, "enableColorizedLootValue", false);
 	booleans[Boolean::ITEM_TIER_DISPLAY] = getGlobalBoolean(L, "enableItemTierDisplay", false);
 	booleans[Boolean::ITEM_UPGRADE_CLASSIFICATION] = getGlobalBoolean(L, "enableItemUpgradeClassification", false);
 	booleans[Boolean::QUICK_LOOT_ENABLED] = getGlobalBoolean(L, "enableQuickLoot", false);
+	booleans[Boolean::TASK_HUNTING_SYSTEM_ENABLED] = getGlobalBoolean(L, "taskHuntingSystemEnabled", false);
+	booleans[Boolean::BOUNTY_TASKS_ENABLED] = getGlobalBoolean(L, "bountyTasksEnabled", false);
+	booleans[Boolean::WEEKLY_TASKS_ENABLED] = getGlobalBoolean(L, "weeklyTasksEnabled", false);
+	booleans[Boolean::SOULPIT_SYSTEM_ENABLED] = getGlobalBoolean(L, "soulpitSystemEnabled", false);
+	booleans[Boolean::SOULSEALS_SYSTEM_ENABLED] = getGlobalBoolean(L, "soulsealsSystemEnabled", false);
 
+	// Normalize: if task hunting is off, dependent features are also off
+	if (!booleans[Boolean::TASK_HUNTING_SYSTEM_ENABLED]) {
+		booleans[Boolean::BOUNTY_TASKS_ENABLED] = false;
+		booleans[Boolean::WEEKLY_TASKS_ENABLED] = false;
+		booleans[Boolean::SOULSEALS_SYSTEM_ENABLED] = false;
+	}
 	// Stress Reactor
 	booleans[Boolean::STRESS_TEST] = getGlobalBoolean(L, "stressTest", false);
 	booleans[Boolean::STRESS_TEST_SEND] = getGlobalBoolean(L, "stressTestSend", true);

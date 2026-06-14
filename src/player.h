@@ -183,6 +183,7 @@ public:
 	bool changeMount(uint16_t mountId, bool checkList = true);
 	bool tameMount(uint16_t mountId);
 	bool untameMount(uint16_t mountId);
+	bool ownsMount(const Mount* mount) const;
 	bool hasMount(const Mount* mount) const;
 	bool hasMounts() const;
 	void dismount();
@@ -281,6 +282,25 @@ public:
 	void setPreyDamageReduction(std::string monsterName, uint16_t value);
 	uint16_t getPreyDamageBoost(std::string_view monsterName) const;
 	uint16_t getPreyDamageReduction(std::string_view monsterName) const;
+
+	// Task Hunting / Bounty / Weekly / Soulseals
+	uint64_t getTaskHuntingPoints() const { return taskHuntingPoints; }
+	void setTaskHuntingPoints(uint64_t points) { taskHuntingPoints = points; }
+	void addTaskHuntingPoints(uint64_t points);
+	[[nodiscard]] bool removeTaskHuntingPoints(uint64_t points);
+
+	uint64_t getBountyPoints() const { return bountyPoints; }
+	void setBountyPoints(uint64_t points) { bountyPoints = points; }
+	void addBountyPoints(uint64_t points);
+	[[nodiscard]] bool removeBountyPoints(uint64_t points);
+
+	uint64_t getSoulsealsPoints() const { return soulsealsPoints; }
+	void setSoulsealsPoints(uint64_t points) { soulsealsPoints = points; }
+	void addSoulsealsPoints(uint64_t points);
+	[[nodiscard]] bool removeSoulsealsPoints(uint64_t points);
+
+	bool hasWeeklyExpansion() const { return m_hasWeeklyExpansion; }
+	void setWeeklyExpansion(bool has) { m_hasWeeklyExpansion = has; }
 	float getResetDefenseBonus() const {
 		return resetDefenseBonus;
 	}
@@ -602,8 +622,8 @@ public:
 	int32_t getHelmetCooldownReduction() const { return helmetCooldownReduction; }
 	void setHelmetCooldownReduction(int32_t value) { helmetCooldownReduction = value; }
 
-	void addConditionSuppressions(uint32_t conditions);
-	void removeConditionSuppressions(uint32_t conditions);
+	void addConditionSuppressions(uint64_t conditions);
+	void removeConditionSuppressions(uint64_t conditions);
 
 	DepotChest* getDepotChest(uint32_t depotId, bool autoCreate);
 	DepotLocker* getDepotLocker(uint32_t depotId);
@@ -1499,7 +1519,8 @@ private:
 	                          uint32_t flags) const override;
 	ReturnValue queryRemove(const Thing& thing, uint32_t count, uint32_t flags,
 	                        Creature* actor = nullptr) const override;
-	Cylinder* queryDestination(int32_t& index, const Thing& thing, Item** destItem, uint32_t& flags) override;
+	Cylinder* queryDestination(int32_t& index, const Thing& thing, Item** destItem, uint32_t& flags,
+	                           uint32_t destinationInstanceId) override;
 
 	void addThing(Thing*) override {}
 	void addThing(int32_t index, Thing* thing) override;
@@ -1559,6 +1580,9 @@ private:
 	uint64_t manaSpent = 0;
 	uint64_t lastAttack = 0;
 	uint64_t bankBalance = 0;
+	uint64_t taskHuntingPoints = 0;
+	uint64_t bountyPoints = 0;
+	uint64_t soulsealsPoints = 0;
 	int64_t lastFailedFollow = 0;
 	int64_t skullTicks = 0;
 	int64_t lastToggleMount = 0;
@@ -1592,8 +1616,8 @@ private:
 	uint32_t inventoryWeight = 0;
 	uint32_t capacity = 40000;
 	uint32_t damageImmunities = 0;
-	uint32_t conditionImmunities = 0;
-	uint32_t conditionSuppressions = 0;
+	uint64_t conditionImmunities = 0;
+	uint64_t conditionSuppressions = 0;
 	uint32_t level = 1;
 	uint32_t reset = 0; // reset system
 	int32_t resetAttackSpeedBonus = 0;
@@ -1684,6 +1708,7 @@ private:
 	uint8_t m_harmony = 0;
 	bool m_serene = false;
 	uint64_t m_serene_cooldown = 0;
+	bool m_hasWeeklyExpansion = false;
 	int64_t rootImmunityEnd = 0;
 	int64_t fearImmunityEnd = 0;
 	VirtueMonk_t m_virtue = VIRTUE_NONE;
@@ -1715,8 +1740,8 @@ private:
 		return skillLoss ? static_cast<uint64_t>(experience * getLostPercent()) : 0;
 	}
 	uint32_t getDamageImmunities() const override { return damageImmunities; }
-	uint32_t getConditionImmunities() const override { return conditionImmunities; }
-	uint32_t getConditionSuppressions() const override { return conditionSuppressions; }
+	uint64_t getConditionImmunities() const override { return conditionImmunities; }
+	uint64_t getConditionSuppressions() const override { return conditionSuppressions; }
 	uint16_t getLookCorpse() const override;
 	void getPathSearchParams(const Creature* creature, FindPathParams& fpp) const override;
 
