@@ -148,6 +148,12 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 			continue;
 		}
 
+		if (auto master = creature->getMaster()) {
+			if (master->getPlayer()) {
+				continue;
+			}
+		}
+
 		CombatDamage cleaveDamage;
 		cleaveDamage.primary.type = originalDamage.primary.type;
 		cleaveDamage.primary.value = (originalDamage.primary.value * static_cast<int32_t>(cleavePercent)) / 100;
