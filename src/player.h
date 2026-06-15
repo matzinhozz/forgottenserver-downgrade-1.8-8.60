@@ -1461,6 +1461,7 @@ public:
 	bool isSecureModeEnabled() const { return secureMode; }
 
 	bool checkChainSystem() const;
+	bool checkCleaveSystem() const;
 
 	bool hasDebugAssertSent() const { return client ? client->debugAssertSent : false; }
 
