@@ -316,7 +316,8 @@ int luaGameSetExperienceStages(lua_State* L)
 		const auto tableIndex = lua_gettop(L);
 		if (!lua_istable(L, tableIndex)) {
 			lua_pop(L, 1);
-			continue;
+			pushBoolean(L, false);
+			return 1;
 		}
 		auto minLevel = getField<uint32_t>(L, tableIndex, "minlevel", 1);
 		auto maxLevel = getField<uint32_t>(L, tableIndex, "maxlevel", std::numeric_limits<uint32_t>::max());
@@ -349,7 +350,8 @@ int luaGameSetSkillStages(lua_State* L)
 		const auto tableIndex = lua_gettop(L);
 		if (!lua_istable(L, tableIndex)) {
 			lua_pop(L, 1);
-			continue;
+			pushBoolean(L, false);
+			return 1;
 		}
 		auto minLevel = getField<uint32_t>(L, tableIndex, "minlevel", 1);
 		auto maxLevel = getField<uint32_t>(L, tableIndex, "maxlevel", std::numeric_limits<uint32_t>::max());
@@ -382,7 +384,8 @@ int luaGameSetMagicLevelStages(lua_State* L)
 		const auto tableIndex = lua_gettop(L);
 		if (!lua_istable(L, tableIndex)) {
 			lua_pop(L, 1);
-			continue;
+			pushBoolean(L, false);
+			return 1;
 		}
 		auto minLevel = getField<uint32_t>(L, tableIndex, "minlevel", 0);
 		auto maxLevel = getField<uint32_t>(L, tableIndex, "maxlevel", std::numeric_limits<uint32_t>::max());
@@ -415,7 +418,8 @@ int luaGameSetResetStages(lua_State* L)
 		const auto tableIndex = lua_gettop(L);
 		if (!lua_istable(L, tableIndex)) {
 			lua_pop(L, 1);
-			continue;
+			pushBoolean(L, false);
+			return 1;
 		}
 		auto minReset = getField<uint32_t>(L, tableIndex, "minReset", 1);
 		auto maxReset = getField<uint32_t>(L, tableIndex, "maxReset", 0);

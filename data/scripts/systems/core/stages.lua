@@ -11,8 +11,8 @@ StagesConfig = {}
 -- TOGGLES AND FALLBACK RATES
 -- =============================================================================
 -- For each stage type, set `enabled` and the `rate` fallback.
--- When `enabled = false`, a catch-all stage with `minlevel=1` and
--- `multiplier=<rate>` is registered automatically.
+-- When `enabled = false`, a catch-all stage with `multiplier=<rate>` is registered
+-- automatically (minlevel defaults to 1 for experience/skill, 0 for magic level).
 StagesConfig.experienceEnabled = true
 StagesConfig.rateExp            = 150
 
@@ -154,20 +154,28 @@ StagesConfig.configureResetStages({
 function StagesConfig.configureResetStages(config)
     local configType = type(config)
     if configType == "number" then
+        if config <= 0 then
+            logger.error(">> Reset stages: multiplier must be a positive value, got %.2f", config)
+            return false
+        end
         local ok = Game.setResetStages({
             { minReset = 1, maxReset = 0, multiplier = config }
         })
         if ok then
             logger.info(">> Reset stages configured: flat multiplier %.2f", config)
+            return true
         else
             logger.error(">> Reset stages configuration rejected: flat multiplier %.2f", config)
+            return false
         end
     elseif configType == "table" then
         local ok = Game.setResetStages(config)
         if ok then
             logger.info(">> Reset stages configured: %d stage(s)", #config)
+            return true
         else
             logger.error(">> Reset stages configuration rejected: %d stage(s)", #config)
+            return false
         end
     elseif configType == "function" then
         local generated = config()
@@ -175,14 +183,18 @@ function StagesConfig.configureResetStages(config)
             local ok = Game.setResetStages(generated)
             if ok then
                 logger.info(">> Reset stages configured via formula: %d stage(s)", #generated)
+                return true
             else
                 logger.error(">> Reset stages configuration rejected via formula: %d stage(s)", #generated)
+                return false
             end
         else
             logger.error(">> Reset stages formula must return a table, got %s", type(generated))
+            return false
         end
     else
         logger.error(">> Invalid reset stages config type: %s", configType)
+        return false
     end
 end
 
