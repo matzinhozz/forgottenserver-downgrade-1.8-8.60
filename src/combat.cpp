@@ -164,6 +164,8 @@ void Combat::doCombatCleave(Creature* caster, Creature* primaryTarget, const Com
 		CombatParams cleaveParams;
 		cleaveParams.impactEffect = params.impactEffect;
 		cleaveParams.combatType = params.combatType;
+		cleaveParams.blockedByArmor = params.blockedByArmor;
+		cleaveParams.blockedByShield = params.blockedByShield;
 
 		Combat::doTargetCombat(resolvedCaster, creature, cleaveDamage, cleaveParams);
 	}
