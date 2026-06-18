@@ -22,6 +22,7 @@
 #include "town.h"
 #include "vocation.h"
 #include "weapon_proficiency.h"
+#include "kv/kv.h"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -47,6 +48,7 @@ class Party;
 class SchedulerTask;
 class Bed;
 class Guild;
+class KV;
 
 enum skillsid_t
 {
@@ -1489,6 +1491,9 @@ public:
 	bool isSecureModeEnabled() const { return secureMode; }
 
 	bool checkChainSystem() const;
+	bool checkCleaveSystem() const;
+
+	void resetCachedSettings() { cachedPlayerSettings_ = nullptr; }
 
 	bool hasDebugAssertSent() const { return client ? client->debugAssertSent : false; }
 
@@ -1520,6 +1525,8 @@ public:
 	int32_t totalDropBonus = 0;
 
 private:
+	mutable std::shared_ptr<KV> cachedPlayerSettings_;
+
 	struct PreyCombatBonus {
 		uint16_t damageBoost = 0;
 		uint16_t damageReduction = 0;

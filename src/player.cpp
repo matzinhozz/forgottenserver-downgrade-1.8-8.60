@@ -5713,9 +5713,18 @@ bool Player::checkChainSystem() const
 		return false;
 	}
 
-	auto playerKV = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()));
-	auto settings = playerKV->scoped("settings");
-	auto chainValue = settings->get("chainSystem");
+	if (vocation->canCleave()) {
+		return false;
+	}
+
+	if (isPaladin()) {
+		return false;
+	}
+
+	if (!cachedPlayerSettings_) {
+		cachedPlayerSettings_ = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()))->scoped("settings");
+	}
+	auto chainValue = cachedPlayerSettings_->get("chainSystem");
 	if (chainValue.has_value()) {
 		return chainValue->get<BooleanType>();
 	}
@@ -5726,8 +5735,29 @@ bool Player::checkChainSystem() const
 	}
 
 	const bool enabled = legacyValue.value() == 1;
-	settings->set("chainSystem", ValueWrapper(enabled));
+	cachedPlayerSettings_->set("chainSystem", ValueWrapper(enabled));
 	return enabled;
+}
+
+bool Player::checkCleaveSystem() const
+{
+	if (!ConfigManager::getBoolean(ConfigManager::CLEAVE_SYSTEM_ENABLED)) {
+		return false;
+	}
+
+	if (!vocation->canCleave()) {
+		return false;
+	}
+
+	if (!cachedPlayerSettings_) {
+		cachedPlayerSettings_ = KVStore::getInstance().scoped("player")->scoped(fmt::format("{}", getGUID()))->scoped("settings");
+	}
+	auto cleaveValue = cachedPlayerSettings_->get("cleaveSystem");
+	if (cleaveValue.has_value()) {
+		return cleaveValue->get<BooleanType>();
+	}
+
+	return true; // enabled by default for vocations that can cleave
 }
 
 PartyShields_t Player::getPartyShield(const Player* player) const
